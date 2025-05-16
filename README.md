@@ -35,7 +35,7 @@ Musa is a modern, privacy-focused estate access control web application designed
 
 1. **Clone the repository:**
    ```
-   git clone <repository-url>
+   git clone https://github.com/toyosi-1/Musa.git
    cd musa-app
    ```
 
