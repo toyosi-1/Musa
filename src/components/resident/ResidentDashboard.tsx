@@ -7,6 +7,7 @@ import { getHousehold, createHousehold } from '@/services/householdService';
 import AccessCodeCard from '@/components/resident/AccessCodeCard';
 import HouseholdManager from '@/components/resident/HouseholdManager';
 import CreateAccessCodeForm from '@/components/resident/CreateAccessCodeForm';
+import PendingInvitations from '@/components/resident/PendingInvitations';
 
 interface ResidentDashboardProps {
   user: User;
@@ -216,11 +217,24 @@ export default function ResidentDashboard({ user }: ResidentDashboardProps) {
       )}
       
       {activeTab === 'household' && (
-        <HouseholdManager 
-          user={user}
-          household={household}
-          onCreateHousehold={handleCreateHousehold}
-        />
+        <div>
+          {/* Show pending invitations for users without a household */}
+          {!user.householdId && !household && (
+            <PendingInvitations 
+              user={user} 
+              onInvitationAccepted={() => {
+                // Reload the page to refresh user data after accepting an invitation
+                window.location.reload();
+              }} 
+            />
+          )}
+          
+          <HouseholdManager 
+            user={user}
+            household={household}
+            onCreateHousehold={handleCreateHousehold}
+          />
+        </div>
       )}
     </div>
   );

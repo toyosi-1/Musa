@@ -21,6 +21,7 @@
     "accessCodesByUser": {},
     "accessCodesByHousehold": {},
     "householdInvites": {
+      ".indexOn": "email",
       "$inviteId": {
         ".validate": "newData.hasChildren(['householdId', 'invitedBy', 'email', 'status', 'createdAt', 'expiresAt'])"
       }

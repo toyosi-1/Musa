@@ -108,8 +108,8 @@ export default function GuardDashboard({ user }: GuardDashboardProps) {
         
         {/* Manual Code Entry Section */}
         <div className="p-4">
-          <h2 className="text-lg font-semibold mb-4">Manual Code Entry</h2>
-          <form onSubmit={handleVerifyCode} className="space-y-4">
+          <h2 className="text-lg font-semibold mb-4 text-center">Manual Code Entry</h2>
+          <form onSubmit={handleVerifyCode} className="space-y-4 max-w-md mx-auto">
             <div>
               <input
                 ref={inputRef}
@@ -117,7 +117,7 @@ export default function GuardDashboard({ user }: GuardDashboardProps) {
                 value={manualCode}
                 onChange={(e) => setManualCode(e.target.value.toUpperCase())}
                 placeholder="Enter access code (e.g., MUSA1234)"
-                className="input w-full text-center text-3xl font-black font-mono tracking-wider py-4 text-black dark:text-white bg-gray-100 dark:bg-gray-700 border-4 border-indigo-600 focus:border-indigo-800 focus:ring-2 focus:ring-indigo-500 rounded-lg shadow-lg"
+                className="input block w-full text-center text-lg font-medium font-mono tracking-wider py-3 text-black dark:text-white bg-gray-100 dark:bg-gray-700 border-2 border-indigo-600 focus:border-indigo-800 focus:ring-2 focus:ring-indigo-500 rounded-lg shadow-sm"
                 disabled={isProcessing}
                 autoCapitalize="characters"
                 autoComplete="off"

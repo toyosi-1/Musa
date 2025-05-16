@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { User, UserRole } from '@/types/user';
 import { 
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
@@ -10,11 +11,11 @@ import {
 } from 'firebase/auth';
 import { ref, get, set } from 'firebase/database';
 import { auth, rtdb } from '@/lib/firebase';
-import { User, UserRole } from '@/types/user';
 
 interface AuthContextType {
   currentUser: User | null;
   loading: boolean;
+  initError: string | null;
   signUp: (email: string, password: string, displayName: string, role: UserRole) => Promise<User>;
   signIn: (email: string, password: string) => Promise<User>;
   signOut: () => Promise<void>;
@@ -34,6 +35,7 @@ export function useAuth() {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [initError, setInitError] = useState<string | null>(null);
 
   // Convert Firebase user to our User type
   const formatUser = async (firebaseUser: FirebaseUser): Promise<User | null> => {
@@ -129,28 +131,53 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Listen for auth state changes
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      try {
-        if (firebaseUser) {
-          const formattedUser = await formatUser(firebaseUser);
-          setCurrentUser(formattedUser);
-        } else {
-          setCurrentUser(null);
-        }
-      } catch (error) {
-        console.error('Auth state change error:', error);
-        setCurrentUser(null);
-      } finally {
+    try {
+      // Check if Firebase auth is properly initialized
+      if (!auth) {
+        console.error('Firebase auth not initialized');
+        setInitError('Authentication service not initialized. Please try again in a moment.');
         setLoading(false);
+        return () => {};
       }
-    });
 
-    return unsubscribe;
+      console.log('Setting up auth state change listener...');
+      const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+        try {
+          if (firebaseUser) {
+            console.log('User is signed in:', firebaseUser.uid);
+            const formattedUser = await formatUser(firebaseUser);
+            setCurrentUser(formattedUser);
+            setInitError(null);
+          } else {
+            console.log('No user signed in');
+            setCurrentUser(null);
+          }
+        } catch (error) {
+          console.error('Auth state change error:', error);
+          setCurrentUser(null);
+          setInitError('Error processing authentication. Please try again.');
+        } finally {
+          setLoading(false);
+        }
+      }, (error) => {
+        console.error('Auth state observer error:', error);
+        setInitError('Authentication service error. Please try again later.');
+        setLoading(false);
+      });
+
+      return unsubscribe;
+    } catch (error) {
+      console.error('Error setting up auth observer:', error);
+      setInitError('Failed to initialize authentication. Please refresh the page.');
+      setLoading(false);
+      return () => {};
+    }
   }, []);
 
   const value = {
     currentUser,
     loading,
+    initError,
     signUp,
     signIn,
     signOut,

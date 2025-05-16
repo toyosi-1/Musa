@@ -289,3 +289,45 @@ export const removeHouseholdMember = async (
     throw new Error('Failed to remove member');
   }
 };
+
+// Get pending invitations for a user's email
+export const getPendingInvitationsByEmail = async (email: string): Promise<HouseholdInvite[]> => {
+  console.log('Fetching pending invitations for email:', email);
+  
+  try {
+    // Query invitations by email
+    const invitesQuery = query(
+      ref(rtdb, 'householdInvites'),
+      orderByChild('email'),
+      equalTo(email.toLowerCase())
+    );
+    
+    const snapshot = await get(invitesQuery);
+    
+    if (!snapshot.exists()) {
+      console.log('No invitations found for email:', email);
+      return [];
+    }
+    
+    const invites: HouseholdInvite[] = [];
+    
+    // Convert the snapshot to an array of invites
+    snapshot.forEach((childSnapshot) => {
+      const invite = childSnapshot.val() as HouseholdInvite;
+      
+      // Only include pending invitations that haven't expired
+      if (invite.status === 'pending' && invite.expiresAt > Date.now()) {
+        invites.push({
+          ...invite,
+          id: childSnapshot.key as string
+        });
+      }
+    });
+    
+    console.log(`Found ${invites.length} pending invitations for ${email}`);
+    return invites;
+  } catch (error) {
+    console.error('Error getting pending invitations:', error);
+    throw new Error('Failed to get pending invitations');
+  }
+};

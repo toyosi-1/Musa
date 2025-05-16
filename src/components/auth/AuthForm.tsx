@@ -33,6 +33,7 @@ export default function AuthForm({ mode, defaultRole }: AuthFormProps) {
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors },
   } = useForm<AuthFormInputs>({
     resolver: zodResolver(authSchema),
@@ -154,7 +155,7 @@ export default function AuthForm({ mode, defaultRole }: AuthFormProps) {
                   htmlFor="resident"
                   className={`block border rounded-md p-3 text-center cursor-pointer transition-colors ${
                     errors.role ? 'border-red-500' : 'border-gray-300'
-                  }`}
+                  } ${watch('role') === 'resident' ? 'bg-primary-50 border-primary-500 ring-2 ring-primary-500' : ''}`}
                 >
                   <span className="block text-lg mb-1">👪</span>
                   Resident
@@ -173,7 +174,7 @@ export default function AuthForm({ mode, defaultRole }: AuthFormProps) {
                   htmlFor="guard"
                   className={`block border rounded-md p-3 text-center cursor-pointer transition-colors ${
                     errors.role ? 'border-red-500' : 'border-gray-300'
-                  }`}
+                  } ${watch('role') === 'guard' ? 'bg-primary-50 border-primary-500 ring-2 ring-primary-500' : ''}`}
                 >
                   <span className="block text-lg mb-1">👮</span>
                   Guard
