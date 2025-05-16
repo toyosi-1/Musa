@@ -1,0 +1,30 @@
+{
+  "rules": {
+    ".read": "auth != null",
+    ".write": "auth != null",
+    "users": {
+      "$uid": {
+        ".validate": "newData.hasChildren(['email', 'role', 'createdAt'])"
+      }
+    },
+    "households": {
+      "$householdId": {
+        ".validate": "newData.hasChildren(['name', 'headId', 'members', 'createdAt'])"
+      }
+    },
+    "accessCodes": {
+      "$codeId": {
+        ".validate": "newData.hasChildren(['code', 'userId', 'householdId', 'createdAt', 'isActive'])"
+      }
+    },
+    "accessCodesByCode": {},
+    "accessCodesByUser": {},
+    "accessCodesByHousehold": {},
+    "householdInvites": {
+      "$inviteId": {
+        ".validate": "newData.hasChildren(['householdId', 'invitedBy', 'email', 'status', 'createdAt', 'expiresAt'])"
+      }
+    },
+    "invitesByEmail": {}
+  }
+}
