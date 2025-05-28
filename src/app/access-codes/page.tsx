@@ -8,6 +8,7 @@ import { AccessCode } from '@/types/user';
 import AccessCodeCard from '@/components/resident/AccessCodeCard';
 import CreateAccessCodeForm from '@/components/resident/CreateAccessCodeForm';
 import Link from 'next/link';
+import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 
 export default function AccessCodesPage() {
   const { currentUser } = useAuth();
@@ -92,6 +93,16 @@ export default function AccessCodesPage() {
   return (
     <RouteGuard allowedRoles={['resident']}>
       <div className="container mx-auto px-4 py-8">
+        <div className="mb-6">
+          <Link 
+            href="/dashboard" 
+            className="inline-flex items-center text-gray-600 hover:text-primary font-medium transition-colors"
+          >
+            <ArrowLeftIcon className="h-5 w-5 mr-2" />
+            <span>Back to Dashboard</span>
+          </Link>
+        </div>
+
         <h1 className="text-2xl font-bold mb-6">Access Codes</h1>
         
         {error && (
