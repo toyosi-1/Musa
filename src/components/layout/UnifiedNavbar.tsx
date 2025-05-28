@@ -27,25 +27,30 @@ export default function UnifiedNavbar() {
 
   // Check if we need to display a back button based on current path
   const showBackButton = () => {
-    // Paths that need back buttons
-    const pathsWithBack = [
-      '/admin/dashboard',
-      '/access-codes',
-      '/verify',
-      '/auth/pending',
-      '/auth/rejected'
+    // We show the back button on all pages EXCEPT the main dashboard
+    // and the home page
+    const pathsWithoutBack = [
+      '/',
+      '/dashboard'
     ];
     
-    return pathsWithBack.includes(pathname);
+    // Return false (no back button) only for paths that don't need a back button
+    return !pathsWithoutBack.includes(pathname);
   };
 
   // Determine where the back button should lead
   const getBackPath = () => {
-    if (pathname === '/admin/dashboard') return '/dashboard';
-    if (pathname === '/access-codes') return '/dashboard';
-    if (pathname === '/verify') return '/dashboard';
-    if (pathname === '/auth/pending' || pathname === '/auth/rejected') return '/';
-    return '/dashboard'; // Default fallback
+    // Special cases first
+    if (pathname.startsWith('/admin/')) return '/dashboard';
+    if (pathname.startsWith('/access-codes')) return '/dashboard';
+    if (pathname.startsWith('/verify')) return '/dashboard';
+    if (pathname.startsWith('/auth/pending') || pathname.startsWith('/auth/rejected')) return '/';
+    
+    // Default: go to dashboard for most pages
+    if (pathname.startsWith('/dashboard/')) return '/dashboard';
+    
+    // For any other page, go to the dashboard as the main hub
+    return '/dashboard';
   };
 
   const toggleMenu = () => {
@@ -158,13 +163,13 @@ export default function UnifiedNavbar() {
       {/* Secondary navigation with back button - only shown when needed */}
       {showBackButton() && (
         <div className="bg-white dark:bg-gray-900 shadow-sm">
-          <div className="container mx-auto px-4 py-2">
+          <div className="container mx-auto px-6 py-3">
             <Link 
               href={getBackPath()} 
-              className="inline-flex items-center text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-white"
+              className="inline-flex items-center text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-white font-medium"
             >
-              <ArrowLeftIcon className="h-4 w-4 mr-1" />
-              <span>Back</span>
+              <ArrowLeftIcon className="h-5 w-5 mr-2" />
+              <span>Back to Dashboard</span>
             </Link>
           </div>
         </div>
