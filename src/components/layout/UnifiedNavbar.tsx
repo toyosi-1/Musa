@@ -56,20 +56,39 @@ export default function UnifiedNavbar() {
     <div>
       {/* Primary navigation - blue header */}
       <nav className="bg-primary text-white shadow-md">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <Link href="/dashboard" className="text-xl font-bold">
-                Musa
-              </Link>
-              {currentUser && (
-                <span className="ml-4 bg-white text-primary px-2 py-1 rounded-md text-xs font-medium">
-                  {currentUser.role === 'guard' ? 'Guard Mode' : 'Resident Mode'}
-                </span>
-              )}
+        <div className="container mx-auto px-6 py-5">
+          {/* Top row: Logo, mode indicator, and user info */}
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-6">
+                <Link href="/dashboard" className="text-2xl font-bold">
+                  Musa
+                </Link>
+                {currentUser && (
+                  <span className="bg-white text-primary px-3 py-1.5 rounded-md text-sm font-medium">
+                    {currentUser.role === 'guard' ? 'Guard Mode' : 'Resident Mode'}
+                  </span>
+                )}
+              </div>
+              
+              {/* Mobile menu toggle - could be implemented if needed */}
+              <div className="md:hidden">
+                <button
+                  onClick={toggleMenu}
+                  className="text-white hover:text-gray-200 focus:outline-none"
+                >
+                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    {isMenuOpen ? (
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    ) : (
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                    )}
+                  </svg>
+                </button>
+              </div>
             </div>
 
-            <div className="flex items-center">
+            <div className="flex items-center justify-end">
               {currentUser && (
                 <div className="flex items-center">
                   <div className="mr-6 text-sm">
@@ -78,7 +97,7 @@ export default function UnifiedNavbar() {
                   </div>
                   <button
                     onClick={handleSignOut}
-                    className="text-sm px-3 py-2 bg-white/10 hover:bg-white/20 rounded-md transition"
+                    className="text-sm px-4 py-2 bg-white/10 hover:bg-white/20 rounded-md transition"
                   >
                     Sign Out
                   </button>
@@ -87,35 +106,47 @@ export default function UnifiedNavbar() {
             </div>
           </div>
 
-          {/* Integrated Navigation Links */}
+          {/* Bottom row: Navigation links with better spacing */}
           {isApproved && (
-            <div className="flex space-x-4 pt-2">
-              <Link href="/dashboard" className={`hover:bg-white/10 px-3 py-2 rounded-md text-sm font-medium transition ${
-                pathname === '/dashboard' ? 'bg-white/20' : ''
-              }`}>
+            <div className="flex flex-wrap mt-5 -mx-2">
+              <Link 
+                href="/dashboard" 
+                className={`mx-2 px-4 py-2.5 rounded-md text-sm font-medium transition ${
+                  pathname === '/dashboard' ? 'bg-white/20' : 'hover:bg-white/10'
+                }`}
+              >
                 Dashboard
               </Link>
               
               {isAdmin && (
-                <Link href="/admin/dashboard" className={`hover:bg-white/10 px-3 py-2 rounded-md text-sm font-medium transition ${
-                  pathname === '/admin/dashboard' ? 'bg-white/20' : ''
-                }`}>
+                <Link 
+                  href="/admin/dashboard" 
+                  className={`mx-2 px-4 py-2.5 rounded-md text-sm font-medium transition ${
+                    pathname === '/admin/dashboard' ? 'bg-white/20' : 'hover:bg-white/10'
+                  }`}
+                >
                   Admin
                 </Link>
               )}
               
               {isResident && (
-                <Link href="/access-codes" className={`hover:bg-white/10 px-3 py-2 rounded-md text-sm font-medium transition ${
-                  pathname === '/access-codes' ? 'bg-white/20' : ''
-                }`}>
+                <Link 
+                  href="/access-codes" 
+                  className={`mx-2 px-4 py-2.5 rounded-md text-sm font-medium transition ${
+                    pathname === '/access-codes' ? 'bg-white/20' : 'hover:bg-white/10'
+                  }`}
+                >
                   Access Codes
                 </Link>
               )}
               
               {isGuard && (
-                <Link href="/verify" className={`hover:bg-white/10 px-3 py-2 rounded-md text-sm font-medium transition ${
-                  pathname === '/verify' ? 'bg-white/20' : ''
-                }`}>
+                <Link 
+                  href="/verify" 
+                  className={`mx-2 px-4 py-2.5 rounded-md text-sm font-medium transition ${
+                    pathname === '/verify' ? 'bg-white/20' : 'hover:bg-white/10'
+                  }`}
+                >
                   Verify Access
                 </Link>
               )}
