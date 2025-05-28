@@ -1,10 +1,10 @@
 "use client";
 
 import { ReactNode } from 'react';
-import Navbar from './Navbar';
 import StatusGuard from '../auth/StatusGuard';
 import { useAuth } from '@/contexts/AuthContext';
 import LoadingSpinner from '../ui/LoadingSpinner';
+import UnifiedNavbar from './UnifiedNavbar';
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -30,7 +30,7 @@ export default function AppLayout({
   if (!requireAuth || currentUser) {
     return (
       <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
-        <Navbar />
+        <UnifiedNavbar />
         
         <main className="flex-grow py-6">
           {requireAuth ? (
