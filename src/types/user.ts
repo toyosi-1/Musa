@@ -1,15 +1,21 @@
-export type UserRole = 'guard' | 'resident';
+export type UserRole = 'guard' | 'resident' | 'admin';
+
+export type UserStatus = 'pending' | 'approved' | 'rejected';
 
 export interface User {
   uid: string;
   email: string;
   displayName?: string;
   role: UserRole;
+  status: UserStatus;
   isEmailVerified: boolean;
   householdId?: string;
   isHouseholdHead?: boolean;
   createdAt: number;
   lastLogin?: number;
+  approvedBy?: string; // UID of admin who approved
+  approvedAt?: number; // Timestamp of approval
+  rejectionReason?: string; // Reason if rejected
 }
 
 export interface Household {

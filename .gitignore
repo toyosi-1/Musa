@@ -36,6 +36,12 @@ next-env.d.ts
 # Firebase service accounts and config files with secrets
 **/firebase-service-account*.json
 **/firebase-admin*.json
+service-account.json
+**/service-account*.json
+**/googlecloud*.json
+**/credentials*.json
+**/*-key*.json
+**/*credentials*.json
 
 # IDE files
 .idea

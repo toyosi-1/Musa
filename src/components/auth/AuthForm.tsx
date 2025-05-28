@@ -14,7 +14,7 @@ const authSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
   password: z.string().min(8, 'Password must be at least 8 characters'),
   displayName: z.string().optional(),
-  role: z.enum(['guard', 'resident']).optional(),
+  role: z.enum(['guard', 'resident', 'admin']).optional(),
 });
 
 type AuthFormInputs = z.infer<typeof authSchema>;
@@ -38,7 +38,7 @@ export default function AuthForm({ mode, defaultRole }: AuthFormProps) {
   } = useForm<AuthFormInputs>({
     resolver: zodResolver(authSchema),
     defaultValues: {
-      role: defaultRole,
+      role: defaultRole === 'admin' ? undefined : defaultRole, // Don't allow admin registration through form
     },
   });
 
@@ -47,9 +47,41 @@ export default function AuthForm({ mode, defaultRole }: AuthFormProps) {
     setError('');
 
     try {
+      console.log(`Attempting ${mode} with email: ${data.email}`);
+      
       if (mode === 'login') {
-        await signIn(data.email, data.password);
-        router.push('/dashboard');
+        // Validate input before attempting login
+        if (!data.email || !data.password) {
+          throw new Error('Email and password are required');
+        }
+
+        try {
+          // First attempt without timeout to check for immediate errors
+          const user = await signIn(data.email, data.password);
+          console.log('Login successful, user:', user);
+          
+          // Add a small delay before navigation to ensure auth state is updated
+          setTimeout(() => {
+            router.push('/dashboard');
+          }, 800);
+        } catch (loginError) {
+          console.error('Initial login attempt failed:', loginError);
+          // Handle Firebase auth errors with user-friendly messages
+          if (loginError instanceof Error) {
+            const errorMessage = loginError.message || '';
+            if (errorMessage.includes('auth/user-not-found') || errorMessage.includes('user-not-found')) {
+              throw new Error('Account not found. Please check your email or register.');
+            } else if (errorMessage.includes('auth/wrong-password') || errorMessage.includes('wrong-password')) {
+              throw new Error('Incorrect password. Please try again.');
+            } else if (errorMessage.includes('network') || errorMessage.includes('timeout')) {
+              throw new Error('Network error. Please check your connection and try again.');
+            } else {
+              throw loginError; // Re-throw if it's another type of error
+            }
+          } else {
+            throw loginError;
+          }
+        }
       } else {
         // Registration
         if (!data.displayName) {
@@ -60,6 +92,7 @@ export default function AuthForm({ mode, defaultRole }: AuthFormProps) {
         }
 
         await signUp(data.email, data.password, data.displayName, data.role);
+        console.log('Registration successful');
         router.push('/dashboard');
       }
     } catch (err) {
