@@ -1,5 +1,5 @@
-import { rtdb } from '@/lib/firebase';
-import { ref, get } from 'firebase/database';
+import { getFirebaseDatabase } from '@/lib/firebase';
+import { ref, get, update } from 'firebase/database';
 import { User } from '@/types/user';
 
 // Get a user profile by ID
@@ -7,7 +7,8 @@ export const getUserProfile = async (uid: string): Promise<User | null> => {
   console.log('Getting user profile for uid:', uid);
   
   try {
-    const userRef = ref(rtdb, `users/${uid}`);
+    const db = await getFirebaseDatabase();
+    const userRef = ref(db, `users/${uid}`);
     const snapshot = await get(userRef);
     
     if (!snapshot.exists()) {

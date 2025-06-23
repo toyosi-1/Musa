@@ -15,6 +15,8 @@ export interface User {
   lastLogin?: number;
   approvedBy?: string; // UID of admin who approved
   approvedAt?: number; // Timestamp of approval
+  rejectedBy?: string; // UID of admin who rejected
+  rejectedAt?: number; // Timestamp of rejection
   rejectionReason?: string; // Reason if rejected
 }
 
@@ -23,6 +25,12 @@ export interface Household {
   name: string;
   headId: string; // The family head's user ID
   members: Record<string, boolean>; // User IDs of household members
+  address?: string;
+  addressLine2?: string;
+  city?: string;
+  state?: string;
+  postalCode?: string;
+  country?: string;
   createdAt: number;
   updatedAt: number;
 }

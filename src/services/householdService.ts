@@ -1,18 +1,27 @@
-import { rtdb } from '@/lib/firebase';
+import { getFirebaseDatabase } from '@/lib/firebase';
 import { ref, push, set, get, update, remove, query, orderByChild, equalTo } from 'firebase/database';
 import { Household, HouseholdInvite } from '@/types/user';
 
 // Create a new household with the current user as head
 export const createHousehold = async (
   userId: string,
-  name: string
+  name: string,
+  addressData?: {
+    address?: string;
+    addressLine2?: string;
+    city?: string;
+    state?: string;
+    postalCode?: string;
+    country?: string;
+  }
 ): Promise<Household> => {
   // Ensure the database is initialized
-  console.log('Creating household with rtdb:', rtdb);
-
   try {
+    // Get Firebase database
+    const db = await getFirebaseDatabase();
+
     // Create the household record
-    const householdsRef = ref(rtdb, 'households');
+    const householdsRef = ref(db, 'households');
     const newHouseholdRef = push(householdsRef);
     
     if (!newHouseholdRef.key) {
@@ -26,7 +35,14 @@ export const createHousehold = async (
       headId: userId,
       members: { [userId]: true }, // Add head as a member
       createdAt: now,
-      updatedAt: now
+      updatedAt: now,
+      // Add optional address fields if provided
+      ...(addressData?.address && { address: addressData.address }),
+      ...(addressData?.addressLine2 && { addressLine2: addressData.addressLine2 }),
+      ...(addressData?.city && { city: addressData.city }),
+      ...(addressData?.state && { state: addressData.state }),
+      ...(addressData?.postalCode && { postalCode: addressData.postalCode }),
+      ...(addressData?.country && { country: addressData.country })
     };
     
     // Save the household
@@ -36,7 +52,7 @@ export const createHousehold = async (
     const updates: { [key: string]: any } = {};
     updates[`users/${userId}/householdId`] = newHouseholdRef.key;
     updates[`users/${userId}/isHouseholdHead`] = true;
-    await update(ref(rtdb), updates);
+    await update(ref(db), updates);
     
     return household;
   } catch (error) {
@@ -48,10 +64,9 @@ export const createHousehold = async (
 // Get household by ID
 export const getHousehold = async (householdId: string): Promise<Household | null> => {
   // Ensure the database is initialized
-  console.log('Creating household with rtdb:', rtdb);
-
   try {
-    const householdRef = ref(rtdb, `households/${householdId}`);
+    const db = await getFirebaseDatabase();
+    const householdRef = ref(db, `households/${householdId}`);
     const snapshot = await get(householdRef);
     
     if (snapshot.exists()) {
@@ -68,10 +83,9 @@ export const getHousehold = async (householdId: string): Promise<Household | nul
 // Get all members in a household
 export const getHouseholdMembers = async (householdId: string): Promise<string[]> => {
   // Ensure the database is initialized
-  console.log('Creating household with rtdb:', rtdb);
-
   try {
-    const householdRef = ref(rtdb, `households/${householdId}`);
+    const db = await getFirebaseDatabase();
+    const householdRef = ref(db, `households/${householdId}`);
     const snapshot = await get(householdRef);
     
     if (!snapshot.exists()) {
@@ -93,12 +107,10 @@ export const createHouseholdInvite = async (
   email: string
 ): Promise<HouseholdInvite> => {
   // Ensure the database is initialized
-  console.log('Creating household invite with parameters:', { householdId, invitedBy, email });
-
   try {
     // Check if the user is the household head
-    console.log('Checking if user is household head...');
-    const householdRef = ref(rtdb, `households/${householdId}`);
+    const db = await getFirebaseDatabase();
+    const householdRef = ref(db, `households/${householdId}`);
     const householdSnapshot = await get(householdRef);
     
     if (!householdSnapshot.exists()) {
@@ -107,7 +119,6 @@ export const createHouseholdInvite = async (
     }
     
     const household = householdSnapshot.val() as Household;
-    console.log('Found household:', { id: householdId, headId: household.headId, invitedBy });
     
     if (household.headId !== invitedBy) {
       console.error('User is not household head', { headId: household.headId, userId: invitedBy });
@@ -115,20 +126,17 @@ export const createHouseholdInvite = async (
     }
     
     // Check if an invite already exists for this email
-    console.log('Checking for existing invites for email:', email);
-    const invitesRef = ref(rtdb, 'householdInvites');
+    const invitesRef = ref(db, 'householdInvites');
     const invitesQuery = query(
       invitesRef,
       orderByChild('email'),
-      equalTo(email)
+      equalTo(email.toLowerCase())
     );
     
     const existingInvitesSnapshot = await get(invitesQuery);
-    console.log('Existing invites found:', existingInvitesSnapshot.exists());
     
     if (existingInvitesSnapshot.exists()) {
       const invites = Object.values(existingInvitesSnapshot.val() as { [key: string]: HouseholdInvite });
-      console.log('Number of existing invites:', invites.length);
       
       const activeInvite = invites.find(
         (invite) => 
@@ -144,7 +152,6 @@ export const createHouseholdInvite = async (
     }
     
     // Create the invitation
-    console.log('Creating new invitation...');
     const inviteRef = push(invitesRef);
     
     if (!inviteRef.key) {
@@ -165,16 +172,13 @@ export const createHouseholdInvite = async (
       expiresAt
     };
     
-    console.log('Saving invitation to Firebase:', invite.id);
     // Save the invitation
     await set(inviteRef, invite);
     
     // Create an index entry for quick lookups by email
     const emailKey = email.replace(/\./g, ',').toLowerCase();
-    console.log('Creating index entry with key:', emailKey);
-    await set(ref(rtdb, `invitesByEmail/${emailKey}/${invite.id}`), true);
+    await set(ref(db, `invitesByEmail/${emailKey}/${invite.id}`), true);
     
-    console.log('Invitation created successfully:', invite.id);
     return invite;
   } catch (error) {
     console.error('Error creating household invite:', error);
@@ -193,11 +197,10 @@ export const acceptHouseholdInvite = async (
   userEmail: string
 ): Promise<void> => {
   // Ensure the database is initialized
-  console.log('Creating household with rtdb:', rtdb);
-
   try {
     // Get the invitation
-    const inviteRef = ref(rtdb, `householdInvites/${inviteId}`);
+    const db = await getFirebaseDatabase();
+    const inviteRef = ref(db, `householdInvites/${inviteId}`);
     const inviteSnapshot = await get(inviteRef);
     
     if (!inviteSnapshot.exists()) {
@@ -236,7 +239,7 @@ export const acceptHouseholdInvite = async (
     updates[`users/${userId}/householdId`] = invite.householdId;
     updates[`users/${userId}/isHouseholdHead`] = false;
     
-    await update(ref(rtdb), updates);
+    await update(ref(db), updates);
   } catch (error) {
     console.error('Error accepting household invite:', error);
     throw new Error('Failed to accept invitation');
@@ -250,11 +253,10 @@ export const removeHouseholdMember = async (
   memberId: string
 ): Promise<void> => {
   // Ensure the database is initialized
-  console.log('Creating household with rtdb:', rtdb);
-
   try {
     // Check if the user is the household head
-    const householdRef = ref(rtdb, `households/${householdId}`);
+    const db = await getFirebaseDatabase();
+    const householdRef = ref(db, `households/${householdId}`);
     const householdSnapshot = await get(householdRef);
     
     if (!householdSnapshot.exists()) {
@@ -283,7 +285,7 @@ export const removeHouseholdMember = async (
     updates[`users/${memberId}/householdId`] = null;
     updates[`users/${memberId}/isHouseholdHead`] = null;
     
-    await update(ref(rtdb), updates);
+    await update(ref(db), updates);
   } catch (error) {
     console.error('Error removing household member:', error);
     throw new Error('Failed to remove member');
@@ -292,12 +294,11 @@ export const removeHouseholdMember = async (
 
 // Get pending invitations for a user's email
 export const getPendingInvitationsByEmail = async (email: string): Promise<HouseholdInvite[]> => {
-  console.log('Fetching pending invitations for email:', email);
-  
   try {
     // Query invitations by email
+    const db = await getFirebaseDatabase();
     const invitesQuery = query(
-      ref(rtdb, 'householdInvites'),
+      ref(db, 'householdInvites'),
       orderByChild('email'),
       equalTo(email.toLowerCase())
     );
@@ -305,7 +306,6 @@ export const getPendingInvitationsByEmail = async (email: string): Promise<House
     const snapshot = await get(invitesQuery);
     
     if (!snapshot.exists()) {
-      console.log('No invitations found for email:', email);
       return [];
     }
     
@@ -324,10 +324,71 @@ export const getPendingInvitationsByEmail = async (email: string): Promise<House
       }
     });
     
-    console.log(`Found ${invites.length} pending invitations for ${email}`);
     return invites;
   } catch (error) {
     console.error('Error getting pending invitations:', error);
     throw new Error('Failed to get pending invitations');
+  }
+};
+
+// Update household address information
+export const updateHouseholdAddress = async (
+  householdId: string,
+  userId: string,
+  addressData: {
+    address: string;
+    addressLine2?: string;
+    city: string;
+    state: string;
+    postalCode: string;
+    country: string;
+  }
+): Promise<Household> => {
+  try {
+    // Verify the household exists and user has permission to update it
+    const db = await getFirebaseDatabase();
+    const householdRef = ref(db, `households/${householdId}`);
+    const householdSnapshot = await get(householdRef);
+    
+    if (!householdSnapshot.exists()) {
+      console.error('Household not found with ID:', householdId);
+      throw new Error('Household not found');
+    }
+    
+    const household = householdSnapshot.val() as Household;
+    
+    // Check if the user is a member of this household
+    if (!household.members[userId]) {
+      console.error('User is not a member of this household');
+      throw new Error('You are not a member of this household');
+    }
+    
+    // Update the address fields
+    const updatedFields = {
+      address: addressData.address,
+      addressLine2: addressData.addressLine2 || null,
+      city: addressData.city,
+      state: addressData.state,
+      postalCode: addressData.postalCode,
+      country: addressData.country,
+      updatedAt: Date.now()
+    };
+    
+    await update(householdRef, updatedFields);
+    
+    // Fetch the updated household data
+    const updatedSnapshot = await get(householdRef);
+    if (!updatedSnapshot.exists()) {
+      throw new Error('Failed to retrieve updated household data');
+    }
+    
+    return updatedSnapshot.val() as Household;
+  } catch (error) {
+    console.error('Error updating household address:', error);
+    if (error instanceof Error) {
+      throw error; // Preserve the original error message
+    } else {
+      throw new Error('Failed to update household address');
+    }
   }
 };

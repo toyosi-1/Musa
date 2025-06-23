@@ -1,0 +1,58 @@
+{
+  "rules": {
+    "users": {
+      "$uid": {
+        // Users can read their own profile
+        ".read": "$uid === auth.uid || root.child('users').child(auth.uid).child('role').val() === 'admin'",
+        // Users can only write their own basic profile data, but not status or role
+        ".write": "$uid === auth.uid && !data.exists()",
+        // Field-specific rules
+        "status": {
+          ".write": "root.child('users').child(auth.uid).child('role').val() === 'admin'"
+        },
+        "role": {
+          ".write": "root.child('users').child(auth.uid).child('role').val() === 'admin'"
+        },
+        "approvedBy": {
+          ".write": "root.child('users').child(auth.uid).child('role').val() === 'admin'"
+        },
+        "approvedAt": {
+          ".write": "root.child('users').child(auth.uid).child('role').val() === 'admin'"
+        },
+        "rejectionReason": {
+          ".write": "root.child('users').child(auth.uid).child('role').val() === 'admin'"
+        },
+        "lastLogin": {
+          ".write": "$uid === auth.uid"
+        }
+      }
+    },
+    "pendingUsers": {
+      // Only admins can read the pending users list
+      ".read": "root.child('users').child(auth.uid).child('role').val() === 'admin'",
+      // Only admins can modify pending users list
+      ".write": "root.child('users').child(auth.uid).child('role').val() === 'admin'"
+    },
+    "households": {
+      ".read": "auth != null && root.child('users').child(auth.uid).child('status').val() === 'approved'",
+      "$householdId": {
+        ".write": "auth != null && 
+                  root.child('users').child(auth.uid).child('status').val() === 'approved' && 
+                  (root.child('users').child(auth.uid).child('role').val() === 'admin' || 
+                   root.child('households').child($householdId).child('headId').val() === auth.uid)"
+      }
+    },
+    "accessCodes": {
+      ".read": "auth != null && 
+                (root.child('users').child(auth.uid).child('role').val() === 'guard' || 
+                 root.child('users').child(auth.uid).child('role').val() === 'admin') && 
+                root.child('users').child(auth.uid).child('status').val() === 'approved'",
+      "$codeId": {
+        ".write": "auth != null && 
+                  root.child('users').child(auth.uid).child('status').val() === 'approved' && 
+                  (root.child('users').child(auth.uid).child('role').val() === 'admin' || 
+                   data.child('userId').val() === auth.uid)"
+      }
+    }
+  }
+}

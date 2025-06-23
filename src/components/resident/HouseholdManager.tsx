@@ -2,15 +2,16 @@
 
 import { useState } from 'react';
 import { User, Household } from '@/types/user';
-import { createHouseholdInvite, getHouseholdMembers } from '@/services/householdService';
+import { createHouseholdInvite, getHouseholdMembers, updateHouseholdAddress } from '@/services/householdService';
 
 interface HouseholdManagerProps {
   user: User;
   household: Household | null;
   onCreateHousehold: (name: string) => Promise<Household | null>;
+  refreshHousehold?: () => Promise<void>;
 }
 
-export default function HouseholdManager({ user, household, onCreateHousehold }: HouseholdManagerProps) {
+export default function HouseholdManager({ user, household, onCreateHousehold, refreshHousehold }: HouseholdManagerProps) {
   const [householdName, setHouseholdName] = useState('');
   const [inviteEmail, setInviteEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -18,6 +19,15 @@ export default function HouseholdManager({ user, household, onCreateHousehold }:
   const [success, setSuccess] = useState('');
   const [members, setMembers] = useState<string[]>([]);
   const [showMembers, setShowMembers] = useState(false);
+  const [showAddressForm, setShowAddressForm] = useState(false);
+  
+  // Address form fields
+  const [address, setAddress] = useState(household?.address || '');
+  const [addressLine2, setAddressLine2] = useState(household?.addressLine2 || '');
+  const [city, setCity] = useState(household?.city || '');
+  const [state, setState] = useState(household?.state || '');
+  const [postalCode, setPostalCode] = useState(household?.postalCode || '');
+  const [country, setCountry] = useState(household?.country || '');
 
   // Create a new household
   const handleCreateHousehold = async (e: React.FormEvent) => {
@@ -124,6 +134,62 @@ export default function HouseholdManager({ user, household, onCreateHousehold }:
     }
   };
 
+  // Handle address update form submission
+  const handleUpdateAddress = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!household) return;
+    
+    if (!address || !city || !state || !postalCode || !country) {
+      setError('Please fill in all required address fields');
+      return;
+    }
+    
+    setIsLoading(true);
+    setError('');
+    
+    try {
+      const updatedHousehold = await updateHouseholdAddress(
+        household.id,
+        user.uid,
+        {
+          address,
+          addressLine2,
+          city,
+          state,
+          postalCode,
+          country
+        }
+      );
+      
+      // Update local state with new values from the database
+      setAddress(updatedHousehold.address || '');
+      setAddressLine2(updatedHousehold.addressLine2 || '');
+      setCity(updatedHousehold.city || '');
+      setState(updatedHousehold.state || '');
+      setPostalCode(updatedHousehold.postalCode || '');
+      setCountry(updatedHousehold.country || '');
+      
+      // Refresh parent component's household data
+      if (refreshHousehold) {
+        await refreshHousehold();
+      }
+      
+      setSuccess('Address updated successfully!');
+      setShowAddressForm(false);
+      
+      // Reset after a few seconds
+      setTimeout(() => {
+        setSuccess('');
+      }, 3000);
+    } catch (err) {
+      console.error('Error updating address:', err);
+      setError(`Failed to update address: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   if (!household) {
     return (
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
@@ -174,6 +240,18 @@ export default function HouseholdManager({ user, household, onCreateHousehold }:
   return (
     <div className="space-y-6">
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+        {error && (
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+            {error}
+          </div>
+        )}
+        
+        {success && (
+          <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
+            {success}
+          </div>
+        )}
+      
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-lg font-semibold">Household Details</h2>
           <span className={`px-2 py-1 text-xs rounded-full ${
@@ -194,6 +272,154 @@ export default function HouseholdManager({ user, household, onCreateHousehold }:
           <div>
             <span className="text-sm text-gray-500 dark:text-gray-400">Created:</span>
             <p className="font-medium">{new Date(household.createdAt).toLocaleDateString()}</p>
+          </div>
+          
+          {/* Address Display */}
+          <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Address</span>
+              <button 
+                onClick={() => setShowAddressForm(!showAddressForm)}
+                className="text-xs font-medium text-primary hover:text-primary-dark transition"
+              >
+                {showAddressForm ? 'Cancel' : household.address ? 'Edit' : 'Add'}
+              </button>
+            </div>
+            
+            {!showAddressForm && (
+              <div className="text-sm text-gray-700 dark:text-gray-300">
+                {household.address ? (
+                  <div className="space-y-1">
+                    <p>{household.address}</p>
+                    {household.addressLine2 && <p>{household.addressLine2}</p>}
+                    <p>
+                      {[household.city, household.state, household.postalCode]
+                        .filter(Boolean)
+                        .join(', ')}
+                    </p>
+                    {household.country && <p>{household.country}</p>}
+                  </div>
+                ) : (
+                  <p className="text-gray-500 dark:text-gray-400 italic">
+                    No address added yet. Guards won't be able to see where visitors are going.
+                  </p>
+                )}
+              </div>
+            )}
+            
+            {/* Address Form */}
+            {showAddressForm && (
+              <form onSubmit={handleUpdateAddress} className="mt-4 space-y-4">
+                <div>
+                  <label htmlFor="address" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Street Address*
+                  </label>
+                  <input
+                    id="address"
+                    type="text"
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                    placeholder="123 Main St"
+                    className="input w-full"
+                    disabled={isLoading}
+                    required
+                  />
+                </div>
+                
+                <div>
+                  <label htmlFor="addressLine2" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Address Line 2
+                  </label>
+                  <input
+                    id="addressLine2"
+                    type="text"
+                    value={addressLine2}
+                    onChange={(e) => setAddressLine2(e.target.value)}
+                    placeholder="Apt, Suite, Unit, etc."
+                    className="input w-full"
+                    disabled={isLoading}
+                  />
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="city" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      City*
+                    </label>
+                    <input
+                      id="city"
+                      type="text"
+                      value={city}
+                      onChange={(e) => setCity(e.target.value)}
+                      placeholder="City"
+                      className="input w-full"
+                      disabled={isLoading}
+                      required
+                    />
+                  </div>
+                  
+                  <div>
+                    <label htmlFor="state" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      State/Province*
+                    </label>
+                    <input
+                      id="state"
+                      type="text"
+                      value={state}
+                      onChange={(e) => setState(e.target.value)}
+                      placeholder="State/Province"
+                      className="input w-full"
+                      disabled={isLoading}
+                      required
+                    />
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="postalCode" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Postal Code*
+                    </label>
+                    <input
+                      id="postalCode"
+                      type="text"
+                      value={postalCode}
+                      onChange={(e) => setPostalCode(e.target.value)}
+                      placeholder="Postal/Zip Code"
+                      className="input w-full"
+                      disabled={isLoading}
+                      required
+                    />
+                  </div>
+                  
+                  <div>
+                    <label htmlFor="country" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Country*
+                    </label>
+                    <input
+                      id="country"
+                      type="text"
+                      value={country}
+                      onChange={(e) => setCountry(e.target.value)}
+                      placeholder="Country"
+                      className="input w-full"
+                      disabled={isLoading}
+                      required
+                    />
+                  </div>
+                </div>
+                
+                <div className="pt-2">
+                  <button
+                    type="submit"
+                    className="btn-primary w-full"
+                    disabled={isLoading}
+                  >
+                    {isLoading ? 'Updating...' : 'Update Address'}
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
           
           <div>

@@ -4,7 +4,10 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import { ArrowLeftIcon } from '@heroicons/react/24/outline';
+import ThemeToggle from '../ui/ThemeToggle';
+import NotificationBell from '../ui/NotificationBell';
+import Logo from '../ui/Logo';
+
 
 export default function UnifiedNavbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -25,33 +28,7 @@ export default function UnifiedNavbar() {
   const isResident = currentUser && currentUser.role === 'resident';
   const isGuard = currentUser && currentUser.role === 'guard';
 
-  // Check if we need to display a back button based on current path
-  const showBackButton = () => {
-    // We show the back button on all pages EXCEPT the main dashboard
-    // and the home page
-    const pathsWithoutBack = [
-      '/',
-      '/dashboard'
-    ];
-    
-    // Return false (no back button) only for paths that don't need a back button
-    return !pathsWithoutBack.includes(pathname);
-  };
 
-  // Determine where the back button should lead
-  const getBackPath = () => {
-    // Special cases first
-    if (pathname.startsWith('/admin/')) return '/dashboard';
-    if (pathname.startsWith('/access-codes')) return '/dashboard';
-    if (pathname.startsWith('/verify')) return '/dashboard';
-    if (pathname.startsWith('/auth/pending') || pathname.startsWith('/auth/rejected')) return '/';
-    
-    // Default: go to dashboard for most pages
-    if (pathname.startsWith('/dashboard/')) return '/dashboard';
-    
-    // For any other page, go to the dashboard as the main hub
-    return '/dashboard';
-  };
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
@@ -63,12 +40,16 @@ export default function UnifiedNavbar() {
       <nav className="bg-primary text-white shadow-md">
         <div className="container mx-auto px-6 py-5">
           {/* Top row: Logo, mode indicator, and user info */}
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 animate-slide-down">
             <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-6">
-                <Link href="/dashboard" className="text-2xl font-bold">
-                  Musa
-                </Link>
+              {/* Logo/Brand */}
+              <div className="flex items-center">
+                <Logo
+                  variant="default"
+                  size="md"
+                  animated={true}
+                  className="animate-fade-in"
+                />
                 {currentUser && (
                   <span className="bg-white text-primary px-3 py-1.5 rounded-md text-sm font-medium">
                     {currentUser.role === 'guard' ? 'Guard Mode' : 'Resident Mode'}
@@ -93,16 +74,22 @@ export default function UnifiedNavbar() {
               </div>
             </div>
 
-            <div className="flex items-center justify-end">
+            <div className="flex items-center justify-end space-x-4">
+              {/* Theme Toggle */}
+              <ThemeToggle />
+              
+              {/* Notification Bell - Add actual count from your notifications */}
+              <NotificationBell count={0} onClick={() => console.log('Notifications clicked')} />
+              
               {currentUser && (
-                <div className="flex items-center">
-                  <div className="mr-6 text-sm">
+                <div className="flex items-center animate-fade-in">
+                  <div className="mr-8 text-sm">
                     <span className="block font-medium">{currentUser.displayName}</span>
                     <span className="block text-xs opacity-80">{currentUser.email}</span>
                   </div>
                   <button
                     onClick={handleSignOut}
-                    className="text-sm px-4 py-2 bg-white/10 hover:bg-white/20 rounded-md transition"
+                    className="text-sm px-4 py-2 bg-white/10 hover:bg-white/20 rounded-md transition transform hover:scale-105"
                   >
                     Sign Out
                   </button>
@@ -111,12 +98,12 @@ export default function UnifiedNavbar() {
             </div>
           </div>
 
-          {/* Bottom row: Navigation links with better spacing */}
+          {/* Bottom row: Navigation links with improved spacing */}
           {isApproved && (
-            <div className="flex flex-wrap mt-5 -mx-2">
+            <div className="flex flex-wrap mt-6 space-x-6 animate-slide-in-right">
               <Link 
                 href="/dashboard" 
-                className={`mx-2 px-4 py-2.5 rounded-md text-sm font-medium transition ${
+                className={`px-4 py-2.5 rounded-md text-sm font-medium transition ${
                   pathname === '/dashboard' ? 'bg-white/20' : 'hover:bg-white/10'
                 }`}
               >
@@ -126,7 +113,7 @@ export default function UnifiedNavbar() {
               {isAdmin && (
                 <Link 
                   href="/admin/dashboard" 
-                  className={`mx-2 px-4 py-2.5 rounded-md text-sm font-medium transition ${
+                  className={`px-4 py-2.5 rounded-md text-sm font-medium transition ${
                     pathname === '/admin/dashboard' ? 'bg-white/20' : 'hover:bg-white/10'
                   }`}
                 >
@@ -134,46 +121,15 @@ export default function UnifiedNavbar() {
                 </Link>
               )}
               
-              {isResident && (
-                <Link 
-                  href="/access-codes" 
-                  className={`mx-2 px-4 py-2.5 rounded-md text-sm font-medium transition ${
-                    pathname === '/access-codes' ? 'bg-white/20' : 'hover:bg-white/10'
-                  }`}
-                >
-                  Access Codes
-                </Link>
-              )}
+
               
-              {isGuard && (
-                <Link 
-                  href="/verify" 
-                  className={`mx-2 px-4 py-2.5 rounded-md text-sm font-medium transition ${
-                    pathname === '/verify' ? 'bg-white/20' : 'hover:bg-white/10'
-                  }`}
-                >
-                  Verify Access
-                </Link>
-              )}
+
             </div>
           )}
         </div>
       </nav>
 
-      {/* Secondary navigation with back button - only shown when needed */}
-      {showBackButton() && (
-        <div className="bg-white dark:bg-gray-900 shadow-sm">
-          <div className="container mx-auto px-6 py-3">
-            <Link 
-              href={getBackPath()} 
-              className="inline-flex items-center text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-white font-medium"
-            >
-              <ArrowLeftIcon className="h-5 w-5 mr-2" />
-              <span>Back to Dashboard</span>
-            </Link>
-          </div>
-        </div>
-      )}
+
     </div>
   );
 }

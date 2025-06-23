@@ -1,4 +1,4 @@
-import { rtdb } from '@/lib/firebase';
+import { getFirebaseDatabase } from '@/lib/firebase';
 import { ref, push, set, get, query, orderByChild, equalTo, update, remove } from 'firebase/database';
 import * as QRCodeLib from 'qrcode';
 import { AccessCode } from '@/types/user';
@@ -24,8 +24,8 @@ export const createAccessCode = async (
   description?: string,
   expiresAt?: number
 ): Promise<{ code: string; qrCode: string }> => {
-  // Ensure the database is initialized
-  console.log('Using Firebase rtdb for access code operations:', rtdb);
+  // Ensure the database is initialized via lazy loading
+  const db = await getFirebaseDatabase();
 
   try {
     console.log('Creating access code for user:', userId, 'household:', householdId);
@@ -41,7 +41,7 @@ export const createAccessCode = async (
     
     // Create the access code record
     console.log('Creating access code record in Firebase...');
-    const accessCodesRef = ref(rtdb, 'accessCodes');
+    const accessCodesRef = ref(db, 'accessCodes');
     const newCodeRef = push(accessCodesRef);
     
     if (!newCodeRef.key) {
@@ -75,7 +75,7 @@ export const createAccessCode = async (
     updates[`accessCodesByCode/${code}`] = newCodeRef.key;
     updates[`accessCodesByUser/${userId}/${newCodeRef.key}`] = true;
     updates[`accessCodesByHousehold/${householdId}/${newCodeRef.key}`] = true;
-    await update(ref(rtdb), updates);
+    await update(ref(db), updates);
     console.log('Index entries created successfully');
     
     // Explicitly log and construct the return value
@@ -88,9 +88,20 @@ export const createAccessCode = async (
   }
 };
 
+// Import the getHousehold function from householdService
+import { getHousehold } from './householdService';
+import { Household } from '@/types/user';
+
 // Verify if an access code is valid
-export const verifyAccessCode = async (code: string): Promise<{ isValid: boolean; message?: string }> => {
+export const verifyAccessCode = async (code: string): Promise<{ 
+  isValid: boolean; 
+  message?: string; 
+  household?: Household;
+  destinationAddress?: string;
+  accessCodeId?: string;
+}> => {
   // Ensure the database is initialized
+  const db = await getFirebaseDatabase();
   console.log('Verifying access code:', code);
 
   try {
@@ -101,7 +112,7 @@ export const verifyAccessCode = async (code: string): Promise<{ isValid: boolean
 
     // Check if the code exists in our quick lookup index
     console.log('Checking if code exists in database...');
-    const codeKeyRef = ref(rtdb, `accessCodesByCode/${code}`);
+    const codeKeyRef = ref(db, `accessCodesByCode/${code}`);
     const codeKeySnapshot = await get(codeKeyRef);
     
     if (!codeKeySnapshot.exists()) {
@@ -119,7 +130,7 @@ export const verifyAccessCode = async (code: string): Promise<{ isValid: boolean
     
     // Get the actual access code data
     console.log('Getting access code data...');
-    const codeRef = ref(rtdb, `accessCodes/${codeId}`);
+    const codeRef = ref(db, `accessCodes/${codeId}`);
     const codeSnapshot = await get(codeRef);
     
     if (!codeSnapshot.exists()) {
@@ -150,6 +161,32 @@ export const verifyAccessCode = async (code: string): Promise<{ isValid: boolean
       return { isValid: false, message: 'Access code is inactive' };
     }
 
+    // Fetch household information using the householdId from access code
+    console.log('Fetching household information for ID:', accessCode.householdId);
+    const householdData = await getHousehold(accessCode.householdId);
+    const household = householdData || undefined; // Convert null to undefined to match type
+    let destinationAddress = '';
+    
+    if (household) {
+      // Construct a formatted destination address from household info
+      const addressParts = [];
+      if (household.address) addressParts.push(household.address);
+      if (household.addressLine2) addressParts.push(household.addressLine2);
+      
+      const cityStatePostal = [];
+      if (household.city) cityStatePostal.push(household.city);
+      if (household.state) cityStatePostal.push(household.state);
+      if (household.postalCode) cityStatePostal.push(household.postalCode);
+      
+      if (cityStatePostal.length > 0) addressParts.push(cityStatePostal.join(', '));
+      if (household.country) addressParts.push(household.country);
+      
+      destinationAddress = addressParts.join('\n');
+      console.log('Destination address found:', destinationAddress || 'No address on record');
+    } else {
+      console.log('No household found for ID:', accessCode.householdId);
+    }
+
     // Increment usage count
     console.log('Access code is valid, incrementing usage count...');
     const newUsageCount = (accessCode.usageCount || 0) + 1;
@@ -165,7 +202,13 @@ export const verifyAccessCode = async (code: string): Promise<{ isValid: boolean
     }
 
     console.log('Access code verification successful!');
-    return { isValid: true, message: 'Access granted' };
+    return { 
+      isValid: true, 
+      message: 'Access granted', 
+      household, 
+      destinationAddress,
+      accessCodeId: accessCode.id
+    };
   } catch (error) {
     console.error('Error verifying access code:', error);
     // Return a user-friendly error instead of throwing
@@ -178,12 +221,12 @@ export const verifyAccessCode = async (code: string): Promise<{ isValid: boolean
 
 // Get all active access codes for a resident
 export const getResidentAccessCodes = async (userId: string): Promise<AccessCode[]> => {
-  // Ensure the database is initialized
-  console.log('Using Firebase rtdb for access code operations:', rtdb);
+  // Ensure the database is initialized via lazy loading
+  const db = await getFirebaseDatabase();
 
   try {
     // Get the code IDs from the index
-    const userCodesRef = ref(rtdb, `accessCodesByUser/${userId}`);
+    const userCodesRef = ref(db, `accessCodesByUser/${userId}`);
     const snapshot = await get(userCodesRef);
     
     if (!snapshot.exists()) {
@@ -195,7 +238,7 @@ export const getResidentAccessCodes = async (userId: string): Promise<AccessCode
     // Fetch each access code
     const accessCodes: AccessCode[] = [];
     for (const codeId of codeIds) {
-      const codeRef = ref(rtdb, `accessCodes/${codeId}`);
+      const codeRef = ref(db, `accessCodes/${codeId}`);
       const codeSnapshot = await get(codeRef);
       
       if (codeSnapshot.exists()) {
@@ -212,12 +255,12 @@ export const getResidentAccessCodes = async (userId: string): Promise<AccessCode
 
 // Get all active access codes for a household
 export const getHouseholdAccessCodes = async (householdId: string): Promise<AccessCode[]> => {
-  // Ensure the database is initialized
-  console.log('Using Firebase rtdb for access code operations:', rtdb);
+  // Ensure the database is initialized via lazy loading
+  const db = await getFirebaseDatabase();
 
   try {
     // Get the code IDs from the index
-    const householdCodesRef = ref(rtdb, `accessCodesByHousehold/${householdId}`);
+    const householdCodesRef = ref(db, `accessCodesByHousehold/${householdId}`);
     const snapshot = await get(householdCodesRef);
     
     if (!snapshot.exists()) {
@@ -229,7 +272,7 @@ export const getHouseholdAccessCodes = async (householdId: string): Promise<Acce
     // Fetch each access code
     const accessCodes: AccessCode[] = [];
     for (const codeId of codeIds) {
-      const codeRef = ref(rtdb, `accessCodes/${codeId}`);
+      const codeRef = ref(db, `accessCodes/${codeId}`);
       const codeSnapshot = await get(codeRef);
       
       if (codeSnapshot.exists()) {
@@ -246,12 +289,12 @@ export const getHouseholdAccessCodes = async (householdId: string): Promise<Acce
 
 // Deactivate an access code
 export const deactivateAccessCode = async (codeId: string, userId: string): Promise<void> => {
-  // Ensure the database is initialized
-  console.log('Using Firebase rtdb for access code operations:', rtdb);
+  // Ensure the database is initialized via lazy loading
+  const db = await getFirebaseDatabase();
 
   try {
     // Get the access code
-    const codeRef = ref(rtdb, `accessCodes/${codeId}`);
+    const codeRef = ref(db, `accessCodes/${codeId}`);
     const snapshot = await get(codeRef);
     
     if (!snapshot.exists()) {

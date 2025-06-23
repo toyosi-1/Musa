@@ -6,9 +6,10 @@ import Image from 'next/image';
 interface CreateAccessCodeFormProps {
   onCreateCode: (description: string, expiresAt?: number) => Promise<{ code: string; qrCode: string } | null>;
   disabled?: boolean;
+  noHouseholdMessage?: string;
 }
 
-export default function CreateAccessCodeForm({ onCreateCode, disabled }: CreateAccessCodeFormProps) {
+export default function CreateAccessCodeForm({ onCreateCode, disabled, noHouseholdMessage }: CreateAccessCodeFormProps) {
   const [description, setDescription] = useState('');
   const [expiration, setExpiration] = useState<string>('24h');
   const [isLoading, setIsLoading] = useState(false);
@@ -42,7 +43,7 @@ export default function CreateAccessCodeForm({ onCreateCode, disabled }: CreateA
     
     if (disabled) {
       console.log('Form is disabled, household is required');
-      setError('You need to create or join a household first');
+      setError(noHouseholdMessage || 'You need to create or join a household first');
       return;
     }
     
@@ -109,7 +110,7 @@ export default function CreateAccessCodeForm({ onCreateCode, disabled }: CreateA
             </p>
           </div>
           
-          <div className="bg-white p-4 rounded-lg max-w-xs mx-auto mb-4">
+          <div className="bg-white dark:bg-gray-800 p-4 rounded-lg max-w-xs mx-auto mb-4">
             <Image 
               src={newCode.qrCode} 
               alt="QR Code" 

@@ -38,31 +38,9 @@ export default function Navigation() {
                     Dashboard
                   </Link>
 
-                  {currentUser.role === 'resident' && (
-                    <Link
-                      href="/access-codes"
-                      className={`px-3 py-2 rounded-md text-sm font-medium ${
-                        isActive('/access-codes')
-                          ? 'bg-primary-dark text-white'
-                          : 'hover:bg-white/10'
-                      }`}
-                    >
-                      Access Codes
-                    </Link>
-                  )}
 
-                  {currentUser.role === 'guard' && (
-                    <Link
-                      href="/verify"
-                      className={`px-3 py-2 rounded-md text-sm font-medium ${
-                        isActive('/verify')
-                          ? 'bg-primary-dark text-white'
-                          : 'hover:bg-white/10'
-                      }`}
-                    >
-                      Verify Codes
-                    </Link>
-                  )}
+
+
                 </div>
               </div>
             )}
@@ -156,33 +134,9 @@ export default function Navigation() {
                   Dashboard
                 </Link>
 
-                {currentUser.role === 'resident' && (
-                  <Link
-                    href="/access-codes"
-                    className={`block px-3 py-2 rounded-md text-base font-medium ${
-                      isActive('/access-codes')
-                        ? 'bg-primary-dark text-white'
-                        : 'hover:bg-white/10'
-                    }`}
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    Access Codes
-                  </Link>
-                )}
 
-                {currentUser.role === 'guard' && (
-                  <Link
-                    href="/verify"
-                    className={`block px-3 py-2 rounded-md text-base font-medium ${
-                      isActive('/verify')
-                        ? 'bg-primary-dark text-white'
-                        : 'hover:bg-white/10'
-                    }`}
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    Verify Codes
-                  </Link>
-                )}
+
+
 
                 <button
                   onClick={() => {

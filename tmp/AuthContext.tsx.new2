@@ -1,0 +1,453 @@
+"use client";
+
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { User, UserRole } from '@/types/user';
+import { 
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut as firebaseSignOut,
+  onAuthStateChanged,
+  User as FirebaseUser
+} from 'firebase/auth';
+import { ref, get, set, update, onValue } from 'firebase/database';
+import { auth, rtdb } from '@/lib/firebase';
+
+interface AuthContextType {
+  currentUser: User | null;
+  loading: boolean;
+  initError: string | null;
+  signUp: (email: string, password: string, displayName: string, role: UserRole) => Promise<User>;
+  signIn: (email: string, password: string) => Promise<User>;
+  signOut: () => Promise<void>;
+  getUserProfile: (uid: string) => Promise<User | null>;
+  approveUser: (uid: string, adminUid: string) => Promise<void>;
+  rejectUser: (uid: string, adminUid: string, reason: string) => Promise<void>;
+  getPendingUsers: () => Promise<User[]>;
+  batchApproveUsers: (uids: string[], adminUid: string) => Promise<void>;
+  batchRejectUsers: (uids: string[], adminUid: string, reason: string) => Promise<void>;
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+}
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [initError, setInitError] = useState<string | null>(null);
+
+  // Convert Firebase user to our User type
+  const formatUser = async (firebaseUser: FirebaseUser): Promise<User | null> => {
+    try {
+      const userRef = ref(rtdb, `users/${firebaseUser.uid}`);
+      const snapshot = await get(userRef);
+      
+      if (snapshot.exists()) {
+        // User exists in our database, return with role and other metadata
+        const userData = snapshot.val();
+        return {
+          uid: firebaseUser.uid,
+          email: firebaseUser.email || '',
+          displayName: userData.displayName || firebaseUser.displayName || 'User',
+          role: userData.role || 'resident',
+          status: userData.status || 'approved',
+          isEmailVerified: firebaseUser.emailVerified,
+          createdAt: userData.createdAt || Date.now(),
+          // Include additional fields if they exist
+          ...(userData.approvedBy && { approvedBy: userData.approvedBy }),
+          ...(userData.approvedAt && { approvedAt: userData.approvedAt }),
+          ...(userData.rejectedBy && { rejectedBy: userData.rejectedBy }),
+          ...(userData.rejectedAt && { rejectedAt: userData.rejectedAt }),
+          ...(userData.rejectionReason && { rejectionReason: userData.rejectionReason })
+        };
+      } else {
+        // User not found in our database, create a new entry
+        const newUser: User = {
+          uid: firebaseUser.uid,
+          email: firebaseUser.email || '',
+          displayName: firebaseUser.displayName || 'User',
+          role: 'resident', // Default role
+          status: 'pending', // New users need approval
+          isEmailVerified: firebaseUser.emailVerified,
+          createdAt: Date.now()
+        };
+        
+        // Save user to database
+        await set(userRef, newUser);
+        
+        // Add to pending users for admin approval
+        const pendingUserRef = ref(rtdb, `pendingUsers/${firebaseUser.uid}`);
+        await set(pendingUserRef, true);
+        
+        console.log('New user created and added to pending list:', newUser.uid);
+        return newUser;
+      }
+    } catch (error) {
+      console.error('Error formatting user:', error);
+      return null;
+    }
+  };
+
+  // Sign up a new user
+  const signUp = async (
+    email: string, 
+    password: string, 
+    displayName: string,
+    role: UserRole
+  ): Promise<User> => {
+    try {
+      const result = await createUserWithEmailAndPassword(auth, email, password);
+      
+      // Create user in our database
+      const userRef = ref(rtdb, `users/${result.user.uid}`);
+      const newUser: User = {
+        uid: result.user.uid,
+        email,
+        displayName,
+        role,
+        status: 'pending', // New users need approval
+        isEmailVerified: result.user.emailVerified,
+        createdAt: Date.now()
+      };
+      
+      // Save user to database
+      await set(userRef, newUser);
+      
+      // Add to pending users for admin approval
+      const pendingUserRef = ref(rtdb, `pendingUsers/${result.user.uid}`);
+      await set(pendingUserRef, true);
+      
+      console.log('New user signed up and added to pending list:', newUser.uid);
+      return newUser;
+    } catch (error) {
+      console.error('Error signing up:', error);
+      throw error;
+    }
+  };
+
+  // Sign in an existing user
+  const signIn = async (email: string, password: string): Promise<User> => {
+    try {
+      const result = await signInWithEmailAndPassword(auth, email, password);
+      const formattedUser = await formatUser(result.user);
+      
+      if (!formattedUser) {
+        throw new Error('Failed to retrieve user profile');
+      }
+      
+      return formattedUser;
+    } catch (error) {
+      console.error('Error signing in:', error);
+      throw error;
+    }
+  };
+
+  // Sign out the current user
+  const signOut = async (): Promise<void> => {
+    try {
+      await firebaseSignOut(auth);
+      setCurrentUser(null);
+    } catch (error) {
+      console.error('Error signing out:', error);
+      throw error;
+    }
+  };
+
+  // Get a user profile by UID
+  const getUserProfile = async (uid: string): Promise<User | null> => {
+    try {
+      const userRef = ref(rtdb, `users/${uid}`);
+      const snapshot = await get(userRef);
+      
+      if (snapshot.exists()) {
+        return snapshot.val() as User;
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('Error getting user profile:', error);
+      return null;
+    }
+  };
+
+  // Approve a pending user
+  const approveUser = async (uid: string, adminUid: string): Promise<void> => {
+    try {
+      const userRef = ref(rtdb, `users/${uid}`);
+      const pendingUserRef = ref(rtdb, `pendingUsers/${uid}`);
+      
+      // Get user data before updating for email notification
+      const userSnapshot = await get(userRef);
+      const userData = userSnapshot.val() as User;
+      
+      // Update user status to approved
+      await update(userRef, {
+        status: 'approved',
+        approvedBy: adminUid,
+        approvedAt: Date.now()
+      });
+      
+      // Remove from pending list
+      await set(pendingUserRef, null);
+      
+      // Email notification removed - will be added later
+      console.log(`User ${uid} approved by admin ${adminUid}`);
+    } catch (error) {
+      console.error('Error approving user:', error);
+      throw error;
+    }
+  };
+
+  // Reject a pending user
+  const rejectUser = async (uid: string, adminUid: string, reason: string): Promise<void> => {
+    try {
+      const userRef = ref(rtdb, `users/${uid}`);
+      const pendingUserRef = ref(rtdb, `pendingUsers/${uid}`);
+      
+      // Get user data before updating for email notification
+      const userSnapshot = await get(userRef);
+      const userData = userSnapshot.val() as User;
+      
+      // Update user status to rejected
+      await update(userRef, {
+        status: 'rejected',
+        rejectedBy: adminUid,
+        rejectionReason: reason,
+        rejectedAt: Date.now()
+      });
+      
+      // Remove from pending list
+      await set(pendingUserRef, null);
+      
+      console.log(`User ${uid} rejected by admin ${adminUid} for reason: ${reason}`);
+    } catch (error) {
+      console.error('Error rejecting user:', error);
+      throw error;
+    }
+  };
+
+  // Get all pending users
+  const getPendingUsers = async (): Promise<User[]> => {
+    try {
+      const pendingUsersRef = ref(rtdb, 'pendingUsers');
+      const snapshot = await get(pendingUsersRef);
+      
+      if (snapshot.exists()) {
+        // Get full user profiles for each pending user
+        const pendingUserIds = Object.keys(snapshot.val());
+        const pendingUsers: User[] = [];
+        
+        for (const uid of pendingUserIds) {
+          const userProfile = await getUserProfile(uid);
+          if (userProfile) {
+            pendingUsers.push(userProfile);
+          }
+        }
+        
+        return pendingUsers;
+      }
+      
+      return [];
+    } catch (error) {
+      console.error('Error getting pending users:', error);
+      return [];
+    }
+  };
+
+  // Batch approve multiple users
+  const batchApproveUsers = async (uids: string[], adminUid: string): Promise<void> => {
+    try {
+      if (!uids.length) return;
+      
+      // Get all user data first for email notifications
+      const approvedUsers: User[] = [];
+      const updates: Record<string, any> = {};
+      const timestamp = Date.now();
+      
+      // Build updates and collect user data
+      for (const uid of uids) {
+        const userSnapshot = await get(ref(rtdb, `users/${uid}`));
+        if (userSnapshot.exists()) {
+          const userData = userSnapshot.val() as User;
+          
+          // Add to batch updates
+          updates[`users/${uid}/status`] = 'approved';
+          updates[`users/${uid}/approvedBy`] = adminUid;
+          updates[`users/${uid}/approvedAt`] = timestamp;
+          updates[`pendingUsers/${uid}`] = null; // Remove from pending list
+          
+          // Add to collection for email notifications
+          userData.status = 'approved';
+          userData.approvedBy = adminUid;
+          userData.approvedAt = timestamp;
+          approvedUsers.push(userData);
+        }
+      }
+      
+      // Apply all database updates in a single transaction
+      await update(ref(rtdb), updates);
+      
+      // Email notifications removed - will be added later
+      
+      console.log(`Batch approved ${uids.length} users by admin ${adminUid}`);
+    } catch (error) {
+      console.error('Error batch approving users:', error);
+      throw error;
+    }
+  };
+
+  // Batch reject multiple users
+  const batchRejectUsers = async (uids: string[], adminUid: string, reason: string): Promise<void> => {
+    try {
+      if (!uids.length) return;
+      
+      // Get all user data first for email notifications
+      const rejectedUsers: User[] = [];
+      const updates: Record<string, any> = {};
+      const timestamp = Date.now();
+      
+      // Build updates and collect user data
+      for (const uid of uids) {
+        const userSnapshot = await get(ref(rtdb, `users/${uid}`));
+        if (userSnapshot.exists()) {
+          const userData = userSnapshot.val() as User;
+          
+          // Add to batch updates
+          updates[`users/${uid}/status`] = 'rejected';
+          updates[`users/${uid}/rejectedBy`] = adminUid;
+          updates[`users/${uid}/rejectedAt`] = timestamp;
+          updates[`users/${uid}/rejectionReason`] = reason;
+          updates[`pendingUsers/${uid}`] = null; // Remove from pending list
+          
+          // Add to collection for email notifications
+          userData.status = 'rejected';
+          userData.rejectedBy = adminUid;
+          userData.rejectedAt = timestamp;
+          userData.rejectionReason = reason;
+          rejectedUsers.push(userData);
+        }
+      }
+      
+      // Apply all database updates in a single transaction
+      await update(ref(rtdb), updates);
+      
+      // Email notifications removed - will be added later
+      
+      console.log(`Batch rejected ${uids.length} users by admin ${adminUid}`);
+    } catch (error) {
+      console.error('Error batch rejecting users:', error);
+      throw error;
+    }
+  };
+
+  // Listen for auth state changes
+  useEffect(() => {
+    try {
+      // Check if Firebase auth is properly initialized
+      if (!auth) {
+        console.error('Firebase auth not initialized');
+        setInitError('Authentication service not initialized. Please try again in a moment.');
+        setLoading(false);
+        return () => {};
+      }
+
+      console.log('Setting up auth state change listener...');
+      
+      // Set a timeout to prevent getting stuck in loading state
+      const authTimeout = setTimeout(() => {
+        console.log('Auth state detection timed out');
+        if (loading) {
+          setLoading(false);
+          setInitError('Authentication service timed out. Please refresh the page.');
+        }
+      }, 10000);
+      
+      const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+        try {
+          // Clear the timeout since we got a response
+          clearTimeout(authTimeout);
+          
+          if (firebaseUser) {
+            console.log('User is signed in:', firebaseUser.uid);
+            try {
+              const formattedUser = await formatUser(firebaseUser);
+              console.log('User formatted successfully:', formattedUser?.uid);
+              setCurrentUser(formattedUser);
+              setInitError(null);
+            } catch (formatError) {
+              console.error('Error formatting user:', formatError);
+              // If we can't format the user but they are authenticated,
+              // at least let them in with basic info
+              setCurrentUser({
+                uid: firebaseUser.uid,
+                email: firebaseUser.email || '',
+                displayName: firebaseUser.displayName || 'User',
+                role: 'resident', // Default role
+                status: 'approved', // Default status for backward compatibility
+                isEmailVerified: firebaseUser.emailVerified,
+                createdAt: Date.now()
+              });
+            }
+          } else {
+            console.log('No user signed in');
+            setCurrentUser(null);
+          }
+        } catch (error) {
+          console.error('Auth state change error:', error);
+          setCurrentUser(null);
+          setInitError('Error processing authentication. Please try again.');
+        } finally {
+          setLoading(false);
+        }
+      });
+
+      // Verify Firebase connection
+      const connectedRef = ref(rtdb, '.info/connected');
+      const connectedListener = onValue(connectedRef, (snapshot) => {
+        if (snapshot.val() === true) {
+          console.log('Firebase connection verified');
+        } else {
+          console.warn('Firebase disconnected - auth may not work properly');
+        }
+      });
+
+      return () => {
+        clearTimeout(authTimeout);
+        unsubscribe();
+        connectedListener();
+      };
+    } catch (error) {
+      console.error('Error setting up auth observer:', error);
+      setInitError('Failed to initialize authentication. Please refresh the page.');
+      setLoading(false);
+      return () => {};
+    }
+  }, []);
+
+  const value = {
+    currentUser,
+    loading,
+    initError,
+    signUp,
+    signIn,
+    signOut,
+    getUserProfile,
+    approveUser,
+    rejectUser,
+    getPendingUsers,
+    batchApproveUsers,
+    batchRejectUsers
+  };
+
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
+}

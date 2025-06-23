@@ -32,20 +32,22 @@ export default function AppLayout({
       <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
         <UnifiedNavbar />
         
-        <main className="flex-grow py-6">
-          {requireAuth ? (
-            <StatusGuard 
-              requireStatus={requireStatus} 
-              requireAdmin={requireAdmin}
-            >
-              {children}
-            </StatusGuard>
-          ) : (
-            children
-          )}
+        <main className="flex-grow py-8 md:py-10">
+          <div className="container mx-auto px-4 md:px-6 lg:px-8">
+            {requireAuth ? (
+              <StatusGuard 
+                requireStatus={requireStatus} 
+                requireAdmin={requireAdmin}
+              >
+                {children}
+              </StatusGuard>
+            ) : (
+              children
+            )}
+          </div>
         </main>
         
-        <footer className="bg-white dark:bg-gray-800 shadow-inner py-4">
+        <footer className="bg-white dark:bg-gray-800 shadow-inner py-6">
           <div className="container mx-auto px-4 text-center text-sm text-gray-500 dark:text-gray-400">
             © {new Date().getFullYear()} Musa Estate Management. All rights reserved.
           </div>

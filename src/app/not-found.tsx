@@ -1,22 +1,51 @@
-import Link from 'next/link';
-
 export default function NotFound() {
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-900 px-4">
-      <div className="max-w-md w-full text-center">
-        <h1 className="text-6xl font-bold text-primary mb-4">404</h1>
-        <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">
+    <div style={{ 
+      minHeight: '100vh', 
+      display: 'flex', 
+      flexDirection: 'column', 
+      alignItems: 'center', 
+      justifyContent: 'center', 
+      padding: '1rem' 
+    }}>
+      <div style={{ 
+        maxWidth: '32rem', 
+        width: '100%', 
+        textAlign: 'center' 
+      }}>
+        <h1 style={{ 
+          fontSize: '4rem', 
+          fontWeight: 'bold', 
+          color: '#3b82f6', 
+          marginBottom: '1rem' 
+        }}>404</h1>
+        <h2 style={{ 
+          fontSize: '1.5rem', 
+          fontWeight: 'bold', 
+          marginBottom: '0.5rem' 
+        }}>
           Page Not Found
         </h2>
-        <p className="text-gray-600 dark:text-gray-400 mb-8">
+        <p style={{ 
+          color: '#6b7280', 
+          marginBottom: '2rem' 
+        }}>
           The page you're looking for doesn't exist or has been moved.
         </p>
-        <Link 
+        <a 
           href="/" 
-          className="btn-primary inline-block"
+          style={{ 
+            backgroundColor: '#3b82f6', 
+            color: 'white', 
+            padding: '0.5rem 1rem', 
+            borderRadius: '0.25rem', 
+            textDecoration: 'none', 
+            display: 'inline-block', 
+            fontWeight: '600' 
+          }}
         >
           Go Back Home
-        </Link>
+        </a>
       </div>
     </div>
   );

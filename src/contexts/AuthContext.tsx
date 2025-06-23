@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User, UserRole } from '@/types/user';
+import { User, UserRole, UserStatus } from '@/types/user';
 import { 
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
@@ -9,8 +9,8 @@ import {
   onAuthStateChanged,
   User as FirebaseUser
 } from 'firebase/auth';
-import { ref, get, set, update } from 'firebase/database';
-import { auth, rtdb } from '@/lib/firebase';
+import { ref, get, set, update, onValue } from 'firebase/database';
+import { getFirebaseAuth, getFirebaseDatabase, firebaseInitComplete } from '@/lib/firebase';
 
 interface AuthContextType {
   currentUser: User | null;
@@ -42,52 +42,240 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [initError, setInitError] = useState<string | null>(null);
 
-  // Convert Firebase user to our User type
+  // Convert Firebase user to our User type with optimized database operations
   const formatUser = async (firebaseUser: FirebaseUser): Promise<User | null> => {
     try {
-      const userRef = ref(rtdb, `users/${firebaseUser.uid}`);
-      const snapshot = await get(userRef);
+      const startTime = performance.now();
+      const db = await getFirebaseDatabase();
+      const userRef = ref(db, `users/${firebaseUser.uid}`);
       
-      if (snapshot.exists()) {
+      // Create a promise with timeout
+      const fetchPromise = get(userRef);
+      const timeoutPromise = new Promise<null>((_, reject) => {
+        setTimeout(() => reject(new Error('Database operation timed out')), 5000);
+      });
+      
+      // Race the fetch against the timeout
+      let snapshot;
+      try {
+        snapshot = await Promise.race([fetchPromise, timeoutPromise]) as any;
+      } catch (dbError) {
+        logError('Database fetch error', dbError);
+        throw dbError;
+      }
+      
+      if (snapshot && snapshot.exists()) {
+        // User exists in our database, return with role and other metadata
+        console.log(`User database lookup completed in ${performance.now() - startTime}ms`);
         const userData = snapshot.val();
         
-        // Check if user has status field - if not, they're an existing user
-        // Default to 'approved' status for backward compatibility
-        if (!userData.status) {
-          console.log('Existing user without status field, setting to approved:', firebaseUser.uid);
-          const updatedUser = {
-            ...userData,
-            status: 'approved',
-            approvedAt: Date.now()
-          };
-          
-          // Update the user in the database with the status field
-          await update(ref(rtdb, `users/${firebaseUser.uid}`), {
-            status: 'approved',
-            approvedAt: Date.now()
-          });
-          
-          return updatedUser as User;
+        // Perform additional validation on user data
+        if (!userData) {
+          throw new Error('User data is null or undefined');
         }
         
-        return userData as User;
+        const formattedUser = {
+          uid: firebaseUser.uid,
+          email: firebaseUser.email || '',
+          displayName: userData.displayName || firebaseUser.displayName || 'User',
+          role: userData.role || 'resident',
+          status: userData.status || 'approved',
+          isEmailVerified: firebaseUser.emailVerified,
+          createdAt: userData.createdAt || Date.now(),
+          // Include household information
+          ...(userData.householdId && { householdId: userData.householdId }),
+          ...(userData.isHouseholdHead && { isHouseholdHead: userData.isHouseholdHead }),
+          // Include additional fields if they exist
+          ...(userData.approvedBy && { approvedBy: userData.approvedBy }),
+          ...(userData.approvedAt && { approvedAt: userData.approvedAt }),
+          ...(userData.rejectedBy && { rejectedBy: userData.rejectedBy }),
+          ...(userData.rejectedAt && { rejectedAt: userData.rejectedAt }),
+          ...(userData.rejectionReason && { rejectionReason: userData.rejectionReason })
+        };
+        
+        // Log the user data for debugging
+        console.log('Formatted user:', {
+          uid: formattedUser.uid,
+          email: formattedUser.email,
+          role: formattedUser.role,
+          status: formattedUser.status
+        });
+        
+        // Cache the user data
+        try {
+          userProfileCache.set(firebaseUser.uid, {
+            user: formattedUser,
+            timestamp: Date.now()
+          });
+        } catch (cacheError) {
+          console.warn('Failed to cache user data:', cacheError);
+          // Non-critical error, continue
+        }
+        
+        return formattedUser;
+      } else {
+        // User not found in our database, create a new entry
+        console.log(`User ${firebaseUser.uid} not found in database, creating new entry`);
+        
+        const newUser: User = {
+          uid: firebaseUser.uid,
+          email: firebaseUser.email || '',
+          displayName: firebaseUser.displayName || 'User',
+          role: 'resident', // Default role
+          status: 'pending', // New users need approval
+          isEmailVerified: firebaseUser.emailVerified,
+          createdAt: Date.now()
+        };
+        
+        // Save user to database with timeout
+        try {
+          const savePromise = set(userRef, newUser);
+          const saveTimeoutPromise = new Promise<null>((_, reject) => {
+            setTimeout(() => reject(new Error('Save operation timed out')), 5000);
+          });
+          
+          await Promise.race([savePromise, saveTimeoutPromise]);
+          console.log(`New user saved to database: ${newUser.uid}`);
+          
+          // Add to pending users for admin approval - skip if timed out above
+          const pendingUserRef = ref(db, `pendingUsers/${firebaseUser.uid}`);
+          await set(pendingUserRef, true).catch(err => {
+            console.warn('Failed to add user to pending list:', err);
+            // Continue anyway as the user object is created
+          });
+        } catch (saveError) {
+          logError('Failed to save new user to database', saveError);
+          // Continue and return the user object anyway
+        }
+        
+        // Cache the user data
+        try {
+          userProfileCache.set(firebaseUser.uid, {
+            user: newUser,
+            timestamp: Date.now()
+          });
+        } catch (cacheError) {
+          console.warn('Failed to cache new user data:', cacheError);
+          // Non-critical error, continue
+        }
+        
+        console.log(`New user created in ${performance.now() - startTime}ms:`, {
+          uid: newUser.uid,
+          email: newUser.email,
+          role: newUser.role,
+          status: newUser.status
+        });
+        return newUser;
       }
-      return null;
     } catch (error) {
-      console.error('Error formatting user:', error);
+      logError('Error formatting user', error);
+      
+      // If we time out or have database errors, return a basic user object anyway so the user isn't locked out
+      if (error instanceof Error) {
+        console.log('Creating fallback user due to error:', error.message);
+        const fallbackUser: User = {
+          uid: firebaseUser.uid,
+          email: firebaseUser.email || '',
+          displayName: firebaseUser.displayName || 'User',
+          role: 'resident' as UserRole, // Default role with type assertion
+          status: 'approved' as UserStatus, // Assume approved for error cases
+          isEmailVerified: firebaseUser.emailVerified,
+          createdAt: Date.now()
+        };
+        
+        return fallbackUser;
+      }
+      
       return null;
     }
   };
 
-  // Get user profile from database
-  const getUserProfile = async (uid: string): Promise<User | null> => {
+  // Sign up a new user
+  const signUp = async (
+    email: string, 
+    password: string, 
+    displayName: string,
+    role: UserRole
+  ): Promise<User> => {
     try {
-      const userRef = ref(rtdb, `users/${uid}`);
-      const snapshot = await get(userRef);
+      const auth = await getFirebaseAuth();
+      const result = await createUserWithEmailAndPassword(auth, email, password);
       
-      if (snapshot.exists()) {
-        return snapshot.val() as User;
+      // Create user in our database
+      const db = await getFirebaseDatabase();
+      const userRef = ref(db, `users/${result.user.uid}`);
+      const newUser: User = {
+        uid: result.user.uid,
+        email,
+        displayName,
+        role,
+        status: 'pending', // New users need approval
+        isEmailVerified: result.user.emailVerified,
+        createdAt: Date.now()
+      };
+      
+      // Save user to database
+      await set(userRef, newUser);
+      
+      // Add to pending users for admin approval
+      const pendingUserRef = ref(db, `pendingUsers/${result.user.uid}`);
+      await set(pendingUserRef, true);
+      
+      console.log('New user signed up and added to pending list:', newUser.uid);
+      return newUser;
+    } catch (error) {
+      console.error('Error signing up:', error);
+      throw error;
+    }
+  };
+
+  // Cache for user profiles to reduce database reads - declare at the top of AuthProvider
+  const userProfileCache = new Map<string, {user: User, timestamp: number}>();
+  const CACHE_EXPIRY = 10 * 60 * 1000; // 10 minutes in milliseconds
+  
+  // Add debug function to log errors with more detail
+  const logError = (message: string, error: any) => {
+    console.error(`🔴 ${message}:`, error);
+    if (error instanceof Error) {
+      console.error(`  Message: ${error.message}`);
+      console.error(`  Stack: ${error.stack}`);
+    } else {
+      console.error('  Non-Error object:', error);
+    }
+  };
+
+  // Get user profile with caching
+  const getCachedUserProfile = async (uid: string): Promise<User | null> => {
+    // Check if we have a cached version
+    const cachedData = userProfileCache.get(uid);
+    const now = Date.now();
+    
+    if (cachedData && (now - cachedData.timestamp < CACHE_EXPIRY)) {
+      console.log('Using cached user profile data');
+      return cachedData.user;
+    }
+    
+    // No cache or expired, fetch from database with timeout
+    try {
+      const db = await getFirebaseDatabase();
+      const userRef = ref(db, `users/${uid}`);
+      
+      // Create a promise with timeout
+      const fetchPromise = get(userRef);
+      const timeoutPromise = new Promise<null>((_, reject) => {
+        setTimeout(() => reject(new Error('Database operation timed out')), 5000);
+      });
+      
+      // Race the fetch against the timeout
+      const snapshot = await Promise.race([fetchPromise, timeoutPromise]) as any;
+      
+      if (snapshot && snapshot.exists()) {
+        const userData = snapshot.val() as User;
+        // Cache the result
+        userProfileCache.set(uid, {user: userData, timestamp: now});
+        return userData;
       }
+      
       return null;
     } catch (error) {
       console.error('Error getting user profile:', error);
@@ -95,104 +283,126 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Sign up a new user
-  const signUp = async (email: string, password: string, displayName: string, role: UserRole): Promise<User> => {
-    try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const firebaseUser = userCredential.user;
-      
-      // Create user profile in Realtime Database
-      const userData: User = {
-        uid: firebaseUser.uid,
-        email: firebaseUser.email || email,
-        displayName,
-        role,
-        status: role === 'admin' ? 'approved' : 'pending', // Admins are auto-approved, others are pending
-        isEmailVerified: firebaseUser.emailVerified,
-        createdAt: Date.now()
-      };
-      
-      // Save user data to Realtime Database
-      await set(ref(rtdb, `users/${firebaseUser.uid}`), userData);
-
-      // Notify admins about new pending user (can be implemented with cloud functions)
-      if (userData.status === 'pending') {
-        try {
-          // Add to pending users list for easy querying by admins
-          await set(ref(rtdb, `pendingUsers/${firebaseUser.uid}`), {
-            uid: firebaseUser.uid,
-            email: userData.email,
-            displayName: userData.displayName,
-            role: userData.role,
-            createdAt: userData.createdAt
-          });
-        } catch (err) {
-          console.error('Error adding user to pending list:', err);
-          // Non-critical error, don't throw
-        }
-      }
-      
-      return userData;
-    } catch (error) {
-      console.error('Error signing up:', error);
-      throw error;
-    }
-  };
-
-  // Sign in existing user
+  // Sign in an existing user
   const signIn = async (email: string, password: string): Promise<User> => {
     try {
-      console.log('Attempting to sign in with email:', email);
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      const firebaseUser = userCredential.user;
-      console.log('Firebase authentication successful for uid:', firebaseUser.uid);
+      const startTime = performance.now();
+      console.log(`Attempting to sign in user: ${email}`, new Date().toISOString());
       
-      // Get user profile from database
-      const userProfile = await getUserProfile(firebaseUser.uid);
-      console.log('Retrieved user profile:', userProfile ? 'success' : 'not found');
-      
-      if (!userProfile) {
-        console.error('User profile not found in database for uid:', firebaseUser.uid);
-        throw new Error('User profile not found. Please contact administrator.');
+      if (!await getFirebaseAuth()) {
+        throw new Error('Authentication service is not initialized');
       }
       
-      // Update last login time
-      console.log('Updating last login time for user');
-      await set(ref(rtdb, `users/${firebaseUser.uid}/lastLogin`), Date.now());
+      // Try to authenticate with Firebase
+      console.log('Calling Firebase signInWithEmailAndPassword...');
+      const authStartTime = performance.now();
       
-      // If user doesn't have a status field, add it (backward compatibility)
-      if (!userProfile.status) {
-        console.log('Adding status field for existing user without status');
-        await update(ref(rtdb, `users/${firebaseUser.uid}`), {
-          status: 'approved',
-          approvedAt: Date.now()
+      let result;
+      try {
+        const auth = await getFirebaseAuth();
+        result = await signInWithEmailAndPassword(auth, email, password);
+        console.log(`Firebase authentication completed in ${performance.now() - authStartTime}ms`);
+      } catch (authError) {
+        logError('Firebase authentication failed', authError);
+        throw authError; // Re-throw to be handled by outer catch
+      }
+      
+      if (!result || !result.user) {
+        throw new Error('Authentication succeeded but user data is missing');
+      }
+      
+      // Get additional user data from our database
+      console.log('Fetching user profile...');
+      const dbStartTime = performance.now();
+      
+      // Try to get from cache first, fall back to formatUser
+      let formattedUser;
+      try {
+        formattedUser = await getCachedUserProfile(result.user.uid);
+        
+        // If not in cache or cache expired, format the user
+        if (!formattedUser) {
+          formattedUser = await formatUser(result.user);
+        }
+        console.log(`Database operations completed in ${performance.now() - dbStartTime}ms`);
+      } catch (dbError) {
+        logError('Error fetching user profile', dbError);
+        
+        // Always fallback to basic user info on database errors
+        formattedUser = {
+          uid: result.user.uid,
+          email: result.user.email || '',
+          displayName: result.user.displayName || 'User',
+          role: 'resident' as UserRole, // Default role with type assertion
+          status: 'approved' as UserStatus, // Default status with type assertion
+          isEmailVerified: result.user.emailVerified,
+          createdAt: Date.now()
+        };
+      }
+      
+      if (!formattedUser) {
+        console.error('User authenticated but failed to retrieve profile from database');
+        
+        // Fallback to basic user info to let them in anyway
+        formattedUser = {
+          uid: result.user.uid,
+          email: result.user.email || '',
+          displayName: result.user.displayName || 'User',
+          role: 'resident' as UserRole, // Default role with type assertion
+          status: 'approved' as UserStatus, // Default status with type assertion
+          isEmailVerified: result.user.emailVerified,
+          createdAt: Date.now()
+        };
+      }
+      
+      // Update cache with the latest user data
+      try {
+        userProfileCache.set(result.user.uid, {
+          user: formattedUser, 
+          timestamp: Date.now()
         });
-        userProfile.status = 'approved';
-        userProfile.approvedAt = Date.now();
+      } catch (cacheError) {
+        console.warn('Failed to update user cache:', cacheError);
+        // Non-critical error, continue
       }
-
-      console.log('User signed in successfully. Status:', userProfile.status);
-      return userProfile;
+      
+      console.log(`User sign-in completed successfully in ${performance.now() - startTime}ms.`);
+      console.log(`User details - UID: ${formattedUser.uid}, Role: ${formattedUser.role}, Status: ${formattedUser.status}`);
+      
+      return formattedUser;
     } catch (error) {
-      console.error('Error signing in:', error);
-      // Add more specific error messages for common Firebase auth errors
+      logError('Error details for sign-in failure', error);
+      
+      // Handle specific Firebase Auth errors
       if (error instanceof Error) {
+        const errorCode = (error as any).code || '';
         const errorMessage = error.message || '';
-        if (errorMessage.includes('auth/user-not-found') || errorMessage.includes('auth/wrong-password')) {
-          throw new Error('Invalid email or password. Please try again.');
-        } else if (errorMessage.includes('auth/too-many-requests')) {
+        
+        // Check for error code first (more reliable)
+        if (errorCode === 'auth/invalid-credential' || errorCode === 'auth/invalid-login-credentials') {
+          throw new Error('Invalid email or password. Please check your credentials and try again.');
+        } else if (errorCode === 'auth/user-not-found') {
+          throw new Error('No account found with this email address. Please sign up first.');
+        } else if (errorCode === 'auth/wrong-password') {
+          throw new Error('Incorrect password. Please try again.');
+        } else if (errorCode === 'auth/too-many-requests') {
           throw new Error('Too many failed login attempts. Please try again later.');
-        } else if (errorMessage.includes('auth/network-request-failed')) {
-          throw new Error('Network error. Please check your internet connection.');
+        } else if (errorCode === 'auth/network-request-failed' || errorMessage.includes('network') || errorMessage.includes('timed out')) {
+          throw new Error('Connection to authentication service timed out. Please check your internet connection and try again.');
+        } else {
+          // Include error code in message if available
+          throw new Error(`Authentication error${errorCode ? ` (${errorCode})` : ''}. Please try again.`);
         }
       }
+      
       throw error;
     }
   };
 
-  // Sign out
+  // Sign out the current user
   const signOut = async (): Promise<void> => {
     try {
+      const auth = await getFirebaseAuth();
       await firebaseSignOut(auth);
       setCurrentUser(null);
     } catch (error) {
@@ -201,12 +411,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // Get a user profile by UID with timeout and caching
+  const getUserProfile = async (uid: string): Promise<User | null> => {
+    return getCachedUserProfile(uid);
+  };
+
   // Approve a pending user
   const approveUser = async (uid: string, adminUid: string): Promise<void> => {
     try {
-      const userRef = ref(rtdb, `users/${uid}`);
-      const pendingUserRef = ref(rtdb, `pendingUsers/${uid}`);
-      const timestamp = Date.now();
+      const db = await getFirebaseDatabase();
+      const userRef = ref(db, `users/${uid}`);
+      const pendingUserRef = ref(db, `pendingUsers/${uid}`);
       
       // Get user data before updating for email notification
       const userSnapshot = await get(userRef);
@@ -216,15 +431,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await update(userRef, {
         status: 'approved',
         approvedBy: adminUid,
-        approvedAt: timestamp
+        approvedAt: Date.now()
       });
       
       // Remove from pending list
       await set(pendingUserRef, null);
       
       // Email notification removed - will be added later
-      console.log(`User ${uid} approved by admin ${adminUid}`);
-      
       console.log(`User ${uid} approved by admin ${adminUid}`);
     } catch (error) {
       console.error('Error approving user:', error);
@@ -235,8 +448,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Reject a pending user
   const rejectUser = async (uid: string, adminUid: string, reason: string): Promise<void> => {
     try {
-      const userRef = ref(rtdb, `users/${uid}`);
-      const pendingUserRef = ref(rtdb, `pendingUsers/${uid}`);
+      const db = await getFirebaseDatabase();
+      const userRef = ref(db, `users/${uid}`);
+      const pendingUserRef = ref(db, `pendingUsers/${uid}`);
       
       // Get user data before updating for email notification
       const userSnapshot = await get(userRef);
@@ -245,14 +459,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Update user status to rejected
       await update(userRef, {
         status: 'rejected',
-        approvedBy: adminUid, // Used as rejectedBy in this context
-        rejectionReason: reason
+        rejectedBy: adminUid,
+        rejectionReason: reason,
+        rejectedAt: Date.now()
       });
       
       // Remove from pending list
       await set(pendingUserRef, null);
-      
-      // Email notification removed - will be added later
       
       console.log(`User ${uid} rejected by admin ${adminUid} for reason: ${reason}`);
     } catch (error) {
@@ -264,7 +477,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Get all pending users
   const getPendingUsers = async (): Promise<User[]> => {
     try {
-      const pendingUsersRef = ref(rtdb, 'pendingUsers');
+      const db = await getFirebaseDatabase();
+      const pendingUsersRef = ref(db, 'pendingUsers');
       const snapshot = await get(pendingUsersRef);
       
       if (snapshot.exists()) {
@@ -289,86 +503,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Listen for auth state changes
-  useEffect(() => {
-    try {
-      // Check if Firebase auth is properly initialized
-      if (!auth) {
-        console.error('Firebase auth not initialized');
-        setInitError('Authentication service not initialized. Please try again in a moment.');
-        setLoading(false);
-        return () => {};
-      }
-
-      console.log('Setting up auth state change listener...');
-      
-      // Set a timeout to prevent getting stuck in loading state
-      const authTimeout = setTimeout(() => {
-        console.log('Auth state detection timed out');
-        if (loading) {
-          setLoading(false);
-          setInitError('Authentication service timed out. Please refresh the page.');
-        }
-      }, 10000);
-      
-      const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-        try {
-          // Clear the timeout since we got a response
-          clearTimeout(authTimeout);
-          
-          if (firebaseUser) {
-            console.log('User is signed in:', firebaseUser.uid);
-            try {
-              const formattedUser = await formatUser(firebaseUser);
-              console.log('User formatted successfully:', formattedUser?.uid);
-              setCurrentUser(formattedUser);
-              setInitError(null);
-            } catch (formatError) {
-              console.error('Error formatting user:', formatError);
-              // If we can't format the user but they are authenticated,
-              // at least let them in with basic info
-              setCurrentUser({
-                uid: firebaseUser.uid,
-                email: firebaseUser.email || '',
-                displayName: firebaseUser.displayName || 'User',
-                role: 'resident', // Default role
-                status: 'approved', // Default status
-                isEmailVerified: firebaseUser.emailVerified,
-                createdAt: Date.now()
-              });
-            }
-          } else {
-            console.log('No user signed in');
-            setCurrentUser(null);
-          }
-        } catch (error) {
-          console.error('Auth state change error:', error);
-          setCurrentUser(null);
-          setInitError('Error processing authentication. Please try again.');
-        } finally {
-          setLoading(false);
-        }
-      }, (error) => {
-        // Clear the timeout since we got a response (error)
-        clearTimeout(authTimeout);
-        
-        console.error('Auth state observer error:', error);
-        setInitError('Authentication service error. Please try again later.');
-        setLoading(false);
-      });
-
-      return () => {
-        clearTimeout(authTimeout);
-        unsubscribe();
-      };
-    } catch (error) {
-      console.error('Error setting up auth observer:', error);
-      setInitError('Failed to initialize authentication. Please refresh the page.');
-      setLoading(false);
-      return () => {};
-    }
-  }, []);
-
   // Batch approve multiple users
   const batchApproveUsers = async (uids: string[], adminUid: string): Promise<void> => {
     try {
@@ -381,7 +515,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       // Build updates and collect user data
       for (const uid of uids) {
-        const userSnapshot = await get(ref(rtdb, `users/${uid}`));
+        const db = await getFirebaseDatabase();
+        const userSnapshot = await get(ref(db, `users/${uid}`));
         if (userSnapshot.exists()) {
           const userData = userSnapshot.val() as User;
           
@@ -391,7 +526,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           updates[`users/${uid}/approvedAt`] = timestamp;
           updates[`pendingUsers/${uid}`] = null; // Remove from pending list
           
-          // Add to users for email notification
+          // Add to collection for email notifications
           userData.status = 'approved';
           userData.approvedBy = adminUid;
           userData.approvedAt = timestamp;
@@ -400,7 +535,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       
       // Apply all database updates in a single transaction
-      await update(ref(rtdb), updates);
+      await update(ref(await getFirebaseDatabase()), updates);
       
       // Email notifications removed - will be added later
       
@@ -419,26 +554,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Get all user data first for email notifications
       const rejectedUsers: User[] = [];
       const updates: Record<string, any> = {};
+      const timestamp = Date.now();
       
       // Build updates and collect user data
       for (const uid of uids) {
-        const userSnapshot = await get(ref(rtdb, `users/${uid}`));
+        const db = await getFirebaseDatabase();
+        const userSnapshot = await get(ref(db, `users/${uid}`));
         if (userSnapshot.exists()) {
           const userData = userSnapshot.val() as User;
           
           // Add to batch updates
           updates[`users/${uid}/status`] = 'rejected';
-          updates[`users/${uid}/approvedBy`] = adminUid; // Used as rejectedBy
+          updates[`users/${uid}/rejectedBy`] = adminUid;
+          updates[`users/${uid}/rejectedAt`] = timestamp;
           updates[`users/${uid}/rejectionReason`] = reason;
           updates[`pendingUsers/${uid}`] = null; // Remove from pending list
           
-          // Add to users for email notification
+          // Add to collection for email notifications
+          userData.status = 'rejected';
+          userData.rejectedBy = adminUid;
+          userData.rejectedAt = timestamp;
+          userData.rejectionReason = reason;
           rejectedUsers.push(userData);
         }
       }
       
       // Apply all database updates in a single transaction
-      await update(ref(rtdb), updates);
+      await update(ref(await getFirebaseDatabase()), updates);
       
       // Email notifications removed - will be added later
       
@@ -448,6 +590,141 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       throw error;
     }
   };
+
+  // Listen for auth state changes
+  useEffect(() => {
+    let unsubscribe: () => void = () => {}; // Empty function as default
+    let connectedListener: () => void = () => {};
+    
+    // Set a shorter timeout to prevent getting stuck in loading state
+    const authTimeout = setTimeout(() => {
+      console.log('Auth state detection timed out');
+      if (loading) {
+        setLoading(false);
+        setInitError('Authentication service timed out. Please refresh the page.');
+      }
+    }, 5000); // Reduced from 10000ms to 5000ms for faster feedback
+    
+    // Initialize auth listener after Firebase is ready
+    const initAuth = async () => {
+      try {
+        console.log('🔥 Checking Firebase initialization...');
+        
+        // Check if we're in browser environment
+        if (typeof window === 'undefined') {
+          console.log('Skipping Firebase init on server side');
+          setLoading(false);
+          return;
+        }
+        
+        // First check if environment variables are set
+        const firebaseConfig = {
+          apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+          authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+          projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+          databaseURL: process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL
+        };
+        
+        console.log('🔥 Firebase config check:', {
+          apiKey: firebaseConfig.apiKey ? '✅ SET' : '❌ MISSING',
+          authDomain: firebaseConfig.authDomain ? '✅ SET' : '❌ MISSING',
+          projectId: firebaseConfig.projectId ? '✅ SET' : '❌ MISSING',
+          databaseURL: firebaseConfig.databaseURL ? '✅ SET' : '❌ MISSING'
+        });
+        
+        const missingVars = Object.entries(firebaseConfig)
+          .filter(([key, value]) => !value)
+          .map(([key]) => key);
+          
+        if (missingVars.length > 0) {
+          console.error('❌ Missing Firebase environment variables:', missingVars);
+          console.error('Please create a .env.local file with your Firebase configuration');
+          console.error('Copy sample.env.local to .env.local and fill in your Firebase project details');
+          setInitError(`Missing Firebase configuration: ${missingVars.join(', ')}`);
+          setLoading(false);
+          return;
+        }
+        
+        console.log('🔥 Calling firebaseInitComplete()...');
+        const initialized = await firebaseInitComplete();
+        console.log('🔥 Firebase initialization result:', initialized);
+        
+        if (!initialized) {
+          throw new Error('Firebase failed to initialize');
+        }
+        
+        console.log('Firebase is ready, setting up auth listener');
+        const auth = await getFirebaseAuth();
+        unsubscribe = onAuthStateChanged(auth, async (user) => {
+          try {
+            // Clear the timeout since we got a response
+            clearTimeout(authTimeout);
+            
+            if (user) {
+              console.log('User is signed in:', user.uid);
+              try {
+                const formattedUser = await formatUser(user);
+                console.log('User formatted successfully:', formattedUser?.uid);
+                setCurrentUser(formattedUser);
+                setInitError(null);
+              } catch (formatError) {
+                console.error('Error formatting user:', formatError);
+                // If we can't format the user but they are authenticated,
+                // at least let them in with basic info
+                setCurrentUser({
+                  uid: user.uid,
+                  email: user.email || '',
+                  displayName: user.displayName || 'User',
+                  role: 'resident', // Default role
+                  status: 'approved', // Default status for backward compatibility
+                  isEmailVerified: user.emailVerified,
+                  createdAt: Date.now()
+                });
+              }
+            } else {
+              console.log('No user signed in');
+              setCurrentUser(null);
+            }
+          } catch (error) {
+            console.error('Auth state change error:', error);
+            setCurrentUser(null);
+            setInitError('Error processing authentication. Please try again.');
+          } finally {
+            setLoading(false);
+          }
+        });
+
+        // Verify Firebase connection
+        const db = await getFirebaseDatabase();
+        const connectedRef = ref(db, '.info/connected');
+        connectedListener = onValue(connectedRef, (snapshot) => {
+          if (snapshot.val() === true) {
+            console.log('Firebase connection verified');
+          } else {
+            console.warn('Firebase disconnected - auth may not work properly');
+          }
+        });
+
+        return () => {
+          clearTimeout(authTimeout);
+          unsubscribe();
+          connectedListener();
+        };
+      } catch (error) {
+        console.error('Error setting up auth observer:', error);
+        console.error('Error details:', {
+          message: error instanceof Error ? error.message : 'Unknown error',
+          stack: error instanceof Error ? error.stack : 'No stack trace',
+          name: error instanceof Error ? error.name : 'Unknown error type'
+        });
+        setInitError('Failed to initialize authentication. Please refresh the page');
+        setLoading(false);
+        return () => {};
+      }
+    };
+
+    initAuth();
+  }, []);
 
   const value = {
     currentUser,
@@ -461,7 +738,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     rejectUser,
     getPendingUsers,
     batchApproveUsers,
-    batchRejectUsers,
+    batchRejectUsers
   };
 
   return (

@@ -63,31 +63,9 @@ export default function Navbar() {
                   </Link>
                 )}
                 
-                {currentUser?.role === 'resident' && (
-                  <Link 
-                    href="/access-codes" 
-                    className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
-                      pathname === '/access-codes' 
-                        ? 'border-primary text-gray-900 dark:text-white' 
-                        : 'border-transparent text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white'
-                    }`}
-                  >
-                    Access Codes
-                  </Link>
-                )}
+
                 
-                {currentUser?.role === 'guard' && (
-                  <Link 
-                    href="/verify" 
-                    className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
-                      pathname === '/verify' 
-                        ? 'border-primary text-gray-900 dark:text-white' 
-                        : 'border-transparent text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white'
-                    }`}
-                  >
-                    Verify Access
-                  </Link>
-                )}
+
               </div>
             )}
           </div>
@@ -179,31 +157,9 @@ export default function Navbar() {
               </Link>
             )}
 
-            {currentUser?.role === 'resident' && (
-              <Link
-                href="/access-codes"
-                className={`block pl-3 pr-4 py-2 border-l-4 text-base font-medium ${
-                  pathname === '/access-codes'
-                    ? 'border-primary text-primary bg-primary-50 dark:bg-gray-800'
-                    : 'border-transparent text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
-                }`}
-              >
-                Access Codes
-              </Link>
-            )}
 
-            {currentUser?.role === 'guard' && (
-              <Link
-                href="/verify"
-                className={`block pl-3 pr-4 py-2 border-l-4 text-base font-medium ${
-                  pathname === '/verify'
-                    ? 'border-primary text-primary bg-primary-50 dark:bg-gray-800'
-                    : 'border-transparent text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
-                }`}
-              >
-                Verify Access
-              </Link>
-            )}
+
+
           </div>
         )}
         
