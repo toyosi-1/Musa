@@ -653,12 +653,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           throw new Error('Firebase failed to initialize');
         }
         
+        // Clear the timeout since Firebase is now initialized
+        clearTimeout(authTimeout);
+        
         console.log('Firebase is ready, setting up auth listener');
         const auth = await getFirebaseAuth();
         unsubscribe = onAuthStateChanged(auth, async (user) => {
           try {
-            // Clear the timeout since we got a response
-            clearTimeout(authTimeout);
             
             if (user) {
               console.log('User is signed in:', user.uid);
