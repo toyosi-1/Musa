@@ -1,58 +1,88 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
-  <!-- Background circle -->
-  <circle cx="256" cy="256" r="256" fill="#3b82f6"/>
+  <!-- Background gradient circle -->
+  <defs>
+    <radialGradient id="bgGradient" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#4F46E5"/>
+      <stop offset="100%" stop-color="#312E81"/>
+    </radialGradient>
+    <linearGradient id="capGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFD700"/>
+      <stop offset="100%" stop-color="#DAA520"/>
+    </linearGradient>
+    <linearGradient id="kurtaGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#DAA520"/>
+      <stop offset="100%" stop-color="#B8860B"/>
+    </linearGradient>
+  </defs>
   
-  <!-- Character body -->
-  <g transform="translate(256,256)">
-    <!-- Head -->
-    <circle cx="0" cy="-80" r="45" fill="#D4A574" stroke="#B8860B" stroke-width="2"/>
+  <!-- Background -->
+  <circle cx="256" cy="256" r="256" fill="url(#bgGradient)"/>
+  
+  <!-- Character positioned and scaled for icon -->
+  <g transform="translate(256,256) scale(2.2)">
     
-    <!-- Cap -->
-    <ellipse cx="0" cy="-105" rx="50" ry="25" fill="#DAA520"/>
-    <ellipse cx="0" cy="-100" rx="45" ry="20" fill="#FFD700"/>
-    
-    <!-- Eyes -->
-    <circle cx="-12" cy="-85" r="4" fill="#FFFFFF"/>
-    <circle cx="12" cy="-85" r="4" fill="#FFFFFF"/>
-    <circle cx="-12" cy="-83" r="2" fill="#000000"/>
-    <circle cx="12" cy="-83" r="2" fill="#000000"/>
-    
-    <!-- Nose -->
-    <ellipse cx="0" cy="-75" rx="2" ry="4" fill="#8B4513"/>
-    
-    <!-- Mouth -->
-    <ellipse cx="0" cy="-65" rx="8" ry="3" fill="#8B4513"/>
-    
-    <!-- Beard -->
-    <ellipse cx="0" cy="-50" rx="25" ry="15" fill="#4A4A4A"/>
-    
-    <!-- Body/Kurta -->
-    <ellipse cx="0" cy="20" rx="60" ry="80" fill="#B8860B"/>
-    <ellipse cx="0" cy="15" rx="55" ry="75" fill="#DAA520"/>
-    
-    <!-- Kurta buttons -->
-    <circle cx="0" cy="-10" r="3" fill="#FFD700"/>
-    <circle cx="0" cy="10" r="3" fill="#FFD700"/>
-    <circle cx="0" cy="30" r="3" fill="#FFD700"/>
-    
-    <!-- Arms -->
-    <ellipse cx="-40" cy="0" rx="15" ry="50" fill="#DAA520"/>
-    <ellipse cx="40" cy="0" rx="15" ry="50" fill="#DAA520"/>
-    
-    <!-- Hands -->
-    <circle cx="-40" cy="35" r="12" fill="#D4A574"/>
-    <circle cx="40" cy="35" r="12" fill="#D4A574"/>
-    
-    <!-- Pants -->
-    <ellipse cx="0" cy="120" rx="50" ry="40" fill="#8B6F47"/>
-    
-    <!-- Legs -->
-    <ellipse cx="-20" cy="160" rx="12" ry="30" fill="#8B6F47"/>
-    <ellipse cx="20" cy="160" rx="12" ry="30" fill="#8B6F47"/>
+    <!-- Legs/Pants -->
+    <ellipse cx="-10" cy="80" rx="12" ry="30" fill="#654321"/>
+    <ellipse cx="10" cy="80" rx="12" ry="30" fill="#654321"/>
     
     <!-- Feet -->
-    <ellipse cx="-20" cy="185" rx="15" ry="8" fill="#A0522D"/>
-    <ellipse cx="20" cy="185" rx="15" ry="8" fill="#A0522D"/>
+    <ellipse cx="-10" cy="105" rx="15" ry="8" fill="#8B4513"/>
+    <ellipse cx="10" cy="105" rx="15" ry="8" fill="#8B4513"/>
+    
+    <!-- Traditional Kurta Body -->
+    <ellipse cx="0" cy="25" rx="45" ry="55" fill="url(#kurtaGradient)"/>
+    
+    <!-- Kurta neckline -->
+    <path d="M-20 -15 Q0 -10 20 -15 L20 5 Q0 0 -20 5 Z" fill="#B8860B"/>
+    
+    <!-- Traditional Kurta buttons -->
+    <circle cx="-8" cy="-5" r="3" fill="#FFD700"/>
+    <circle cx="0" cy="-3" r="3" fill="#FFD700"/>
+    <circle cx="8" cy="-5" r="3" fill="#FFD700"/>
+    
+    <!-- Arms -->
+    <ellipse cx="-35" cy="5" rx="15" ry="35" fill="#CD853F" transform="rotate(-10 -35 5)"/>
+    <ellipse cx="35" cy="5" rx="15" ry="35" fill="#CD853F" transform="rotate(10 35 5)"/>
+    
+    <!-- Hands -->
+    <circle cx="-25" cy="35" r="10" fill="#D4A574"/>
+    <circle cx="25" cy="35" r="10" fill="#D4A574"/>
+    
+    <!-- Head -->
+    <circle cx="0" cy="-45" r="30" fill="#D4A574" stroke="#B8860B" stroke-width="1"/>
+    
+    <!-- Traditional Cap - Enhanced -->
+    <ellipse cx="0" cy="-65" rx="35" ry="18" fill="url(#capGradient)"/>
+    <ellipse cx="0" cy="-62" rx="32" ry="15" fill="#FFD700"/>
+    <path d="M-30 -65 Q0 -55 30 -65 Q0 -50 -30 -65" fill="#B8860B"/>
+    
+    <!-- Eyes -->
+    <circle cx="-8" cy="-50" r="5" fill="#FFFFFF"/>
+    <circle cx="8" cy="-50" r="5" fill="#FFFFFF"/>
+    <circle cx="-8" cy="-48" r="3" fill="#000000"/>
+    <circle cx="8" cy="-48" r="3" fill="#000000"/>
+    
+    <!-- Nose -->
+    <ellipse cx="0" cy="-42" rx="3" ry="5" fill="#8B4513"/>
+    
+    <!-- Traditional Beard -->
+    <ellipse cx="0" cy="-30" rx="20" ry="12" fill="#2F1B14"/>
+    <ellipse cx="0" cy="-25" rx="18" ry="10" fill="#2F1B14"/>
+    <ellipse cx="0" cy="-20" rx="15" ry="8" fill="#2F1B14"/>
+    
+    <!-- Mouth (subtle) -->
+    <path d="M-5 -35 Q0 -32 5 -35" stroke="#654321" stroke-width="2" fill="none"/>
+    
+    <!-- Decorative elements around character -->
+    <circle cx="-60" cy="-40" r="4" fill="#FFD700" opacity="0.8"/>
+    <circle cx="60" cy="-40" r="4" fill="#FFD700" opacity="0.8"/>
+    <circle cx="-50" cy="20" r="3" fill="#DAA520" opacity="0.7"/>
+    <circle cx="50" cy="20" r="3" fill="#DAA520" opacity="0.7"/>
+    
   </g>
+  
+  <!-- Subtle glow effect -->
+  <circle cx="256" cy="256" r="240" fill="none" stroke="#FFD700" stroke-width="2" opacity="0.3"/>
+  
 </svg>
