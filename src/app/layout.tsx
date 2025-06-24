@@ -29,12 +29,15 @@ export const metadata: Metadata = {
   applicationName: 'Musa',
   icons: {
     icon: [
+      { url: '/favicon.ico', sizes: '32x32', type: 'image/x-icon' },
+      { url: '/favicon.svg', sizes: 'any', type: 'image/svg+xml' },
       { url: '/images/icon-192x192.png', sizes: '192x192', type: 'image/png' },
       { url: '/images/icon-512x512.png', sizes: '512x512', type: 'image/png' }
     ],
     apple: [
       { url: '/images/icon-152x152.png', sizes: '152x152', type: 'image/png' }
-    ]
+    ],
+    shortcut: '/favicon.ico'
   },
   manifest: '/manifest.json'
 };
