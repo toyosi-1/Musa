@@ -1,10 +1,12 @@
 import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import { Suspense } from 'react';
+import Script from 'next/script';
 import './globals.css';
 import AuthWrapper from '@/components/auth/AuthWrapper';
 import LoadingScreen from '@/components/ui/LoadingScreen';
 import { ThemeProvider } from '@/contexts/ThemeContext';
+import { getPublicEnvScript } from '@/utils/env';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 
@@ -48,16 +50,23 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body className={`${inter.variable} font-sans`}>
+    <html lang="en" className={`${inter.variable} h-full`}>
+      <head>
+        {/* Inject environment variables into the client-side */}
+        <Script
+          id="env-config"
+          dangerouslySetInnerHTML={{
+            __html: getPublicEnvScript(),
+          }}
+        />
+      </head>
+      <body className="min-h-full bg-gray-50 dark:bg-gray-900">
         <ThemeProvider>
-          <Suspense fallback={<LoadingScreen message="Loading application..." />}>
-            <AuthWrapper>
-              <Suspense fallback={<LoadingScreen message="Loading content..." />}>
-                {children}
-              </Suspense>
-            </AuthWrapper>
-          </Suspense>
+          <AuthWrapper>
+            <Suspense fallback={<LoadingScreen />}>
+              {children}
+            </Suspense>
+          </AuthWrapper>
         </ThemeProvider>
       </body>
     </html>

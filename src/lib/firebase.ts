@@ -14,17 +14,37 @@ let firebaseApp: FirebaseApp | undefined;
 let firebaseAuth: Auth | undefined;
 let firebaseDb: Database | undefined;
 
-// Your web app's Firebase configuration from environment variables
-const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
-  databaseURL: process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL
+// Get Firebase config from environment variables
+// This works in both server and client contexts with Next.js
+const getFirebaseConfig = () => {
+  // In the browser, we can access the env variables directly from the window object
+  if (typeof window !== 'undefined') {
+    return {
+      apiKey: window.ENV?.NEXT_PUBLIC_FIREBASE_API_KEY || process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+      authDomain: window.ENV?.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+      projectId: window.ENV?.NEXT_PUBLIC_FIREBASE_PROJECT_ID || process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+      storageBucket: window.ENV?.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+      messagingSenderId: window.ENV?.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+      appId: window.ENV?.NEXT_PUBLIC_FIREBASE_APP_ID || process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+      measurementId: window.ENV?.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID || process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
+      databaseURL: window.ENV?.NEXT_PUBLIC_FIREBASE_DATABASE_URL || process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL
+    };
+  }
+  
+  // Server-side fallback
+  return {
+    apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+    authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+    projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+    messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+    appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+    measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
+    databaseURL: process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL
+  };
 };
+
+const firebaseConfig = getFirebaseConfig();
 
 // Function to validate Firebase config
 const validateFirebaseConfig = () => {
@@ -171,34 +191,78 @@ export async function getFirebaseDatabase(): Promise<Database> {
   }
   
   if (!firebaseDb) {
+    console.log('🔄 Initializing Firebase Database...');
     try {
       // Dynamically import Firebase Database modules
       const { getDatabase, connectDatabaseEmulator } = await import('firebase/database');
       const app = await getFirebaseApp();
       
-      firebaseDb = getDatabase(app);
+      // Get database URL from environment variables
+      const databaseURL = window.ENV?.NEXT_PUBLIC_FIREBASE_DATABASE_URL || 
+                         process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL;
+      
+      if (!databaseURL) {
+        console.error('❌ Firebase Database URL is not configured');
+        throw new Error('Firebase Database URL is not configured. Please check your environment variables.');
+      }
+      
+      console.log(`🔗 Initializing database with URL: ${databaseURL}`);
+      
+      // Initialize database with explicit URL
+      firebaseDb = getDatabase(app, databaseURL);
       
       // Set shorter timeouts for Firebase operations
       try {
         (firebaseDb as any).app.options.databaseTimeoutSeconds = 10; // 10 seconds timeout
+        console.log('⏱️ Set database operation timeout to 10 seconds');
       } catch (e) {
-        console.warn('Could not set database timeout:', e);
+        console.warn('⚠️ Could not set database timeout:', e);
       }
       
-      // Connect to emulators in development
-      if (process.env.NODE_ENV === 'development' && 
-          process.env.NEXT_PUBLIC_USE_FIREBASE_EMULATORS === 'true') {
+      // Check if we should use emulators
+      const useEmulators = process.env.NODE_ENV === 'development' && 
+                         process.env.NEXT_PUBLIC_USE_FIREBASE_EMULATORS === 'true';
+      
+      if (useEmulators) {
         try {
+          console.log('🔌 Connecting to Database emulator...');
           connectDatabaseEmulator(firebaseDb, 'localhost', 9000);
-          console.log('Connected to Database emulator');
+          console.log('✅ Connected to Database emulator');
         } catch (err) {
-          console.warn('Failed to connect to Database emulator:', err);
+          console.warn('⚠️ Failed to connect to Database emulator:', err);
         }
+      } else {
+        console.log('🌐 Using production Firebase Database');
       }
-    } catch (error) {
-      console.error('Error initializing Firebase Database:', error);
-      throw new Error('Failed to initialize Firebase Database');
+      
+      console.log('✅ Firebase Database initialized successfully');
+    } catch (error: unknown) {
+      console.error('❌ Error initializing Firebase Database:', error);
+      
+      // Provide more detailed error information
+      if (error && typeof error === 'object') {
+        const firebaseError = error as { code?: string; message: string };
+        
+        if (firebaseError.code) {
+          console.error(`Firebase error code: ${firebaseError.code}`);
+          console.error(`Firebase error message: ${firebaseError.message}`);
+          
+          if (firebaseError.code === 'app/duplicate-app') {
+            console.error('A Firebase App named "[DEFAULT]" already exists');
+          } else if (firebaseError.code === 'app/no-app') {
+            console.error('No Firebase App has been created');
+          } else if (firebaseError.code === 'storage/unknown') {
+            console.error('Unknown error occurred while accessing storage');
+          }
+        }
+        
+        throw new Error(`Failed to initialize Firebase Database: ${firebaseError.message || 'Unknown error'}`);
+      }
+      
+      throw new Error('Failed to initialize Firebase Database: Unknown error occurred');
     }
+  } else {
+    console.log('♻️ Using existing Firebase Database instance');
   }
   
   return firebaseDb as Database;
@@ -253,42 +317,61 @@ export async function initializeFirebase(): Promise<boolean> {
       if (typeof window !== 'undefined') {
         try {
           // Dynamic import for database operations
-          const { ref, onValue } = await import('firebase/database');
+          const { ref, onValue, get, set } = await import('firebase/database');
           
-          const connectionPromise = new Promise<void>((connResolve) => {
+          // First, try to connect to the database
+          const connectionPromise = new Promise<void>(async (connResolve, connReject) => {
             try {
-              const connectedRef = ref(database, '.info/connected');
-              const unsubscribe = onValue(connectedRef, (snapshot: any) => {
-                if (snapshot.val() === true) {
-                  console.log('Connected to Firebase Realtime Database');
-                  unsubscribe();
-                  isInitialized = true;
-                  connResolve();
-                }
-              });
+              // Test connection to the database
+              const testRef = ref(database, 'connection_test');
               
-              // Add listener for database connection failures
-              window.addEventListener('offline', () => {
-                console.warn('Device went offline');
-              });
+              // Try to write and read a test value
+              await set(testRef, { timestamp: Date.now() });
+              const snapshot = await get(testRef);
+              
+              if (snapshot.exists()) {
+                console.log('✅ Successfully connected to Firebase Realtime Database');
+                await set(testRef, null); // Clean up
+                isInitialized = true;
+                connResolve();
+              } else {
+                console.warn('Database connection test failed: No data returned');
+                connResolve(); // Still resolve to not block initialization
+              }
             } catch (e) {
-              console.warn('Error checking database connection:', e);
-              connResolve(); // Resolve anyway to not block initialization
+              console.error('❌ Database connection test failed:', e);
+              connResolve(); // Still resolve to not block initialization
             }
+          });
+          
+          // Also set up the connection state listener for real-time updates
+          const connectedRef = ref(database, '.info/connected');
+          const connectionStateUnsubscribe = onValue(connectedRef, (snapshot) => {
+            console.log(snapshot.val() ? '📡 Connected to database' : '❌ Disconnected from database');
           });
           
           // Race against timeout
           const timeoutPromise = new Promise<void>((connResolve) => {
             setTimeout(() => {
-              console.warn('Database connection check timed out');
+              console.warn('⚠️ Database connection check timed out after 5 seconds');
               connResolve();
-            }, 3000); // Use a shorter timeout here (3s)
+            }, 5000);
           });
           
           // Wait for either connection or timeout
           await Promise.race([connectionPromise, timeoutPromise]);
+          
+          // Clean up the connection state listener after a delay
+          setTimeout(() => {
+            try {
+              connectionStateUnsubscribe();
+            } catch (e) {
+              console.warn('Error cleaning up connection listener:', e);
+            }
+          }, 10000);
+          
         } catch (error) {
-          console.warn('Database connection check failed:', error);
+          console.error('❌ Database connection check failed:', error);
           // Continue initialization anyway
         }
       }
