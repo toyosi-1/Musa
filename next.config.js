@@ -31,30 +31,31 @@ const withPWA = require('next-pwa')({
 });
 
 const nextConfig = {
+  // Core Next.js configurations
   reactStrictMode: true,
   swcMinify: true,
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
+  
+  // Build configurations
+  output: 'standalone',
+  
+  // TypeScript and ESLint configurations
   typescript: {
     ignoreBuildErrors: true,
   },
-  // Disable static optimization for these pages
-  output: 'standalone',
-  // Configure page configurations for static generation
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+  
+  // Experimental features
   experimental: {
-    // This will handle the dynamic routes that can't be statically generated
-    // and will properly export them as serverless functions
+    // Enable server components external packages
     serverComponentsExternalPackages: ['firebase-admin'],
+    // Enable app directory
+    appDir: true,
+    // Enable server actions
+    serverActions: true,
   },
-  // Configure page configurations for static generation
-  exportPathMap: async function() {
-    return {
-      '/': { page: '/' },
-      '/_error': { page: '/_error' },
-      // Add other static pages here
-    };
-  },
+  // Static generation is now handled by Next.js App Router automatically
   // Add transpilePackages to handle problematic packages
   transpilePackages: ['undici', 'firebase', 'react-firebase-hooks'],
   // Ensure compatibility with older Node.js versions and proper Firebase handling
@@ -155,26 +156,18 @@ const nextConfig = {
       },
     ];
   },
-  // Add image optimization
+  // Image optimization configuration
   images: {
     domains: ['firebasestorage.googleapis.com'],
     minimumCacheTTL: 60 * 60 * 24 * 30, // 30 days
     // Disable image optimization during export
     unoptimized: process.env.NODE_ENV === 'production',
   },
-  // Skip type checking during build to speed up the process
-  typescript: {
-    ignoreBuildErrors: true,
-  },
-  // Skip linting during build
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
-  // Disable static optimization for these pages
+  // Generate a static build ID for caching
   generateBuildId: async () => 'build',
   // Add compression
   compress: true,
-  // Add ETag generation
+  // Enable ETag generation for better caching
   generateEtags: true,
   // Add trailing slash for better SEO
   trailingSlash: true,
