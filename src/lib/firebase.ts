@@ -1,52 +1,45 @@
-// Use dynamic imports for Firebase to prevent SSR issues
-// This ensures Firebase only loads in the browser environment
+import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
+import { getAuth, connectAuthEmulator, Auth } from 'firebase/auth';
+import { 
+  getDatabase, 
+  connectDatabaseEmulator, 
+  Database, 
+  ref, 
+  get, 
+  onValue, 
+  DataSnapshot 
+} from 'firebase/database';
 
-// Flag to prevent double initialization
-let isInitialized = false;
-
-// Types for Firebase services
-import type { FirebaseApp } from 'firebase/app';
-import type { Auth } from 'firebase/auth';
-import type { Database } from 'firebase/database';
-
-// Empty stubs for server-side rendering
-let firebaseApp: FirebaseApp | undefined;
-let firebaseAuth: Auth | undefined;
-let firebaseDb: Database | undefined;
-
-// Get Firebase config from environment variables
-// This works in both server and client contexts with Next.js
-const getFirebaseConfig = () => {
-  // In the browser, we can access the env variables directly from the window object
-  if (typeof window !== 'undefined') {
-    return {
-      apiKey: window.ENV?.NEXT_PUBLIC_FIREBASE_API_KEY || process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-      authDomain: window.ENV?.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-      projectId: window.ENV?.NEXT_PUBLIC_FIREBASE_PROJECT_ID || process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-      storageBucket: window.ENV?.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-      messagingSenderId: window.ENV?.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-      appId: window.ENV?.NEXT_PUBLIC_FIREBASE_APP_ID || process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-      measurementId: window.ENV?.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID || process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
-      databaseURL: window.ENV?.NEXT_PUBLIC_FIREBASE_DATABASE_URL || process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL
-    };
-  }
-  
-  // Server-side fallback
-  return {
-    apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-    authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-    projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-    messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-    appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-    measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
-    databaseURL: process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL
-  };
+// Firebase configuration - using environment variables
+const firebaseConfig = {
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
+  databaseURL: process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL
 };
 
-const firebaseConfig = getFirebaseConfig();
+// Initialize Firebase instances
+let firebaseApp: FirebaseApp | null = null;
+let firebaseAuth: Auth | null = null;
+let firebaseDb: Database | null = null;
 
-// Function to validate Firebase config
+// Connection status tracking
+let isInitialized = false;
+let connectionPromise: Promise<boolean> | null = null;
+
+// Export types for convenience
+type FirebaseAppType = FirebaseApp;
+type AuthType = Auth;
+type DatabaseType = Database;
+
+// Connection test timeout (in ms)
+const CONNECTION_TIMEOUT = 10000; // 10 seconds
+
+// Validate Firebase configuration
 const validateFirebaseConfig = () => {
   const requiredFields = [
     'apiKey',
@@ -273,21 +266,40 @@ export async function getFirebaseDatabase(): Promise<Database> {
  * Returns a promise that resolves when initialization is complete
  */
 export async function initializeFirebase(): Promise<boolean> {
+  console.log('=== Starting Firebase Initialization ===');
+  console.log('Environment:', process.env.NODE_ENV);
+  console.log('Is Server:', typeof window === 'undefined');
+  console.log('=== Firebase Config ===');
+  console.log('API Key:', process.env.NEXT_PUBLIC_FIREBASE_API_KEY ? '*** (set)' : 'Not set');
+  console.log('Auth Domain:', process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || 'Not set');
+  console.log('Project ID:', process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'Not set');
+  console.log('Database URL:', process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL || 'Not set');
+  console.log('========================');
   // Skip initialization on server-side
   if (typeof window === 'undefined') {
-    console.log('Skipping Firebase initialization on server');
+    console.log('⚠️ Skipping Firebase initialization on server side');
     return false;
   }
   
   // Return existing promise if already initializing
-  if (isInitialized || initPromise) {
-    console.log('🔥 Firebase already initialized or initializing, returning existing promise');
-    return initPromise || Promise.resolve(isInitialized);
+  if (isInitialized) {
+    console.log('✅ Firebase already initialized');
+    return Promise.resolve(true);
+  }
+  
+  if (initPromise) {
+    console.log('⏳ Firebase initialization in progress, returning existing promise');
+    return initPromise;
   }
   
   console.log('🔥 Starting Firebase initialization process...');
   
-  initPromise = new Promise<boolean>(async (resolve) => {
+  // Store the current promise to prevent multiple initializations
+  const currentPromise = connectionPromise;
+  if (currentPromise !== Promise.resolve(false)) return currentPromise;
+  
+  // Create new initialization promise
+  connectionPromise = new Promise<boolean>(async (resolve) => {
     try {
       console.log('🔥 Starting Firebase initialization...');
       
@@ -301,17 +313,22 @@ export async function initializeFirebase(): Promise<boolean> {
       console.log('✅ Firebase configuration is valid');
       
       // Initialize app and services
-      console.log('🔥 Getting Firebase app...');
+      console.log('🔥 [1/3] Initializing Firebase App...');
       const app = await getFirebaseApp();
-      console.log('✅ Firebase app initialized');
+      console.log('✅ [1/3] Firebase App initialized successfully');
       
-      console.log('🔥 Getting Firebase auth...');
+      console.log('🔥 [2/3] Initializing Firebase Auth...');
       const auth = await getFirebaseAuth();
-      console.log('✅ Firebase auth initialized');
+      console.log('✅ [2/3] Firebase Auth initialized successfully');
       
-      console.log('🔥 Getting Firebase database...');
+      console.log('🔥 [3/3] Initializing Firebase Database...');
       const database = await getFirebaseDatabase();
-      console.log('✅ Firebase database initialized');
+      console.log('✅ [3/3] Firebase Database initialized successfully');
+      
+      // Log auth state
+      if (auth) {
+        console.log('🔐 Auth state:', auth.currentUser ? 'User signed in' : 'No user signed in');
+      }
       
       // Test database connection with timeout
       if (typeof window !== 'undefined') {
@@ -385,21 +402,96 @@ export async function initializeFirebase(): Promise<boolean> {
     }
   });
   
-  return initPromise;
-}
+  return connectionPromise;
+};
 
-// Initialize Firebase lazily for client-side only
-if (typeof window !== 'undefined') {
-  // Start initialization in the background but don't wait
-  setTimeout(() => {
-    initializeFirebase().then((success) => {
-      console.log(`Firebase background initialization ${success ? 'complete' : 'failed'}`);
+/**
+ * Test database connection
+ */
+const testDatabaseConnection = async (): Promise<boolean> => {
+  if (!firebaseDb) return false;
+  
+  try {
+    // Simple test query with timeout
+    const testRef = ref(firebaseDb, '.info/connected');
+    const snapshot = await Promise.race([
+      get(testRef),
+      new Promise<DataSnapshot>((_, reject) => 
+        setTimeout(() => reject(new Error('Connection timeout')), CONNECTION_TIMEOUT)
+      )
+    ]);
+    
+    return snapshot.val() === true;
+  } catch (error) {
+    console.error('Database connection test failed:', error);
+    return false;
+  }
+};
+
+/**
+ * Get Firebase Auth instance
+ */
+export const getAuthInstance = (): Auth => {
+  if (!firebaseAuth) {
+    throw new Error('Firebase Auth not initialized. Call initializeFirebase() first.');
+  }
+  return firebaseAuth;
+};
+
+/**
+ * Get Firebase Database instance
+ */
+export const getDatabaseInstance = (): Database => {
+  if (!firebaseDb) {
+    throw new Error('Firebase Database not initialized. Call initializeFirebase() first.');
+  }
+  return firebaseDb;
+};
+
+/**
+ * Check if Firebase is ready
+ */
+export const isFirebaseReady = (): boolean => isInitialized;
+
+/**
+ * Wait for Firebase to be ready
+ */
+export const waitForFirebase = async (): Promise<boolean> => {
+  if (isInitialized) return true;
+  if (connectionPromise) return connectionPromise;
+  return initializeFirebase();
+};
+
+// Initialize Firebase on the client side
+if (typeof window !== 'undefined' && !isInitialized) {
+  // Start initialization in the background
+  connectionPromise = initializeFirebase()
+    .then(success => {
+      isInitialized = success;
+      if (success) {
+        console.log('Firebase initialized successfully');
+      } else {
+        console.error('Firebase initialization failed');
+      }
+      return success;
+    })
+    .catch(error => {
+      console.error('Firebase initialization error:', error);
+      isInitialized = false;
+      return false;
     });
-  }, 100); // Small delay to let the page render first
 }
 
-// Export helper to check if Firebase is ready
-export const isFirebaseReady = () => isInitialized;
+// Export initialized instances
+export { firebaseApp, firebaseAuth, firebaseDb };
 
-// Export the initialization promise
-export const firebaseInitComplete = () => initPromise || Promise.resolve(false);
+// Export database helpers
+export { ref, onValue, get };
+
+// Export types
+export type { 
+  FirebaseAppType as FirebaseApp, 
+  AuthType as Auth, 
+  DatabaseType as Database,
+  DataSnapshot 
+};
