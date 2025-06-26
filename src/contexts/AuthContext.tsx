@@ -595,74 +595,102 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let unsubscribe: () => void = () => {}; // Empty function as default
     let connectedListener: () => void = () => {};
+    let authTimeout: NodeJS.Timeout;
+    let authStateTimeout: NodeJS.Timeout;
     
     // Set a shorter timeout to prevent getting stuck in loading state
     const initializeAuth = async () => {
       try {
+        console.log('🔄 Initializing Firebase auth...');
+        
+        // Set a timeout for the entire initialization process
+        authTimeout = setTimeout(() => {
+          console.log('⚠️ Firebase auth initialization timed out');
+          if (loading) {
+            setLoading(false);
+            setInitError('Authentication service is taking longer than expected. Please check your connection and refresh the page.');
+          }
+        }, 10000); // 10 seconds for initial auth
+
         // Wait for Firebase to be ready
+        console.log('⏳ Waiting for Firebase to be ready...');
         const isReady = await waitForFirebase();
         if (!isReady) {
           throw new Error('Firebase initialization failed');
         }
 
-        const auth = await getFirebaseAuth();
-        const db = await getFirebaseDatabase();
+        console.log('✅ Firebase ready, getting auth and database...');
+        const [auth, db] = await Promise.all([
+          getFirebaseAuth(),
+          getFirebaseDatabase()
+        ]);
 
-        // Set up auth state change listener
-        const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-          try {
-            if (firebaseUser) {
-              const user = await formatUser(firebaseUser);
-              setCurrentUser(user);
-            } else {
-              setCurrentUser(null);
+        // Clear the timeout since we've successfully connected
+        clearTimeout(authTimeout);
+        
+        console.log('🔒 Setting up auth state listener...');
+        let authStateResolved = false;
+        
+        // Set up auth state change listener with its own timeout
+        await new Promise<void>((resolve) => {
+          authStateTimeout = setTimeout(() => {
+            if (!authStateResolved) {
+              console.warn('Auth state change listener timed out');
+              resolve();
             }
-            setInitError(null);
-          } catch (error) {
-            console.error('Auth state change error:', error);
-            setCurrentUser(null);
-            setInitError('Error processing authentication. Please try again.');
-          } finally {
-            setLoading(false);
-          }
+          }, 8000); // 8 seconds for auth state
+
+          unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+            try {
+              console.log('👤 Auth state changed:', firebaseUser ? 'User signed in' : 'No user');
+              if (firebaseUser) {
+                const user = await formatUser(firebaseUser);
+                setCurrentUser(user);
+              } else {
+                setCurrentUser(null);
+              }
+              setInitError(null);
+            } catch (error) {
+              console.error('Auth state change error:', error);
+              setCurrentUser(null);
+              setInitError('Error processing authentication. Please try again.');
+            } finally {
+              if (!authStateResolved) {
+                authStateResolved = true;
+                clearTimeout(authStateTimeout);
+                resolve();
+              }
+              setLoading(false);
+            }
+          });
         });
 
-        // Verify Firebase connection
+        // Set up database connection listener
+        console.log('🔌 Setting up database connection listener...');
         const connectedRef = ref(db, '.info/connected');
-        const connectedListener = onValue(connectedRef, (snapshot) => {
-          if (snapshot.val() === true) {
-            console.log('Firebase connection verified');
-          } else {
-            console.warn('Firebase disconnected - auth may not work properly');
-          }
+        connectedListener = onValue(connectedRef, (snapshot) => {
+          const isConnected = snapshot.val() === true;
+          console.log(isConnected ? '✅ Database connected' : '❌ Database disconnected');
         });
-
-        // Set a timeout for auth state change
-        const authTimeout = setTimeout(() => {
-          console.log('Auth state detection timed out');
-          if (loading) {
-            setLoading(false);
-            setInitError('Authentication service timed out. Please refresh the page.');
-          }
-        }, 5000);
-
-        return () => {
-          clearTimeout(authTimeout);
-          unsubscribe();
-          connectedListener();
-        };
       } catch (error) {
         console.error('Error initializing auth:', error);
         setInitError('Failed to initialize authentication. Please refresh the page');
         setLoading(false);
-        return () => {};
       }
     };
 
     initializeAuth();
+
+    // Cleanup function
+    return () => {
+      clearTimeout(authTimeout);
+      clearTimeout(authStateTimeout);
+      unsubscribe();
+      connectedListener();
+    };
   }, []);
 
-  const value: AuthContextType = {
+  const value = {
     currentUser,
     loading,
     initError,
@@ -674,7 +702,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     rejectUser,
     getPendingUsers,
     batchApproveUsers,
-    batchRejectUsers
+    batchRejectUsers,
   };
 
   return (
