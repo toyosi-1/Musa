@@ -1,0 +1,7 @@
+**/*.tsx
+**/*.ts
+.next/
+node_modules/
+build/
+out/
+*.json
