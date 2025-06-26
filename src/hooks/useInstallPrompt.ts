@@ -33,6 +33,11 @@ export function useInstallPrompt() {
 
   // Check if the app is already installed
   const checkIfAppIsInstalled = useCallback(() => {
+    // Skip if window is not available (SSR)
+    if (typeof window === 'undefined') {
+      return false;
+    }
+
     // For iOS devices
     const isIos = () => {
       const userAgent = window.navigator.userAgent.toLowerCase();
@@ -51,6 +56,11 @@ export function useInstallPrompt() {
 
   // Handle beforeinstallprompt event
   useEffect(() => {
+    // Skip if window is not available (SSR)
+    if (typeof window === 'undefined') {
+      return () => {}; // Return empty cleanup function
+    }
+
     const handleBeforeInstallPrompt = (e: BeforeInstallPromptEvent) => {
       // Prevent the default browser install prompt
       e.preventDefault();
@@ -100,8 +110,9 @@ export function useInstallPrompt() {
 
   // Handle installation
   const handleInstall = useCallback(async () => {
-    if (!state.deferredPrompt) {
-      console.error('No deferred prompt available');
+    // Skip if not in browser environment
+    if (typeof window === 'undefined' || !state.deferredPrompt) {
+      console.error('Installation not available in this environment');
       return false;
     }
 
