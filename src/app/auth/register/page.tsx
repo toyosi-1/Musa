@@ -2,14 +2,26 @@ import AuthForm from '@/components/auth/AuthForm';
 import Link from 'next/link';
 import { UserRole } from '@/types/user';
 
+// Opt out of static generation for this page
+export const dynamic = 'force-dynamic';
+
+// Generate static params for the roles we want to pre-render
+export function generateStaticParams() {
+  return [
+    { role: 'resident' },
+    { role: 'guard' },
+    { role: undefined } // For the default case
+  ];
+}
+
 export default function RegisterPage({
   searchParams,
 }: {
   searchParams: { [key: string]: string | string[] | undefined };
 }) {
-  // Extract role from query parameters
-  const roleParam = searchParams.role as string | undefined;
-  const defaultRole = roleParam === 'guard' || roleParam === 'resident' 
+  // Safely extract and validate role from searchParams
+  const roleParam = Array.isArray(searchParams.role) ? searchParams.role[0] : searchParams.role;
+  const defaultRole = (roleParam === 'guard' || roleParam === 'resident') 
     ? roleParam as UserRole 
     : undefined;
 
