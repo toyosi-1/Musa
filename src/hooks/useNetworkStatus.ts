@@ -22,6 +22,11 @@ export function useNetworkStatus() {
   });
 
   useEffect(() => {
+    // Skip if window/navigator is not available (SSR)
+    if (typeof window === 'undefined' || typeof navigator === 'undefined') {
+      return;
+    }
+
     // Set initial online status
     setIsOnline(navigator.onLine);
     
@@ -67,23 +72,28 @@ export function useNetworkStatus() {
       }
     };
 
-    // Add event listeners
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-    
-    if ('connection' in navigator) {
-      const nav = navigator as any;
-      nav.connection?.addEventListener('change', handleConnectionChange);
+    // Skip if window/navigator is not available (SSR)
+    if (typeof window !== 'undefined') {
+      // Add event listeners
+      window.addEventListener('online', handleOnline);
+      window.addEventListener('offline', handleOffline);
+      
+      if ('connection' in navigator) {
+        const nav = navigator as any;
+        nav.connection?.addEventListener('change', handleConnectionChange);
+      }
     }
 
     // Clean up event listeners
     return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-      
-      if ('connection' in navigator) {
-        const nav = navigator as any;
-        nav.connection?.removeEventListener('change', handleConnectionChange);
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('online', handleOnline);
+        window.removeEventListener('offline', handleOffline);
+        
+        if ('connection' in navigator) {
+          const nav = navigator as any;
+          nav.connection?.removeEventListener('change', handleConnectionChange);
+        }
       }
     };
   }, [wasOffline]);
