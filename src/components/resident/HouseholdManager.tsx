@@ -301,7 +301,7 @@ export default function HouseholdManager({ user, household, onCreateHousehold, r
                   </div>
                 ) : (
                   <p className="text-gray-500 dark:text-gray-400 italic">
-                    No address added yet. Guards won't be able to see where visitors are going.
+                    No address added yet. Guards won&apos;t be able to see where visitors are going.
                   </p>
                 )}
               </div>

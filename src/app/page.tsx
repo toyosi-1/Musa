@@ -78,7 +78,7 @@ export default function Home() {
                 </div>
                 <h3 className="text-xl font-semibold mb-2 text-gray-800 dark:text-white text-center">Privacy-Focused</h3>
                 <p className="text-gray-600 dark:text-gray-300 text-center">
-                  Guards can verify access without knowing who codes belong to. Family heads cannot see members' codes.
+                  Guards can verify access without knowing who codes belong to. Family heads cannot see members&apos; codes.
                 </p>
               </div>
             </div>

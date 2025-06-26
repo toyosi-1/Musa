@@ -67,7 +67,7 @@ export default function RejectedPage() {
             <h2 className="text-2xl font-bold text-gray-800 dark:text-white mt-6">Account Not Approved</h2>
             
             <div className="mt-6 text-gray-600 dark:text-gray-300 max-w-sm mx-auto">
-              <p>We're sorry, but your application to join Musa has not been approved by the administrator.</p>
+              <p>We&apos;re sorry, but your application to join Musa has not been approved by the administrator.</p>
               
               <div className="mt-4 p-4 bg-red-50 dark:bg-red-900/20 rounded-xl border border-red-100 dark:border-red-800/30">
                 <p className="font-medium text-red-800 dark:text-red-300">Reason:</p>

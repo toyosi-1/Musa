@@ -184,7 +184,7 @@ export default function FirebaseDebugPage() {
           <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-300">
             <li>✅ Ensure all required Firebase environment variables are set in <code className="bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded">.env.local</code></li>
             <li>✅ Check that your Firebase project has the necessary services enabled (Auth, Realtime Database)</li>
-            <li>✅ Verify that your Firebase project's authorized domains include this app's domain</li>
+            <li>✅ Verify that your Firebase project&apos;s authorized domains include this app&apos;s domain</li>
             <li>✅ If using emulators, ensure they are running and properly configured</li>
             <li>✅ Check the browser console for detailed error messages</li>
           </ul>

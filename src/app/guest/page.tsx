@@ -97,7 +97,7 @@ export default function GuestPage() {
         
         <div className="mb-6">
           <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-            Let the resident know you've arrived or send them a message.
+            Let the resident know you&apos;ve arrived or send them a message.
           </p>
         </div>
         

@@ -118,7 +118,7 @@ export default function GuestMessageForm({
           className="mt-1 block w-full px-3 py-2 sm:px-4 sm:py-3 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-primary focus:border-primary text-base"
           disabled={isLoading}
         >
-          <option value="arrival">I've Arrived</option>
+          <option value="arrival">I&apos;ve Arrived</option>
           <option value="message">Custom Message</option>
           <option value="help">Need Assistance</option>
         </select>
