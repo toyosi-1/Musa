@@ -9,7 +9,7 @@ import useInstallPrompt from '../hooks/useInstallPrompt';
 import useNetworkStatus from '../hooks/useNetworkStatus';
 import useAppUpdates from '../hooks/useAppUpdates';
 import { useUpdateNotification, UpdateNotification } from '../hooks/useUpdateNotification';
-import '../styles/globals.css';
+import '../app/globals.css';
 
 // Extend the Window interface to include our custom properties
 declare global {
