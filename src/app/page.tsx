@@ -21,7 +21,7 @@ export default function Home() {
       <section className="flex-grow container mx-auto py-16 px-4 flex flex-col md:flex-row items-center justify-between gap-12">
 
         <div className="md:w-1/2 space-y-6 animate-slide-in-right">
-          <h2 className="text-4xl font-bold text-gray-800">Modern Estate Access Control</h2>
+          <h2 className="text-4xl font-bold text-gray-800 dark:text-white">Modern Estate Access Control</h2>
           <p className="text-xl text-gray-600">
             Musa is a seamless, fast, and user-friendly access control system designed for estates.
             No more manual security checks – just scan and go.
