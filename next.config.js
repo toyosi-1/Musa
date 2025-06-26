@@ -36,17 +36,10 @@ const nextConfig = {
       config: [__filename]
     };
     
-    // Add module rule to handle Firebase properly
-    config.module.rules.push({
-      test: /\.m?js$/,
-      exclude: /node_modules/,
-      use: {
-        loader: 'babel-loader',
-        options: {
-          presets: ['next/babel'],
-        },
-      },
-    });
+    // Enable source maps in development for better debugging
+    if (!isServer) {
+      config.devtool = 'source-map';
+    }
 
     return config;
   },

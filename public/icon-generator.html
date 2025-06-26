@@ -1,0 +1,122 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Icon Generator</title>
+    <style>
+        canvas { display: none; }
+        .icon { margin: 10px; }
+    </style>
+</head>
+<body>
+    <h2>Musa Icon Generator</h2>
+    <div id="icons"></div>
+    
+    <script>
+        const iconSVG = `<?xml version="1.0" encoding="UTF-8"?>
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle -->
+  <circle cx="256" cy="256" r="256" fill="#3b82f6"/>
+  
+  <!-- Character body -->
+  <g transform="translate(256,256)">
+    <!-- Head -->
+    <circle cx="0" cy="-80" r="45" fill="#D4A574" stroke="#B8860B" stroke-width="2"/>
+    
+    <!-- Cap -->
+    <ellipse cx="0" cy="-105" rx="50" ry="25" fill="#DAA520"/>
+    <ellipse cx="0" cy="-100" rx="45" ry="20" fill="#FFD700"/>
+    
+    <!-- Eyes -->
+    <circle cx="-12" cy="-85" r="4" fill="#FFFFFF"/>
+    <circle cx="12" cy="-85" r="4" fill="#FFFFFF"/>
+    <circle cx="-12" cy="-83" r="2" fill="#000000"/>
+    <circle cx="12" cy="-83" r="2" fill="#000000"/>
+    
+    <!-- Nose -->
+    <ellipse cx="0" cy="-75" rx="2" ry="4" fill="#8B4513"/>
+    
+    <!-- Mouth -->
+    <ellipse cx="0" cy="-65" rx="8" ry="3" fill="#8B4513"/>
+    
+    <!-- Beard -->
+    <ellipse cx="0" cy="-50" rx="25" ry="15" fill="#4A4A4A"/>
+    
+    <!-- Body/Kurta -->
+    <ellipse cx="0" cy="20" rx="60" ry="80" fill="#B8860B"/>
+    <ellipse cx="0" cy="15" rx="55" ry="75" fill="#DAA520"/>
+    
+    <!-- Kurta buttons -->
+    <circle cx="0" cy="-10" r="3" fill="#FFD700"/>
+    <circle cx="0" cy="10" r="3" fill="#FFD700"/>
+    <circle cx="0" cy="30" r="3" fill="#FFD700"/>
+    
+    <!-- Arms -->
+    <ellipse cx="-40" cy="0" rx="15" ry="50" fill="#DAA520"/>
+    <ellipse cx="40" cy="0" rx="15" ry="50" fill="#DAA520"/>
+    
+    <!-- Hands -->
+    <circle cx="-40" cy="35" r="12" fill="#D4A574"/>
+    <circle cx="40" cy="35" r="12" fill="#D4A574"/>
+    
+    <!-- Pants -->
+    <ellipse cx="0" cy="120" rx="50" ry="40" fill="#8B6F47"/>
+    
+    <!-- Legs -->
+    <ellipse cx="-20" cy="160" rx="12" ry="30" fill="#8B6F47"/>
+    <ellipse cx="20" cy="160" rx="12" ry="30" fill="#8B6F47"/>
+    
+    <!-- Feet -->
+    <ellipse cx="-20" cy="185" rx="15" ry="8" fill="#A0522D"/>
+    <ellipse cx="20" cy="185" rx="15" ry="8" fill="#A0522D"/>
+  </g>
+</svg>`;
+        
+        function createIcon(size) {
+            const canvas = document.createElement('canvas');
+            canvas.width = size;
+            canvas.height = size;
+            const ctx = canvas.getContext('2d');
+            
+            const img = new Image();
+            img.onload = function() {
+                ctx.drawImage(img, 0, 0, size, size);
+                
+                // Convert to blob and create download
+                canvas.toBlob(function(blob) {
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `icon-${size}x${size}.png`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    
+                    document.getElementById('icons').innerHTML += 
+                        `<div class="icon">Generated ${size}x${size} icon</div>`;
+                });
+            };
+            
+            const svgBlob = new Blob([iconSVG], {type: 'image/svg+xml'});
+            const url = URL.createObjectURL(svgBlob);
+            img.src = url;
+        }
+        
+        // Generate all sizes
+        const sizes = [72, 96, 128, 144, 152, 192, 384, 512];
+        let index = 0;
+        
+        function generateNext() {
+            if (index < sizes.length) {
+                createIcon(sizes[index]);
+                index++;
+                setTimeout(generateNext, 1000);
+            }
+        }
+        
+        setTimeout(generateNext, 1000);
+    </script>
+</body>
+</html>

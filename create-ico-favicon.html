@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Create Musa Favicon ICO</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        canvas { border: 1px solid #ccc; margin: 10px; }
+        .size { display: inline-block; margin: 10px; text-align: center; }
+    </style>
+</head>
+<body>
+    <h1>Musa Favicon Creator</h1>
+    <p>Creating favicon.ico with multiple sizes...</p>
+    
+    <div class="size">
+        <h3>16x16</h3>
+        <canvas id="canvas16" width="16" height="16"></canvas>
+    </div>
+    
+    <div class="size">
+        <h3>32x32</h3>
+        <canvas id="canvas32" width="32" height="32"></canvas>
+    </div>
+    
+    <div class="size">
+        <h3>48x48</h3>
+        <canvas id="canvas48" width="48" height="48"></canvas>
+    </div>
+    
+    <button onclick="downloadFavicon()">Download favicon.ico</button>
+    <button onclick="downloadPNGs()">Download PNG files</button>
+    
+    <script>
+        function drawMusa(ctx, size) {
+            const scale = size / 32;
+            
+            // Clear canvas
+            ctx.clearRect(0, 0, size, size);
+            
+            // Background circle
+            ctx.beginPath();
+            ctx.arc(size/2, size/2, size/2 - 1, 0, 2 * Math.PI);
+            ctx.fillStyle = '#DAA520';
+            ctx.fill();
+            ctx.strokeStyle = '#B8860B';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+            
+            // Character elements scaled
+            const centerX = size / 2;
+            const centerY = size / 2;
+            
+            // Cap
+            ctx.beginPath();
+            ctx.ellipse(centerX, centerY - 4*scale, 8*scale, 4*scale, 0, 0, 2 * Math.PI);
+            ctx.fillStyle = '#FFD700';
+            ctx.fill();
+            
+            ctx.beginPath();
+            ctx.ellipse(centerX, centerY - 5*scale, 6*scale, 2*scale, 0, 0, 2 * Math.PI);
+            ctx.fillStyle = '#FFFF99';
+            ctx.fill();
+            
+            // Face
+            ctx.beginPath();
+            ctx.arc(centerX, centerY + 2*scale, 6*scale, 0, 2 * Math.PI);
+            ctx.fillStyle = '#8B4513';
+            ctx.fill();
+            
+            // Eyes
+            if (size >= 24) {
+                ctx.beginPath();
+                ctx.arc(centerX - 2*scale, centerY, 1*scale, 0, 2 * Math.PI);
+                ctx.fillStyle = '#000';
+                ctx.fill();
+                
+                ctx.beginPath();
+                ctx.arc(centerX + 2*scale, centerY, 1*scale, 0, 2 * Math.PI);
+                ctx.fillStyle = '#000';
+                ctx.fill();
+            }
+            
+            // Nose (only for larger sizes)
+            if (size >= 32) {
+                ctx.beginPath();
+                ctx.arc(centerX, centerY + 2*scale, 0.5*scale, 0, 2 * Math.PI);
+                ctx.fillStyle = '#654321';
+                ctx.fill();
+            }
+            
+            // Beard
+            ctx.beginPath();
+            ctx.ellipse(centerX, centerY + 6*scale, 4*scale, 2*scale, 0, 0, 2 * Math.PI);
+            ctx.fillStyle = '#2F2F2F';
+            ctx.fill();
+            
+            // Kurta (simplified)
+            if (size >= 24) {
+                ctx.fillStyle = '#B8860B';
+                ctx.fillRect(centerX - 4*scale, centerY + 8*scale, 8*scale, 6*scale);
+                
+                // Buttons
+                ctx.beginPath();
+                ctx.arc(centerX - 2*scale, centerY + 10*scale, 0.5*scale, 0, 2 * Math.PI);
+                ctx.fillStyle = '#FFD700';
+                ctx.fill();
+                
+                ctx.beginPath();
+                ctx.arc(centerX + 2*scale, centerY + 10*scale, 0.5*scale, 0, 2 * Math.PI);
+                ctx.fillStyle = '#FFD700';
+                ctx.fill();
+            }
+        }
+        
+        // Draw all sizes
+        const canvas16 = document.getElementById('canvas16');
+        const ctx16 = canvas16.getContext('2d');
+        drawMusa(ctx16, 16);
+        
+        const canvas32 = document.getElementById('canvas32');
+        const ctx32 = canvas32.getContext('2d');
+        drawMusa(ctx32, 32);
+        
+        const canvas48 = document.getElementById('canvas48');
+        const ctx48 = canvas48.getContext('2d');
+        drawMusa(ctx48, 48);
+        
+        function downloadPNGs() {
+            // Download 16x16
+            const link16 = document.createElement('a');
+            link16.download = 'favicon-16x16.png';
+            link16.href = canvas16.toDataURL();
+            link16.click();
+            
+            // Download 32x32
+            const link32 = document.createElement('a');
+            link32.download = 'favicon-32x32.png';
+            link32.href = canvas32.toDataURL();
+            link32.click();
+            
+            // Download 48x48
+            const link48 = document.createElement('a');
+            link48.download = 'favicon-48x48.png';
+            link48.href = canvas48.toDataURL();
+            link48.click();
+        }
+        
+        function downloadFavicon() {
+            // For ICO creation, we'll use the 32x32 version
+            const link = document.createElement('a');
+            link.download = 'favicon.png';
+            link.href = canvas32.toDataURL();
+            link.click();
+            
+            alert('Downloaded favicon.png! To convert to .ico, use an online converter or rename to favicon.ico for modern browsers.');
+        }
+    </script>
+</body>
+</html>
