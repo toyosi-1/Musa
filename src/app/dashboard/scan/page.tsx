@@ -221,7 +221,7 @@ export default function ScanPage() {
           <h2 className="text-lg font-semibold text-gray-800 dark:text-white">How to use</h2>
         </div>
         <ol className="list-decimal pl-5 space-y-2.5 text-gray-600 dark:text-gray-300">
-          <li>Click <span className="font-medium text-primary-600 dark:text-primary-400">Start Camera</span> to activate your device&apos;s camera</li>
+          <li>Click <span className="font-medium text-primary-600 dark:text-primary-400">Start Camera</span> to activate your device's camera</li>
           <li>Position the QR code within the scanning frame</li>
           <li>Hold steady until the code is recognized</li>
           <li>The app will automatically process the code once detected</li>

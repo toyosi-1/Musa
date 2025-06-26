@@ -88,7 +88,7 @@ export default function PendingPage() {
               
               <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded-xl p-4 border-l-4 border-yellow-400">
                 <p>Your account is currently awaiting administrator approval.</p>
-                <p className="mt-2">You&apos;ll be notified once your account has been reviewed.</p>
+                <p className="mt-2">You'll be notified once your account has been reviewed.</p>
               </div>
               
               <div className="grid grid-cols-2 gap-4 mt-4">

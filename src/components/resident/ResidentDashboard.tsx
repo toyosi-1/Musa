@@ -263,7 +263,7 @@ export default function ResidentDashboard({ user }: ResidentDashboardProps) {
                 </svg>
                 <div>
                   <h3 className="font-semibold text-lg">Missing Address Information</h3>
-                  <p className="mt-1">Your household has no address set. When guards scan access codes, they won&apos;t see where visitors are going. 
+                  <p className="mt-1">Your household has no address set. When guards scan access codes, they won't see where visitors are going. 
                     <button 
                       onClick={() => setActiveTab('household')} 
                       className="ml-1 font-medium underline hover:text-orange-800">
@@ -353,11 +353,11 @@ export default function ResidentDashboard({ user }: ResidentDashboardProps) {
                 </div>
                 <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">No Access Codes</h3>
                 <p className="text-gray-500 dark:text-gray-400 max-w-md mx-auto">
-                  You haven&apos;t created any access codes yet. Create your first code using the form above.
+                  You haven't created any access codes yet. Create your first code using the form above.
                 </p>
                 {household && !household.address && (
                   <div className="mt-4 text-sm text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/20 p-3 rounded-lg inline-block">
-                    <span className="font-semibold">Tip:</span> Guards won&apos;t be able to see your address when scanning codes. 
+                    <span className="font-semibold">Tip:</span> Guards won't be able to see your address when scanning codes. 
                     <button 
                       onClick={() => setActiveTab('household')} 
                       className="ml-1 underline hover:text-orange-700"
