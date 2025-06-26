@@ -2,16 +2,21 @@ import AuthForm from '@/components/auth/AuthForm';
 import Link from 'next/link';
 import { UserRole } from '@/types/user';
 
-// Opt out of static generation for this page
-export const dynamic = 'force-dynamic';
-
 // Generate static params for the roles we want to pre-render
 export function generateStaticParams() {
   return [
     { role: 'resident' },
     { role: 'guard' },
-    { role: undefined } // For the default case
+    { role: 'default' } // For the default case
   ];
+}
+
+// Opt into dynamic params
+export const dynamicParams = true;
+
+// Type guard to check if a string is a valid UserRole
+function isUserRole(role: string | undefined): role is UserRole {
+  return role === 'resident' || role === 'guard';
 }
 
 export default function RegisterPage({
@@ -19,11 +24,10 @@ export default function RegisterPage({
 }: {
   searchParams: { [key: string]: string | string[] | undefined };
 }) {
-  // Safely extract and validate role from searchParams
-  const roleParam = Array.isArray(searchParams.role) ? searchParams.role[0] : searchParams.role;
-  const defaultRole = (roleParam === 'guard' || roleParam === 'resident') 
-    ? roleParam as UserRole 
-    : undefined;
+  // Extract and validate role from searchParams
+  const roleParam = searchParams.role;
+  const roleValue = Array.isArray(roleParam) ? roleParam[0] : roleParam;
+  const defaultRole: UserRole = isUserRole(roleValue) ? roleValue : 'resident';
 
   return (
     <div className="min-h-screen flex flex-col bg-musa-bg dark:bg-gray-900">
@@ -55,13 +59,13 @@ export default function RegisterPage({
                 </svg>
               </div>
               
-              <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-3">Join Musa</h1>
+              <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-3">
+                {defaultRole === 'guard' ? 'Join as a Security Guard' : 'Create Your Resident Account'}
+              </h1>
               <p className="text-gray-600 dark:text-gray-400 max-w-md mx-auto">
                 {defaultRole === 'guard' 
                   ? 'Register as a guard to help manage estate access and security.' 
-                  : defaultRole === 'resident'
-                  ? 'Register as a resident to create and manage access codes for your household.'
-                  : 'Create your account to get started with Musa estate management.'}
+                  : 'Register as a resident to create and manage access codes for your household.'}
               </p>
             </div>
             

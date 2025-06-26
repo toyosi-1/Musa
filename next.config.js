@@ -161,7 +161,7 @@ const nextConfig = {
     domains: ['firebasestorage.googleapis.com'],
     minimumCacheTTL: 60 * 60 * 24 * 30, // 30 days
     // Disable image optimization during export
-    unoptimized: process.env.NODE_ENV === 'production',
+    unoptimized: true,
   },
   // Generate a static build ID for caching
   generateBuildId: async () => 'build',
