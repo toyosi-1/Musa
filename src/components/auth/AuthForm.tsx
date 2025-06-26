@@ -8,7 +8,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { UserRole } from '@/types/user';
-import { isFirebaseReady, firebaseInitComplete } from '@/lib/firebase';
+import { isFirebaseReady, waitForFirebase } from '@/lib/firebase';
 
 // Form validation schema
 const authSchema = z.object({
@@ -34,53 +34,33 @@ export default function AuthForm({ mode, defaultRole }: AuthFormProps) {
   const router = useRouter();
   const { signIn, signUp, initError } = useAuth();
   
-  // Check Firebase initialization status on component mount
+  // Check Firebase status on mount
   useEffect(() => {
-    let checkInterval: NodeJS.Timeout;
-    let timeoutId: NodeJS.Timeout;
     let isMounted = true;
+    let timeoutId: NodeJS.Timeout;
     
-    const checkFirebaseStatus = () => {
-      if (isFirebaseReady()) {
-        console.log('Firebase is initialized and ready');
+    const initializeFirebase = async () => {
+      try {
+        const isReady = await waitForFirebase();
         if (isMounted) {
-          setFirebaseStatus('ready');
-          clearInterval(checkInterval);
-          clearTimeout(timeoutId);
+          if (isReady) {
+            setFirebaseStatus('ready');
+            setError('');
+          } else {
+            setFirebaseStatus('error');
+            setError('Failed to initialize authentication service. Please refresh the page.');
+          }
+        }
+      } catch (error) {
+        console.error('Error initializing Firebase:', error);
+        if (isMounted) {
+          setFirebaseStatus('error');
+          setError('Error initializing authentication service. Please refresh the page.');
         }
       }
     };
     
-    // Check immediately
-    checkFirebaseStatus();
-    
-    // Also await the Firebase initialization promise
-    firebaseInitComplete().then(success => {
-      if (isMounted) {
-        if (success) {
-          console.log('Firebase initialization completed via promise');
-          setFirebaseStatus('ready');
-        } else {
-          console.warn('Firebase initialization failed via promise');
-          setFirebaseStatus('error');
-          setError('Authentication service initialization failed. Please refresh the page.');
-        }
-      }
-      // Clear any pending timers
-      clearInterval(checkInterval);
-      clearTimeout(timeoutId);
-    }).catch(err => {
-      console.error('Error awaiting Firebase init:', err);
-      if (isMounted) {
-        setFirebaseStatus('error');
-        setError('Authentication service error. Please refresh the page.');
-      }
-    });
-    
-    // Then check every 500ms for up to 8 seconds
-    checkInterval = setInterval(checkFirebaseStatus, 500);
-    
-    // Set a timeout to stop checking after 8 seconds
+    // Set a timeout to show error if Firebase takes too long
     timeoutId = setTimeout(() => {
       if (isMounted && firebaseStatus !== 'ready') {
         console.warn('Firebase initialization timed out');
@@ -89,12 +69,14 @@ export default function AuthForm({ mode, defaultRole }: AuthFormProps) {
       }
     }, 8000);
     
+    // Initialize Firebase
+    initializeFirebase();
+    
     return () => {
       isMounted = false;
-      clearInterval(checkInterval);
       clearTimeout(timeoutId);
     };
-  }, []);
+  }, [firebaseStatus]);
 
   const {
     register,

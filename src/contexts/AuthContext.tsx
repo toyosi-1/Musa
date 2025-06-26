@@ -10,7 +10,7 @@ import {
   User as FirebaseUser
 } from 'firebase/auth';
 import { ref, get, set, update, onValue } from 'firebase/database';
-import { getFirebaseAuth, getFirebaseDatabase, firebaseInitComplete } from '@/lib/firebase';
+import { getFirebaseAuth, getFirebaseDatabase, waitForFirebase } from '@/lib/firebase';
 
 interface AuthContextType {
   currentUser: User | null;
@@ -597,95 +597,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let connectedListener: () => void = () => {};
     
     // Set a shorter timeout to prevent getting stuck in loading state
-    const authTimeout = setTimeout(() => {
-      console.log('Auth state detection timed out');
-      if (loading) {
-        setLoading(false);
-        setInitError('Authentication service timed out. Please refresh the page.');
-      }
-    }, 5000); // Reduced from 10000ms to 5000ms for faster feedback
-    
-    // Initialize auth listener after Firebase is ready
-    const initAuth = async () => {
+    const initializeAuth = async () => {
       try {
-        console.log('🔥 Checking Firebase initialization...');
-        
-        // Check if we're in browser environment
-        if (typeof window === 'undefined') {
-          console.log('Skipping Firebase init on server side');
-          setLoading(false);
-          return;
+        // Wait for Firebase to be ready
+        const isReady = await waitForFirebase();
+        if (!isReady) {
+          throw new Error('Firebase initialization failed');
         }
-        
-        // First check if environment variables are set
-        const firebaseConfig = {
-          apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-          authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-          projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-          databaseURL: process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL
-        };
-        
-        console.log('🔥 Firebase config check:', {
-          apiKey: firebaseConfig.apiKey ? '✅ SET' : '❌ MISSING',
-          authDomain: firebaseConfig.authDomain ? '✅ SET' : '❌ MISSING',
-          projectId: firebaseConfig.projectId ? '✅ SET' : '❌ MISSING',
-          databaseURL: firebaseConfig.databaseURL ? '✅ SET' : '❌ MISSING'
-        });
-        
-        const missingVars = Object.entries(firebaseConfig)
-          .filter(([key, value]) => !value)
-          .map(([key]) => key);
-          
-        if (missingVars.length > 0) {
-          console.error('❌ Missing Firebase environment variables:', missingVars);
-          console.error('Please create a .env.local file with your Firebase configuration');
-          console.error('Copy sample.env.local to .env.local and fill in your Firebase project details');
-          setInitError(`Missing Firebase configuration: ${missingVars.join(', ')}`);
-          setLoading(false);
-          return;
-        }
-        
-        console.log('🔥 Calling firebaseInitComplete()...');
-        const initialized = await firebaseInitComplete();
-        console.log('🔥 Firebase initialization result:', initialized);
-        
-        if (!initialized) {
-          throw new Error('Firebase failed to initialize');
-        }
-        
-        // Clear the timeout since Firebase is now initialized
-        clearTimeout(authTimeout);
-        
-        console.log('Firebase is ready, setting up auth listener');
+
         const auth = await getFirebaseAuth();
-        unsubscribe = onAuthStateChanged(auth, async (user) => {
+        const db = await getFirebaseDatabase();
+
+        // Set up auth state change listener
+        const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
           try {
-            
-            if (user) {
-              console.log('User is signed in:', user.uid);
-              try {
-                const formattedUser = await formatUser(user);
-                console.log('User formatted successfully:', formattedUser?.uid);
-                setCurrentUser(formattedUser);
-                setInitError(null);
-              } catch (formatError) {
-                console.error('Error formatting user:', formatError);
-                // If we can't format the user but they are authenticated,
-                // at least let them in with basic info
-                setCurrentUser({
-                  uid: user.uid,
-                  email: user.email || '',
-                  displayName: user.displayName || 'User',
-                  role: 'resident', // Default role
-                  status: 'approved', // Default status for backward compatibility
-                  isEmailVerified: user.emailVerified,
-                  createdAt: Date.now()
-                });
-              }
+            if (firebaseUser) {
+              const user = await formatUser(firebaseUser);
+              setCurrentUser(user);
             } else {
-              console.log('No user signed in');
               setCurrentUser(null);
             }
+            setInitError(null);
           } catch (error) {
             console.error('Auth state change error:', error);
             setCurrentUser(null);
@@ -696,9 +628,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         });
 
         // Verify Firebase connection
-        const db = await getFirebaseDatabase();
         const connectedRef = ref(db, '.info/connected');
-        connectedListener = onValue(connectedRef, (snapshot) => {
+        const connectedListener = onValue(connectedRef, (snapshot) => {
           if (snapshot.val() === true) {
             console.log('Firebase connection verified');
           } else {
@@ -706,28 +637,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         });
 
+        // Set a timeout for auth state change
+        const authTimeout = setTimeout(() => {
+          console.log('Auth state detection timed out');
+          if (loading) {
+            setLoading(false);
+            setInitError('Authentication service timed out. Please refresh the page.');
+          }
+        }, 5000);
+
         return () => {
           clearTimeout(authTimeout);
           unsubscribe();
           connectedListener();
         };
       } catch (error) {
-        console.error('Error setting up auth observer:', error);
-        console.error('Error details:', {
-          message: error instanceof Error ? error.message : 'Unknown error',
-          stack: error instanceof Error ? error.stack : 'No stack trace',
-          name: error instanceof Error ? error.name : 'Unknown error type'
-        });
+        console.error('Error initializing auth:', error);
         setInitError('Failed to initialize authentication. Please refresh the page');
         setLoading(false);
         return () => {};
       }
     };
 
-    initAuth();
+    initializeAuth();
   }, []);
 
-  const value = {
+  const value: AuthContextType = {
     currentUser,
     loading,
     initError,

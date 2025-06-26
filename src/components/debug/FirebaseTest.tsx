@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { getFirebaseAuth, getFirebaseDatabase, isFirebaseReady, firebaseInitComplete } from '@/lib/firebase';
+import { getFirebaseAuth, getFirebaseDatabase, isFirebaseReady, waitForFirebase } from '@/lib/firebase';
 import { signInWithEmailAndPassword, getAuth, User as FirebaseUser } from 'firebase/auth';
 import { ref, get, getDatabase } from 'firebase/database';
 
@@ -37,7 +37,7 @@ export default function FirebaseTest() {
     }
     
     // Wait for Firebase init to complete
-    firebaseInitComplete().then(success => {
+    waitForFirebase().then(success => {
       console.log('Firebase init promise resolved:', success);
     }).catch(err => {
       console.error('Firebase init promise error:', err);
