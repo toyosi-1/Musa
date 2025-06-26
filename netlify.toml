@@ -8,19 +8,15 @@
   NEXT_TELEMETRY_DISABLED = "1"
   NODE_OPTIONS = "--max_old_space_size=4096"
 
-# Required for Next.js 12+ with standalone output
+# Next.js plugin
 [[plugins]]
   package = "@netlify/plugin-nextjs"
-  [plugins.inputs]
-    functions = ".netlify/functions"
 
 # Redirects for SPA routing
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
-  force = false
-  conditions = {Language = ["en"], Country = ["US"], Role = ["admin"]}
 
 # Security headers
 [[headers]]
@@ -30,7 +26,6 @@
     X-XSS-Protection = "1; mode=block"
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
-    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.google-analytics.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://*.googleapis.com https://*.firebaseio.com; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com;"
     Permissions-Policy = "camera=(), microphone=(), geolocation=(), interest-cohort=()"
 
 # Cache control for static assets
@@ -49,18 +44,7 @@
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
 
-# Required for Next.js 12+ with standalone output
+# Functions configuration
 [functions]
   node_bundler = "esbuild"
   external_node_modules = ["@netlify/plugin-nextjs"]
-  included_files = ["public/**"]
-  directory = ".next"
-  publish = ".next"
-  functions = ".netlify/functions"
-
-# Development server configuration
-[dev]
-  command = "next dev"
-  port = 3000
-  publish = ".next"
-  target = "server"
