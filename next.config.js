@@ -35,9 +35,6 @@ const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
   
-  // Build configurations
-  output: 'standalone',
-  
   // TypeScript and ESLint configurations
   typescript: {
     ignoreBuildErrors: true,
@@ -186,12 +183,8 @@ const nextConfig = {
     scrollRestoration: true,
     legacyBrowsers: false,
   },
-  // Add public directory
-  output: 'standalone',
-  // Add output file tracing
+  // Enable output file tracing for better optimization
   outputFileTracing: true,
-  // Add static export
-  output: 'export',
 };
 
 module.exports = withPWA(nextConfig);

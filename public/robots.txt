@@ -1,11 +1,6 @@
-# Allow all search engines to crawl the website
+# *
 User-agent: *
 Allow: /
-
-# Sitemap location
-Sitemap: https://musa-security-app.windsurf.build/sitemap.xml
-
-# Disallow crawling of admin and API routes
 Disallow: /admin/
 Disallow: /api/
 Disallow: /_next/
@@ -14,19 +9,9 @@ Disallow: /workbox-*.js
 Disallow: /worker-*.js
 Disallow: /fallback-*.js
 
-# Crawl-delay for search engines (requests per second)
-Crawl-delay: 10
-
-# Cache refresh rate for search engines
-Cache-control: max-age=3600
-
-# Preferred URL format
+# Host
 Host: https://musa-security-app.windsurf.build
 
-# Preferred domain (www or non-www)
-# Uncomment one of the following lines based on your preference
-# User-agent: *
-# Disallow: /*?*m=1
-# OR
-# User-agent: *
-# Disallow: /*?*m=0
+# Sitemaps
+Sitemap: https://musa-security-app.windsurf.build/sitemap.xml
+Sitemap: https://musa-security-app.windsurf.build/server-sitemap.xml
