@@ -1,7 +1,9 @@
 // This file handles the registration and communication with the service worker
 
 // Check if service workers are supported
-const isSupported = 'serviceWorker' in navigator && process.env.NODE_ENV === 'production';
+const isSupported = typeof window !== 'undefined' && 
+                   'serviceWorker' in navigator && 
+                   process.env.NODE_ENV === 'production';
 
 type ServiceWorkerMessage = {
   type: string;
@@ -15,6 +17,12 @@ type ServiceWorkerMessageHandlers = {
 
 // Function to register the service worker
 export async function registerServiceWorker() {
+  // Double check for browser environment
+  if (typeof window === 'undefined' || typeof navigator === 'undefined') {
+    console.log('Service workers are not available in server-side rendering');
+    return null;
+  }
+  
   if (!isSupported) {
     console.log('Service workers are not supported in this browser or in development mode');
     return null;
@@ -53,7 +61,7 @@ export async function registerServiceWorker() {
 
 // Function to unregister the service worker
 export async function unregisterServiceWorker() {
-  if (!isSupported) return;
+  if (typeof window === 'undefined' || typeof navigator === 'undefined' || !isSupported) return;
   
   try {
     const registrations = await navigator.serviceWorker.getRegistrations();
@@ -68,7 +76,7 @@ export async function unregisterServiceWorker() {
 
 // Function to check for updates
 export async function checkForUpdates() {
-  if (!isSupported) return;
+  if (typeof window === 'undefined' || typeof navigator === 'undefined' || !isSupported) return;
   
   try {
     const registration = await navigator.serviceWorker.ready;
@@ -80,7 +88,7 @@ export async function checkForUpdates() {
 
 // Function to send a message to the service worker
 export async function sendMessageToSW(message: ServiceWorkerMessage) {
-  if (!isSupported) return;
+  if (typeof window === 'undefined' || typeof navigator === 'undefined' || !isSupported) return;
   
   try {
     const registration = await navigator.serviceWorker.ready;

@@ -33,31 +33,45 @@ export function useInstallPrompt() {
 
   // Check if the app is already installed
   const checkIfAppIsInstalled = useCallback(() => {
-    // Skip if window is not available (SSR)
-    if (typeof window === 'undefined') {
+    // Skip if window or navigator is not available (SSR)
+    if (typeof window === 'undefined' || typeof navigator === 'undefined') {
       return false;
     }
 
     // For iOS devices
     const isIos = () => {
-      const userAgent = window.navigator.userAgent.toLowerCase();
-      return /iphone|ipad|ipod/.test(userAgent);
+      try {
+        const userAgent = window.navigator.userAgent.toLowerCase();
+        return /iphone|ipad|ipod/.test(userAgent);
+      } catch (e) {
+        return false;
+      }
     };
 
     // For iOS
-    const isInStandaloneMode = () => 
-      ('standalone' in window.navigator) && ((window.navigator as any).standalone);
+    const isInStandaloneMode = () => {
+      try {
+        return ('standalone' in window.navigator) && ((window.navigator as any).standalone);
+      } catch (e) {
+        return false;
+      }
+    };
 
     // For other platforms
-    const isInWebApp = window.matchMedia('(display-mode: standalone)').matches;
+    let isInWebApp = false;
+    try {
+      isInWebApp = window.matchMedia('(display-mode: standalone)').matches;
+    } catch (e) {
+      // Ignore error
+    }
 
     return isIos() ? isInStandaloneMode() : isInWebApp;
   }, []);
 
   // Handle beforeinstallprompt event
   useEffect(() => {
-    // Skip if window is not available (SSR)
-    if (typeof window === 'undefined') {
+    // Skip if window or navigator is not available (SSR)
+    if (typeof window === 'undefined' || typeof navigator === 'undefined') {
       return () => {}; // Return empty cleanup function
     }
 

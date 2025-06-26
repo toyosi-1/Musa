@@ -36,6 +36,9 @@ function MyApp({ Component, pageProps }: AppProps) {
 
   // Google Analytics page view tracking
   useEffect(() => {
+    // Skip if window is not available (SSR)
+    if (typeof window === 'undefined') return;
+
     const handleRouteChange = (url: string) => {
       if (process.env.NODE_ENV === 'production' && (window as any).gtag) {
         (window as any).gtag('config', process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID, {
@@ -106,27 +109,31 @@ function MyApp({ Component, pageProps }: AppProps) {
         />
       )}
       
-      {/* Show update available banner */}
-      {isUpdateAvailable && (
-        <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50 bg-blue-600 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-4">
-          <span>New update available!</span>
-          <button 
-            onClick={handleUpdate}
-            className="px-3 py-1 bg-white text-blue-600 rounded font-medium hover:bg-blue-50 transition-colors"
-          >
-            Update Now
-          </button>
-        </div>
-      )}
-      
-      {/* Show offline indicator */}
-      {!isOnline && (
-        <div className="fixed bottom-4 left-4 z-50 bg-yellow-500 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2">
-          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-          </svg>
-          <span>You're offline. Some features may be limited.</span>
-        </div>
+      {typeof window !== 'undefined' && (
+        <>
+          {/* Show update available banner */}
+          {isUpdateAvailable && (
+            <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50 bg-blue-600 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-4">
+              <span>New update available!</span>
+              <button 
+                onClick={handleUpdate}
+                className="px-3 py-1 bg-white text-blue-600 rounded font-medium hover:bg-blue-50 transition-colors"
+              >
+                Update Now
+              </button>
+            </div>
+          )}
+          
+          {/* Show offline indicator */}
+          {!isOnline && (
+            <div className="fixed bottom-4 left-4 z-50 bg-yellow-500 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2">
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              <span>You're offline. Some features may be limited.</span>
+            </div>
+          )}
+        </>
       )}
     </ThemeProvider>
   );
