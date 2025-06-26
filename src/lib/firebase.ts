@@ -296,7 +296,7 @@ export async function initializeFirebase(): Promise<boolean> {
   
   // Store the current promise to prevent multiple initializations
   const currentPromise = connectionPromise;
-  if (currentPromise !== Promise.resolve(false)) return currentPromise;
+  if (currentPromise) return currentPromise;
   
   // Create new initialization promise
   connectionPromise = new Promise<boolean>(async (resolve) => {
