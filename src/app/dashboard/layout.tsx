@@ -51,7 +51,7 @@ export default function DashboardLayout({
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-musa-bg dark:bg-gray-900">
+    <div className="min-h-[calc(100vh-4rem)] flex flex-col bg-musa-bg dark:bg-gray-900 safe-area-inset-bottom">
       {/* Header with location */}
       <header className="bg-musa-lightmint dark:bg-gray-800 p-4 shadow-sm">
         <div className="max-w-md mx-auto">
@@ -73,26 +73,42 @@ export default function DashboardLayout({
         </div>
       </header>
 
-      <main className="flex-grow pb-20">
-        {children}
+      <main className="flex-grow overflow-y-auto pb-24 px-4 max-w-md mx-auto w-full -mb-24">
+        <div className="pb-24">
+          {children}
+        </div>
       </main>
 
       {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 shadow-lg border-t border-gray-100 dark:border-gray-700">
-        <div className="flex justify-around items-center max-w-md mx-auto px-2 py-1">
-          <Link href="/dashboard" className={isActive('/dashboard') && !isActive('/dashboard/profile') ? 'nav-item-active' : 'nav-item'}>
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-            </svg>
-            <span className="text-xs font-medium mt-1">Home</span>
+      <nav className="fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm shadow-lg border-t border-gray-100 dark:border-gray-700 pb-[max(env(safe-area-inset-bottom),0.5rem)] z-50">
+        <div className="flex justify-around items-center max-w-md mx-auto px-2 py-2">
+          <Link 
+            href="/dashboard" 
+            className={`flex flex-col items-center justify-center p-2 rounded-lg min-w-[60px] ${
+              isActive('/dashboard') && !isActive('/dashboard/profile') 
+                ? 'text-musa-blue dark:text-blue-400' 
+                : 'text-gray-500 dark:text-gray-400 hover:text-musa-blue dark:hover:text-blue-400'
+            } transition-colors`}
+          >
+            <div className="p-1">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+              </svg>
+            </div>
+            <span className="text-xs font-medium">Home</span>
           </Link>
 
 
 
           {currentUser.role === 'guard' && (
-            <Link href="/dashboard/scan" className={isActive('/dashboard/scan') ? 'nav-item-active' : 'nav-item'}>
+            <Link 
+              href="/dashboard/scan" 
+              className={`relative flex flex-col items-center justify-center min-w-[60px] ${
+                isActive('/dashboard/scan') ? 'text-musa-red dark:text-red-400' : 'text-gray-500 dark:text-gray-400'
+              }`}
+            >
               <div className="relative -mt-5">
-                <div className="absolute -top-5 left-1/2 transform -translate-x-1/2 w-14 h-14 bg-musa-red rounded-full flex items-center justify-center shadow-lg">
+                <div className="absolute -top-5 left-1/2 transform -translate-x-1/2 w-14 h-14 bg-musa-red hover:bg-red-600 rounded-full flex items-center justify-center shadow-lg transition-colors">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -103,18 +119,36 @@ export default function DashboardLayout({
             </Link>
           )}
 
-          <Link href="/dashboard/history" className={isActive('/dashboard/history') ? 'nav-item-active' : 'nav-item'}>
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <span className="text-xs font-medium mt-1">History</span>
+          <Link 
+            href="/dashboard/history" 
+            className={`flex flex-col items-center justify-center p-2 rounded-lg min-w-[60px] ${
+              isActive('/dashboard/history') 
+                ? 'text-musa-blue dark:text-blue-400' 
+                : 'text-gray-500 dark:text-gray-400 hover:text-musa-blue dark:hover:text-blue-400'
+            } transition-colors`}
+          >
+            <div className="p-1">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <span className="text-xs font-medium">History</span>
           </Link>
 
-          <Link href="/dashboard/profile" className={isActive('/dashboard/profile') ? 'nav-item-active' : 'nav-item'}>
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-            </svg>
-            <span className="text-xs font-medium mt-1">Profile</span>
+          <Link 
+            href="/dashboard/profile" 
+            className={`flex flex-col items-center justify-center p-2 rounded-lg min-w-[60px] ${
+              isActive('/dashboard/profile') 
+                ? 'text-musa-blue dark:text-blue-400' 
+                : 'text-gray-500 dark:text-gray-400 hover:text-musa-blue dark:hover:text-blue-400'
+            } transition-colors`}
+          >
+            <div className="p-1">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+            </div>
+            <span className="text-xs font-medium">Profile</span>
           </Link>
         </div>
       </nav>
