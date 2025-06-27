@@ -1,13 +1,13 @@
 import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
-import { Suspense, useEffect } from 'react';
+import { Suspense } from 'react';
 import Script from 'next/script';
 import './globals.css';
 import AuthWrapper from '@/components/auth/AuthWrapper';
 import LoadingScreen from '@/components/ui/LoadingScreen';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import { getPublicEnvScript } from '@/utils/env';
-import { isMobileDevice } from '@/utils/mobileUtils';
+import MobileInitializer from '@/components/layout/MobileInitializer';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 
@@ -107,89 +107,7 @@ export const metadata: Metadata = {
   },
 };
 
-// Client component to handle mobile-specific initializations
-function MobileInitializer() {
-  useEffect(() => {
-    const html = document.documentElement;
-    const isMobile = isMobileDevice();
-    
-    // Add mobile class to HTML element
-    if (isMobile) {
-      html.classList.add('is-mobile');
-      
-      // Add touch-action manipulation for better scrolling
-      document.body.style.touchAction = 'manipulation';
-    }
 
-    // Handle viewport height for mobile browsers
-    const setAppHeight = () => {
-      if (typeof window !== 'undefined') {
-        // Get the viewport height and multiple it by 1% to get a value for a vh unit
-        const vh = window.innerHeight * 0.01;
-        // Set the value in the --vh custom property to the root of the document
-        document.documentElement.style.setProperty('--vh', `${vh}px`);
-        
-        // Add a class when the virtual keyboard is visible (only for mobile)
-        if (isMobile) {
-          const isKeyboardVisible = window.innerHeight < window.outerHeight * 0.8;
-          html.classList.toggle('keyboard-visible', isKeyboardVisible);
-        }
-      }
-    };
-
-    // Set initial height
-    setAppHeight();
-
-    // Add event listeners
-    const events = ['resize', 'orientationchange', 'focusin', 'focusout'];
-    events.forEach(event => {
-      window.addEventListener(event, setAppHeight, { passive: true });
-    });
-    
-    // Handle iOS viewport height changes
-    if (isIOS()) {
-      // iOS viewport height fix
-      const iOSViewportHeight = () => {
-        const vh = window.innerHeight * 0.01;
-        document.documentElement.style.setProperty('--vh', `${vh}px`);
-      };
-      
-      // Listen for the virtual keyboard events
-      window.visualViewport?.addEventListener('resize', iOSViewportHeight);
-      
-      // Cleanup iOS specific listeners
-      return () => {
-        window.visualViewport?.removeEventListener('resize', iOSViewportHeight);
-        events.forEach(event => {
-          window.removeEventListener(event, setAppHeight);
-        });
-      };
-    }
-    
-    // Cleanup for non-iOS devices
-    return () => {
-      events.forEach(event => {
-        window.removeEventListener(event, setAppHeight);
-      });
-    };
-  }, []);
-
-  return null;
-}
-
-// Helper function to detect iOS
-export function isIOS() {
-  if (typeof window === 'undefined') return false;
-  return [
-    'iPad Simulator',
-    'iPhone Simulator',
-    'iPod Simulator',
-    'iPad',
-    'iPhone',
-    'iPod'
-  ].includes(navigator.platform) ||
-  (navigator.userAgent.includes('Mac') && 'ontouchend' in document);
-}
 
 export default function RootLayout({
   children,
