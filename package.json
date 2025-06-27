@@ -30,6 +30,7 @@
     "querystring-es3": "^0.2.1",
     "react": "^18",
     "react-dom": "^18",
+    "react-error-boundary": "^6.0.0",
     "react-firebase-hooks": "^5.1.1",
     "react-hook-form": "^7.49.2",
     "stream-browserify": "^3.0.0",
