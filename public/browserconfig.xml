@@ -3,8 +3,8 @@
   <msapplication>
     <tile>
       <square70x70logo src="/images/icon-72x72.png"/>
-      <square150x150logo src="/images/icon-150x150.png"/>
-      <square310x310logo src="/images/icon-310x310.png"/>
+      <square150x150logo src="/images/icon-144x144.png"/>
+      <square310x310logo src="/images/icon-512x512.png"/>
       <TileColor>#3b82f6</TileColor>
     </tile>
   </msapplication>

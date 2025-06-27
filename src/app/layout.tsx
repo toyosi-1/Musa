@@ -85,21 +85,25 @@ export const metadata: Metadata = {
       { url: '/images/icon-512x512.png', sizes: '512x512', type: 'image/png' },
     ],
     apple: [
-      { url: '/images/icon-152x152.png', sizes: '152x152', type: 'image/png' },
-      { url: '/images/icon-180x180.png', sizes: '180x180', type: 'image/png' },
-    ],
-    other: [
-      {
-        rel: 'mask-icon',
-        url: '/safari-pinned-tab.svg',
-        color: '#3b82f6',
-      },
-    ],
+      // Apple Touch Icons - using the available icon sizes
+      { url: '/images/icon-180x180.png', sizes: '180x180', type: 'image/png' }, // iPhone 6 Plus and up
+      { url: '/images/icon-152x152.png', sizes: '152x152', type: 'image/png' }, // iPad and iPad mini with @2x
+      { url: '/images/icon-144x144.png', sizes: '144x144', type: 'image/png' }, // Alternative for iPad
+      { url: '/images/icon-128x128.png', sizes: '128x128', type: 'image/png' }, // Fallback for older devices
+    ]
   },
-  manifest: '/manifest.json',
+  // Additional meta tags for better PWA support
   other: {
+    // Safari pinned tab
+    'mask-icon': { url: '/safari-pinned-tab.svg', color: '#3b82f6' },
+    // Apple touch icon for older iOS versions
+    'apple-touch-icon': { url: '/images/icon-180x180.png', sizes: '180x180' },
+    // Windows 8/10 tile
+    'msapplication-TileImage': { url: '/images/icon-144x144.png' },
+    // Windows 8/10 tile color and config
     'msapplication-TileColor': '#3b82f6',
     'msapplication-config': '/browserconfig.xml',
+    // PWA capabilities
     'mobile-web-app-capable': 'yes',
     'apple-mobile-web-app-capable': 'yes',
     'apple-mobile-web-app-status-bar-style': 'black-translucent',
