@@ -9,13 +9,30 @@ interface AccessCodeCardProps {
   onDeactivate: () => Promise<void>;
 }
 
-export default function AccessCodeCard({ accessCode, onDeactivate }: AccessCodeCardProps) {
+// Default access code to prevent undefined errors
+const defaultAccessCode: AccessCode = {
+  id: '',
+  code: 'INVALID',
+  userId: '',
+  householdId: '',
+  description: 'Invalid Access Code',
+  qrCode: '',
+  createdAt: Date.now(),
+  expiresAt: undefined,
+  isActive: false,
+  usageCount: 0
+};
+
+export default function AccessCodeCard({ accessCode = defaultAccessCode, onDeactivate }: AccessCodeCardProps) {
   const [isCopied, setIsCopied] = useState(false);
   const [isDeactivating, setIsDeactivating] = useState(false);
   const [showQR, setShowQR] = useState(false);
 
+  // Safely access accessCode with fallback to default values
+  const safeAccessCode = accessCode || defaultAccessCode;
+  
   // Check if code is expired with null check
-  const isExpired = accessCode?.expiresAt ? accessCode.expiresAt < Date.now() : false;
+  const isExpired = safeAccessCode.expiresAt ? safeAccessCode.expiresAt < Date.now() : false;
 
   // Format expiration date with enhanced error handling
   const formatExpirationDate = (timestamp?: number) => {
@@ -77,9 +94,9 @@ export default function AccessCodeCard({ accessCode, onDeactivate }: AccessCodeC
   };
 
   return (
-    <div className={`card animate-fade-in border transition-all duration-300 ${!accessCode.isActive || isExpired ? 'opacity-80' : 'hover:shadow-card-hover'}`}>
+    <div className={`card animate-fade-in border transition-all duration-300 ${!safeAccessCode.isActive || isExpired ? 'opacity-80' : 'hover:shadow-card-hover'}`}>
       {/* Status indicator */}
-      <div className={`w-full h-1.5 rounded-t-2xl ${!accessCode.isActive ? 'bg-gray-300 dark:bg-gray-600' : isExpired ? 'bg-warning' : 'bg-success'}`}></div>
+      <div className={`w-full h-1.5 rounded-t-2xl ${!safeAccessCode.isActive ? 'bg-gray-300 dark:bg-gray-600' : isExpired ? 'bg-warning' : 'bg-success'}`}></div>
       
       <div className="p-5">
         {/* Code header with status badge */}
@@ -87,7 +104,7 @@ export default function AccessCodeCard({ accessCode, onDeactivate }: AccessCodeC
           <div>
             <div className="flex items-center gap-2">
               <h3 className="text-xl font-bold font-mono tracking-wide">
-                {accessCode.code}
+                {safeAccessCode.code}
               </h3>
               <span className={`badge ${!accessCode.isActive ? 'badge-danger' : isExpired ? 'badge-warning' : 'badge-success'}`}>
                 {!accessCode.isActive ? 'Inactive' : isExpired ? 'Expired' : 'Active'}
@@ -185,13 +202,11 @@ export default function AccessCodeCard({ accessCode, onDeactivate }: AccessCodeC
               </svg>
               <span>Status:</span>
             </span>
-            <span className={`font-medium ${
-              !accessCode.isActive ? 'text-gray-500 dark:text-gray-400' :
-              isExpired ? 'text-warning-600' : 'text-success-600'
-            }`}>
-              {!accessCode.isActive ? 'Inactive' :
-               isExpired ? 'Expired' : 'Active'}
-            </span>
+            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+              !safeAccessCode.isActive ? 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300' :
+              isExpired ? 'bg-warning-100 text-warning-800 dark:bg-warning-900/30 dark:text-warning-300' :
+              'bg-success-100 text-success-800 dark:bg-success-900/30 dark:text-success-300'
+            }`}>{isExpired ? 'Expired' : 'Active'}</span>
           </div>
           
           <div className="flex justify-between items-center">
@@ -202,10 +217,10 @@ export default function AccessCodeCard({ accessCode, onDeactivate }: AccessCodeC
               </svg>
               <span>Created:</span>
             </span>
-            <span className="font-medium">{new Date(accessCode.createdAt).toLocaleDateString()}</span>
+            <span className="font-medium">{new Date(safeAccessCode.createdAt).toLocaleDateString()}</span>
           </div>
           
-          {accessCode.expiresAt && (
+          {safeAccessCode.expiresAt && (
             <div className="flex justify-between items-center">
               <span className="flex items-center gap-1.5">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 opacity-70" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -216,7 +231,7 @@ export default function AccessCodeCard({ accessCode, onDeactivate }: AccessCodeC
                 </svg>
                 <span>Expires:</span>
               </span>
-              <span className="font-medium">{formatExpirationDate(accessCode.expiresAt)}</span>
+              <span className="font-medium">{formatExpirationDate(safeAccessCode.expiresAt)}</span>
             </div>
           )}
           
@@ -230,12 +245,12 @@ export default function AccessCodeCard({ accessCode, onDeactivate }: AccessCodeC
               </svg>
               <span>Usage count:</span>
             </span>
-            <span className="font-medium">{accessCode.usageCount || 0} times</span>
+            <span className="font-medium">{safeAccessCode.usageCount || 0} times</span>
           </div>
         </div>
         
         {/* Actions */}
-        {accessCode.isActive && !isExpired && (
+        {safeAccessCode.isActive && !isExpired && (
           <div className="mt-5">
             <button
               onClick={handleDeactivate}
