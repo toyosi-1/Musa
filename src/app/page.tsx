@@ -5,7 +5,7 @@ import LogoAnimation from '@/components/ui/illustrations/LogoAnimation';
 
 export default function Home() {
   return (
-    <main className="min-h-screen flex flex-col">
+    <main className="flex-1 w-full">
       <header className="bg-primary p-4 text-white">
         <div className="container mx-auto flex justify-between items-center">
           <h1 className="text-2xl font-bold text-white dark:text-white">Musa</h1>
@@ -18,7 +18,7 @@ export default function Home() {
         </div>
       </header>
 
-      <section className="flex-grow container mx-auto py-16 px-4 flex flex-col md:flex-row items-center justify-between gap-12">
+      <section className="container mx-auto py-16 px-4 flex flex-col md:flex-row items-center justify-between gap-12">
 
         <div className="md:w-1/2 space-y-6 animate-slide-in-right">
           <h2 className="text-4xl font-bold text-gray-800 dark:text-white">Modern Estate Access Control</h2>
