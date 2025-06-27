@@ -255,7 +255,8 @@ export default function GuardDashboard({ user }: GuardDashboardProps) {
     );
   };
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 w-full h-full flex flex-col space-y-6">
+    <div className="w-full min-h-screen bg-gray-50 dark:bg-gray-900 overflow-x-hidden">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 w-full flex flex-col space-y-6">
       {/* Header with Stats */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
@@ -308,7 +309,7 @@ export default function GuardDashboard({ user }: GuardDashboardProps) {
         </div>
       </div>
       
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-grow">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 w-full">
         {/* Left Column - Access Code Verification */}
         <div className="lg:col-span-2 space-y-6">
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden transition-all duration-300 hover:shadow-md">
@@ -363,7 +364,7 @@ export default function GuardDashboard({ user }: GuardDashboardProps) {
         {/* Right Column - Visit History */}
         <div className="lg:col-span-1 h-full">
           <div className="h-full bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col">
-            <div className="p-6">
+            <div className="p-4 sm:p-6">
               <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-white flex items-center gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
@@ -376,7 +377,7 @@ export default function GuardDashboard({ user }: GuardDashboardProps) {
                   <div className="animate-pulse text-primary">Loading history...</div>
                 </div>
               ) : verificationHistory.length > 0 ? (
-                <div className="space-y-3 overflow-y-auto max-h-[calc(100vh-400px)] pr-2 -mr-2">
+                <div className="space-y-3 overflow-y-auto max-h-[calc(100vh-300px)] pr-2 -mr-2">
                   {verificationHistory.map((record) => (
                     <div 
                       key={record.id} 
@@ -427,6 +428,7 @@ export default function GuardDashboard({ user }: GuardDashboardProps) {
           </div>
         </div>
       </div>
+    </div>
     </div>
   );
 }
