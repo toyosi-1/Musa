@@ -14,15 +14,25 @@ export default function AccessCodeCard({ accessCode, onDeactivate }: AccessCodeC
   const [isDeactivating, setIsDeactivating] = useState(false);
   const [showQR, setShowQR] = useState(false);
 
-  // Check if code is expired
-  const isExpired = accessCode.expiresAt ? accessCode.expiresAt < Date.now() : false;
+  // Check if code is expired with null check
+  const isExpired = accessCode?.expiresAt ? accessCode.expiresAt < Date.now() : false;
 
-  // Format expiration date
-  const formatExpirationDate = (timestamp: number) => {
+  // Format expiration date with enhanced error handling
+  const formatExpirationDate = (timestamp?: number) => {
     if (!timestamp) return 'Never expires';
     
-    const date = new Date(timestamp);
-    return date.toLocaleDateString() + ' at ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    try {
+      const date = new Date(timestamp);
+      if (isNaN(date.getTime())) return 'Invalid date';
+      
+      return date.toLocaleDateString() + ' at ' + date.toLocaleTimeString([], { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+      });
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return 'Invalid date';
+    }
   };
 
   // Copy code to clipboard

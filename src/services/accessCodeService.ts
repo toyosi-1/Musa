@@ -242,7 +242,21 @@ export const getResidentAccessCodes = async (userId: string): Promise<AccessCode
       const codeSnapshot = await get(codeRef);
       
       if (codeSnapshot.exists()) {
-        accessCodes.push(codeSnapshot.val() as AccessCode);
+        const data = codeSnapshot.val();
+        // Ensure all required fields are present and properly typed
+        const accessCode: AccessCode = {
+          id: data.id || codeId,
+          code: data.code || '',
+          userId: data.userId || userId,
+          householdId: data.householdId || '',
+          description: data.description || '',
+          qrCode: data.qrCode || '',
+          createdAt: data.createdAt || Date.now(),
+          expiresAt: data.expiresAt || undefined,
+          isActive: data.isActive !== false, // Default to true if not set
+          usageCount: data.usageCount || 0
+        };
+        accessCodes.push(accessCode);
       }
     }
     
@@ -276,7 +290,21 @@ export const getHouseholdAccessCodes = async (householdId: string): Promise<Acce
       const codeSnapshot = await get(codeRef);
       
       if (codeSnapshot.exists()) {
-        accessCodes.push(codeSnapshot.val() as AccessCode);
+        const data = codeSnapshot.val();
+        // Ensure all required fields are present and properly typed
+        const accessCode: AccessCode = {
+          id: data.id || codeId,
+          code: data.code || '',
+          userId: data.userId || '',
+          householdId: data.householdId || householdId,
+          description: data.description || '',
+          qrCode: data.qrCode || '',
+          createdAt: data.createdAt || Date.now(),
+          expiresAt: data.expiresAt || undefined,
+          isActive: data.isActive !== false, // Default to true if not set
+          usageCount: data.usageCount || 0
+        };
+        accessCodes.push(accessCode);
       }
     }
     
