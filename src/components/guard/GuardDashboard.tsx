@@ -131,7 +131,7 @@ export default function GuardDashboard({ user }: GuardDashboardProps) {
   }, [user.uid]);
 
   return (
-    <div className="max-w-4xl mx-auto px-4">
+    <div className="max-w-4xl mx-auto px-4 w-full h-full flex flex-col">
       <h1 className="text-2xl md:text-3xl font-bold mb-6 text-gray-800 dark:text-white">
         Guard Dashboard
       </h1>
@@ -197,10 +197,10 @@ export default function GuardDashboard({ user }: GuardDashboardProps) {
         </div>
       </div>
       
-      <div className="grid md:grid-cols-5 gap-6">
+      <div className="grid md:grid-cols-5 gap-6 flex-grow overflow-y-auto pb-4">
         {/* Left Column - Access Code Verification */}
-        <div className="md:col-span-3">
-          <div className="card animate-fade-in border border-gray-200 dark:border-gray-700 overflow-hidden transition-all duration-300 hover:shadow-card-hover">
+        <div className="md:col-span-3 h-full flex flex-col">
+          <div className="card animate-fade-in border border-gray-200 dark:border-gray-700 overflow-hidden transition-all duration-300 hover:shadow-card-hover flex-grow flex flex-col">
         {/* Manual Code Entry Section */}
         <div className="p-6 md:p-8">
           <h2 className="text-xl font-semibold mb-6 text-center flex items-center justify-center gap-3 text-gray-800 dark:text-white">
@@ -314,8 +314,8 @@ export default function GuardDashboard({ user }: GuardDashboardProps) {
         </div>
         
         {/* Right Column - Visit History */}
-        <div className="md:col-span-2">
-          <div className="card animate-fade-in border border-gray-200 dark:border-gray-700 overflow-hidden transition-all duration-300 hover:shadow-card-hover">
+        <div className="md:col-span-2 h-full flex flex-col">
+          <div className="card animate-fade-in border border-gray-200 dark:border-gray-700 overflow-hidden transition-all duration-300 hover:shadow-card-hover flex-grow flex flex-col">
             <div className="p-6 md:p-6">
               <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-white flex items-center gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

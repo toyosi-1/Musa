@@ -45,6 +45,13 @@
   }
 }
 
+/* Improved mobile scrolling and keyboard handling */
+html, body {
+  height: 100%;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: none;
+}
+
 /* Mobile viewport height fix */
 @supports (-webkit-touch-callout: none) {
   .min-h-screen {
@@ -188,6 +195,25 @@ select {
 }
 
 /* Better touch targets and interactions */
+/* Prevent zoom on input focus on mobile */
+@supports (-webkit-touch-callout: none) {
+  input, textarea, select, button {
+    font-size: 16px !important;
+  }
+  
+  /* Fix for iOS viewport height with keyboard */
+  .h-screen {
+    height: 100vh !important;
+    height: -webkit-fill-available !important;
+  }
+  
+  /* Fix for mobile scrolling */
+  .overflow-y-auto {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+  }
+}
+
 @media (max-width: 640px) {
   /* Minimum touch target size */
   .touch-target,

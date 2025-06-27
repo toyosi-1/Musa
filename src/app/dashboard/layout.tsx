@@ -73,14 +73,16 @@ export default function DashboardLayout({
         </div>
       </header>
 
-      <main className="flex-grow overflow-y-auto overflow-x-hidden pb-24 px-4 max-w-md mx-auto w-full">
+      <main className="flex-grow overflow-y-auto overflow-x-hidden pb-24 px-4 max-w-md mx-auto w-full h-[calc(100vh-4rem)] md:h-auto">
         <div className="min-h-[calc(100vh-12rem)]">
-          {children}
+          <div className="min-h-screen md:min-h-0">
+            {children}
+          </div>
         </div>
       </main>
 
       {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm shadow-lg border-t border-gray-100 dark:border-gray-700 pb-[max(env(safe-area-inset-bottom),0.5rem)] z-50">
+      <nav className="fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm shadow-lg border-t border-gray-100 dark:border-gray-700 pb-[max(env(safe-area-inset-bottom),0.5rem)] z-50 transform-gpu will-change-transform">
         <div className="flex justify-around items-center max-w-md mx-auto px-2 py-2">
           <Link 
             href="/dashboard" 
