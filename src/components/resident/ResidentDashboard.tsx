@@ -217,8 +217,9 @@ export default function ResidentDashboard({ user }: ResidentDashboardProps) {
               className={`px-4 py-2.5 rounded-lg font-medium text-sm sm:text-base whitespace-nowrap transition-all duration-200 ${
                 activeTab === 'codes'
                   ? 'bg-musa-blue text-white shadow-md shadow-blue-500/20'
-                  : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 border border-gray-200 dark:border-gray-600'
+                  : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-600'
               }`}
+              aria-current={activeTab === 'codes' ? 'page' : undefined}
             >
               Access Codes
             </button>
@@ -227,8 +228,9 @@ export default function ResidentDashboard({ user }: ResidentDashboardProps) {
               className={`px-4 py-2.5 rounded-lg font-medium text-sm sm:text-base whitespace-nowrap transition-all duration-200 ${
                 activeTab === 'household'
                   ? 'bg-musa-blue text-white shadow-md shadow-blue-500/20'
-                  : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 border border-gray-200 dark:border-gray-600'
+                  : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-600'
               }`}
+              aria-current={activeTab === 'household' ? 'page' : undefined}
             >
               My Household
             </button>
