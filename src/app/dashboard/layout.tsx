@@ -52,32 +52,9 @@ export default function DashboardLayout({
 
   return (
     <div className="min-h-screen flex flex-col bg-musa-bg dark:bg-gray-900 safe-area-inset-bottom">
-      {/* Header with location */}
-      <header className="bg-musa-lightmint dark:bg-gray-800 p-4 shadow-sm">
-        <div className="max-w-md mx-auto">
-          <div className="flex items-center justify-between">
-            <div className="text-xl font-semibold text-gray-700 dark:text-white">
-              {currentUser.displayName}
-            </div>
-            <button 
-              onClick={handleSignOut}
-              className="text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-              </svg>
-            </button>
-          </div>
-          
-
-        </div>
-      </header>
-
-      <main className="flex-grow overflow-y-auto overflow-x-hidden pb-24 px-4 max-w-md mx-auto w-full h-[calc(100vh-4rem)] md:h-auto">
-        <div className="min-h-[calc(100vh-12rem)]">
-          <div className="min-h-screen md:min-h-0">
-            {children}
-          </div>
+      <main className="flex-grow overflow-y-auto overflow-x-hidden pb-24 px-4 max-w-md mx-auto w-full h-screen">
+        <div className="min-h-full">
+          {children}
         </div>
       </main>
 
@@ -99,8 +76,6 @@ export default function DashboardLayout({
             </div>
             <span className="text-xs font-medium">Home</span>
           </Link>
-
-
 
           {currentUser.role === 'guard' && (
             <Link 
@@ -137,21 +112,29 @@ export default function DashboardLayout({
             <span className="text-xs font-medium">History</span>
           </Link>
 
-          <Link 
-            href="/dashboard/profile" 
-            className={`flex flex-col items-center justify-center p-2 rounded-lg min-w-[60px] ${
-              isActive('/dashboard/profile') 
-                ? 'text-musa-blue dark:text-blue-400' 
-                : 'text-gray-500 dark:text-gray-400 hover:text-musa-blue dark:hover:text-blue-400'
-            } transition-colors`}
-          >
-            <div className="p-1">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
+          <div className="relative group">
+            <div className="flex flex-col items-center p-2 rounded-lg min-w-[60px]">
+              <div className="w-8 h-8 rounded-full bg-musa-blue/10 dark:bg-blue-900/30 flex items-center justify-center text-musa-blue dark:text-blue-400">
+                {currentUser.displayName?.charAt(0).toUpperCase() || 'U'}
+              </div>
+              <span className="text-xs font-medium text-gray-500 dark:text-gray-400 group-hover:text-musa-blue dark:group-hover:text-blue-400 transition-colors truncate max-w-[60px]">
+                {currentUser.displayName?.split(' ')[0] || 'User'}
+              </span>
             </div>
-            <span className="text-xs font-medium">Profile</span>
-          </Link>
+            
+            {/* Dropdown menu */}
+            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-xl py-1 z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
+              <button
+                onClick={handleSignOut}
+                className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+                Sign Out
+              </button>
+            </div>
+          </div>
         </div>
       </nav>
     </div>
