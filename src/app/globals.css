@@ -142,10 +142,23 @@ button {
   appearance: none;
   border-radius: 0.5rem;
   min-height: 3rem;
-  padding: 0.5rem 1rem;
   width: 100%;
   max-width: 100%;
   transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+/* Input with icons */
+.input-with-icon {
+  padding-left: 2.75rem !important; /* Space for icon */
+  padding-right: 1rem;
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+}
+
+/* Input without icons */
+input:not(.input-with-icon) {
+  padding: 0.75rem 1rem;
 }
 
 /* Fix for iOS date/time inputs */

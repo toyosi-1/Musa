@@ -51,7 +51,7 @@ export default function DashboardLayout({
   };
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] flex flex-col bg-musa-bg dark:bg-gray-900 safe-area-inset-bottom">
+    <div className="min-h-screen flex flex-col bg-musa-bg dark:bg-gray-900 safe-area-inset-bottom">
       {/* Header with location */}
       <header className="bg-musa-lightmint dark:bg-gray-800 p-4 shadow-sm">
         <div className="max-w-md mx-auto">
@@ -73,8 +73,8 @@ export default function DashboardLayout({
         </div>
       </header>
 
-      <main className="flex-grow overflow-y-auto pb-24 px-4 max-w-md mx-auto w-full -mb-24">
-        <div className="pb-24">
+      <main className="flex-grow overflow-y-auto overflow-x-hidden pb-24 px-4 max-w-md mx-auto w-full">
+        <div className="min-h-[calc(100vh-12rem)]">
           {children}
         </div>
       </main>

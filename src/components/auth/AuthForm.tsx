@@ -282,7 +282,7 @@ export default function AuthForm({ mode, defaultRole }: AuthFormProps) {
                 id="displayName"
                 type="text"
                 {...register('displayName')}
-                className="input w-full pl-10"
+                className="input w-full pl-10 input-with-icon"
                 placeholder="Your full name"
                 disabled={loading}
               />
@@ -308,7 +308,7 @@ export default function AuthForm({ mode, defaultRole }: AuthFormProps) {
               id="email"
               type="email"
               {...register('email')}
-              className="input w-full pl-10"
+              className="input w-full pl-10 input-with-icon"
               placeholder="you@example.com"
               disabled={loading}
             />
@@ -339,7 +339,7 @@ export default function AuthForm({ mode, defaultRole }: AuthFormProps) {
               id="password"
               type="password"
               {...register('password')}
-              className="input w-full pl-10"
+              className="input w-full pl-10 input-with-icon"
               placeholder="••••••••"
               disabled={loading}
             />
