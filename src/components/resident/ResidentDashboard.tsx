@@ -201,54 +201,53 @@ export default function ResidentDashboard({ user }: ResidentDashboardProps) {
         </div>
       )}
       
-      {!user.householdId && !household && (
-        <div className="bg-yellow-50 dark:bg-yellow-900/30 border-l-4 border-yellow-400 text-yellow-800 dark:text-yellow-200 px-6 py-4 rounded-xl shadow-card mb-8">
-          <div className="flex">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-3 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <div>
-              <h3 className="font-semibold text-lg">Welcome to Musa!</h3>
-              <p className="mt-1">You need to create or join a household before generating access codes.</p>
-            </div>
+      <div className="flex flex-col space-y-6 sm:space-y-8">
+        {/* Header with Tabs */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Resident Dashboard</h1>
+            <p className="text-sm sm:text-base text-gray-500 dark:text-gray-400 mt-1">
+              Welcome back, {user.displayName?.split(' ')[0] || 'Resident'}
+            </p>
+          </div>
+          
+          <div className="w-full sm:w-auto flex space-x-2 overflow-x-auto pb-2 sm:pb-0 -mx-4 px-4 sm:mx-0 sm:px-0">
+            <button
+              onClick={() => setActiveTab('codes')}
+              className={`px-4 py-2.5 rounded-lg font-medium text-sm sm:text-base whitespace-nowrap transition-all duration-200 ${
+                activeTab === 'codes'
+                  ? 'bg-musa-blue text-white shadow-md shadow-blue-500/20'
+                  : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 border border-gray-200 dark:border-gray-600'
+              }`}
+            >
+              Access Codes
+            </button>
+            <button
+              onClick={() => setActiveTab('household')}
+              className={`px-4 py-2.5 rounded-lg font-medium text-sm sm:text-base whitespace-nowrap transition-all duration-200 ${
+                activeTab === 'household'
+                  ? 'bg-musa-blue text-white shadow-md shadow-blue-500/20'
+                  : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 border border-gray-200 dark:border-gray-600'
+              }`}
+            >
+              My Household
+            </button>
           </div>
         </div>
-      )}
-      
-      {/* Tab Navigation */}
-      <div className="border-b border-gray-200 dark:border-gray-700 mb-8">
-        <nav className="flex space-x-8">
-          <button
-            onClick={() => setActiveTab('codes')}
-            className={`py-4 px-3 font-medium text-md border-b-2 transition-colors ${
-              activeTab === 'codes'
-                ? 'border-primary text-primary dark:text-primary-light font-semibold'
-                : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300'
-            }`}
-          >
-            <div className="flex items-center">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+        
+        {!user.householdId && !household && (
+          <div className="bg-yellow-50 dark:bg-yellow-900/30 border-l-4 border-yellow-400 text-yellow-800 dark:text-yellow-200 px-6 py-4 rounded-xl shadow-card">
+            <div className="flex">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-3 text-yellow-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              Access Codes
+              <div>
+                <h3 className="font-semibold text-lg">Welcome to Musa!</h3>
+                <p className="mt-1">You need to create or join a household before generating access codes.</p>
+              </div>
             </div>
-          </button>
-          <button
-            onClick={() => setActiveTab('household')}
-            className={`py-4 px-3 font-medium text-md border-b-2 transition-colors ${
-              activeTab === 'household'
-                ? 'border-primary text-primary dark:text-primary-light font-semibold'
-                : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300'
-            }`}
-          >
-            <div className="flex items-center">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-              </svg>
-              Household Management
-            </div>
-          </button>
-        </nav>
+          </div>
+        )}
       </div>
       
       {/* Tab Content */}

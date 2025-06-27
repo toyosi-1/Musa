@@ -46,8 +46,28 @@
 }
 
 /* Improved mobile scrolling and keyboard handling */
+:root {
+  --safe-area-top: env(safe-area-inset-top, 0px);
+  --safe-area-right: env(safe-area-inset-right, 0px);
+  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-area-left: env(safe-area-inset-left, 0px);
+  --bottom-nav-height: 4rem; /* Height of bottom navigation */
+}
+
 html, body {
   height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  -webkit-text-size-adjust: 100%;
+  -moz-text-size-adjust: 100%;
+  -ms-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  overscroll-behavior-y: none;
+  -webkit-overflow-scrolling: touch;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-y: none;
 }
@@ -196,9 +216,20 @@ select {
 
 /* Better touch targets and interactions */
 /* Prevent zoom on input focus on mobile */
+/* iOS Viewport Height Fix */
 @supports (-webkit-touch-callout: none) {
-  input, textarea, select, button {
-    font-size: 16px !important;
+  /* Fix for iOS viewport height with bottom navigation */
+  .h-screen-ios {
+    height: 100vh !important;
+    height: -webkit-fill-available !important;
+    max-height: -webkit-fill-available !important;
+  }
+  
+  /* Fix for input zoom on focus in iOS < 15 */
+  @supports not (font: -apple-system-body) and (-webkit-touch-callout: none) {
+    input, textarea, select, button {
+      font-size: 16px !important;
+    }
   }
   
   /* Fix for iOS viewport height with keyboard */
