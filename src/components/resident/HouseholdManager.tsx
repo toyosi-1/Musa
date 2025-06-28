@@ -341,59 +341,45 @@ function HouseholdManager({ user, household, onCreateHousehold, refreshHousehold
           {showMembers && (
             <div className="mt-2">
               {members.length > 0 ? (
-                <div className="space-y-3">
+                <div className="space-y-2">
                   {members.map((member) => {
-                    // Get initials for avatar
-                    const getInitials = (name: string) => {
-                      return name
-                        .split(' ')
-                        .map(part => part[0])
-                        .join('')
-                        .toUpperCase();
-                    };
-                    
                     const memberName = member.displayName || member.email.split('@')[0];
-                    const initials = member.displayName ? getInitials(member.displayName) : member.email[0].toUpperCase();
                     const isCurrentUser = member.uid === user.uid;
                     
                     return (
                       <div 
                         key={member.uid} 
-                        className={`flex items-center justify-between p-3 rounded-lg border ${isCurrentUser ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800' : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700'}`}
+                        className="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700"
                       >
                         <div className="flex items-center space-x-3">
-                          <div className="flex-shrink-0 h-10 w-10 rounded-full bg-primary/10 dark:bg-primary/20 flex items-center justify-center text-primary dark:text-primary-300 font-medium">
-                            {initials}
+                          <div className="h-8 w-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-sm font-medium">
+                            {memberName[0].toUpperCase()}
                           </div>
                           <div>
                             <div className="flex items-center space-x-2">
-                              <p className="font-medium text-gray-900 dark:text-white">
+                              <p className="font-medium">
                                 {memberName}
-                                {isCurrentUser && <span className="ml-2 text-xs px-2 py-0.5 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100 rounded-full">You</span>}
+                                {isCurrentUser && <span className="ml-2 text-xs text-blue-600 dark:text-blue-400">(You)</span>}
                               </p>
                               {member.isHouseholdHead && (
-                                <span className="text-xs px-2 py-0.5 bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300 rounded-full">
-                                  Head of Household
+                                <span className="text-xs px-2 py-0.5 bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300 rounded">
+                                  Head
                                 </span>
                               )}
                             </div>
                             <p className="text-sm text-gray-500 dark:text-gray-400">{member.email}</p>
-                            <div className="mt-1 flex items-center text-xs text-gray-500 dark:text-gray-400">
-                              <span>Member since: {new Date(member.joinedAt || household?.createdAt || Date.now()).toLocaleDateString()}</span>
-                            </div>
                           </div>
                         </div>
                         {user.isHouseholdHead && !isCurrentUser && (
                           <button 
-                            className="px-3 py-1.5 text-sm bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50 rounded-md transition-colors flex items-center space-x-1"
                             onClick={() => handleRemoveMember(member.uid)}
                             disabled={isLoading}
-                            title="Remove from household"
+                            className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                            title="Remove member"
                           >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                             </svg>
-                            <span>Remove</span>
                           </button>
                         )}
                       </div>
