@@ -20,7 +20,7 @@ export default function ThemeToggle() {
     <div className="relative">
       <button 
         onClick={() => setIsOpen(!isOpen)}
-        className="p-2 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-300 transform hover:scale-110 focus:ring-2 focus:ring-primary-300 dark:focus:ring-primary-600"
+        className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-300 transform hover:scale-110 focus:ring-2 focus:ring-primary-300 dark:focus:ring-primary-600"
         aria-label={`Current theme: ${currentTheme?.label}. Click to change theme`}
       >
         {currentTheme && (

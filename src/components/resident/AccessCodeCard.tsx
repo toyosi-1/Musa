@@ -94,19 +94,27 @@ export default function AccessCodeCard({ accessCode = defaultAccessCode, onDeact
   };
 
   return (
-    <div className={`card animate-fade-in border transition-all duration-300 ${!safeAccessCode.isActive || isExpired ? 'opacity-80' : 'hover:shadow-card-hover'}`}>
+    <div className={`bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden transition-all duration-200 hover:shadow-md ${
+      !safeAccessCode.isActive || isExpired ? 'opacity-80' : ''
+    }`}>
       {/* Status indicator */}
-      <div className={`w-full h-1.5 rounded-t-2xl ${!safeAccessCode.isActive ? 'bg-gray-300 dark:bg-gray-600' : isExpired ? 'bg-warning' : 'bg-success'}`}></div>
+      <div className={`w-full h-1.5 ${!safeAccessCode.isActive ? 'bg-gray-300 dark:bg-gray-600' : isExpired ? 'bg-yellow-500' : 'bg-green-500'}`}></div>
       
       <div className="p-5">
         {/* Code header with status badge */}
         <div className="flex justify-between items-start mb-4">
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="text-xl font-bold font-mono tracking-wide">
+              <h3 className="text-xl font-bold font-mono tracking-wide text-gray-900 dark:text-white">
                 {safeAccessCode.code}
               </h3>
-              <span className={`badge ${!accessCode.isActive ? 'badge-danger' : isExpired ? 'badge-warning' : 'badge-success'}`}>
+              <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                !accessCode.isActive 
+                  ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' 
+                  : isExpired 
+                    ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' 
+                    : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+              }`}>
                 {!accessCode.isActive ? 'Inactive' : isExpired ? 'Expired' : 'Active'}
               </span>
             </div>

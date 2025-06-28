@@ -47,7 +47,7 @@ export default function ResidentDashboard({ user }: ResidentDashboardProps) {
   }, [loadData]);
 
   // Create a new access code
-  const handleCreateAccessCode = useCallback(async (description: string, expiresAt?: number) => {
+  const handleCreateAccessCode = useCallback(async (description: string, expiresAt?: number): Promise<{ code: string; qrCode: string } | null> => {
     if (!user.householdId) {
       setError('You need to create or join a household first');
       return null;
@@ -56,8 +56,20 @@ export default function ResidentDashboard({ user }: ResidentDashboardProps) {
     try {
       setLoading(true);
       const newCode = await createAccessCode(user.uid, user.householdId, description, expiresAt);
-      setAccessCodes(prev => [...prev, newCode]);
-      return newCode;
+      const fullAccessCode: AccessCode = {
+        id: `temp-${Date.now()}`,
+        code: newCode.code,
+        qrCode: newCode.qrCode || '',
+        userId: user.uid,
+        householdId: user.householdId,
+        description,
+        expiresAt,
+        isActive: true,
+        createdAt: Date.now(),
+        usageCount: 0
+      };
+      setAccessCodes(prev => [...prev, fullAccessCode]);
+      return { code: newCode.code, qrCode: newCode.qrCode || '' };
     } catch (err) {
       console.error('Error creating access code:', err);
       setError('Failed to create access code. Please try again.');
@@ -71,7 +83,7 @@ export default function ResidentDashboard({ user }: ResidentDashboardProps) {
   const handleDeactivateCode = useCallback(async (codeId: string) => {
     try {
       setLoading(true);
-      await deactivateAccessCode(codeId);
+      await deactivateAccessCode(codeId, user.uid);
       setAccessCodes(prev => 
         prev.map(code => 
           code.id === codeId ? { ...code, isActive: false } : code
@@ -83,13 +95,24 @@ export default function ResidentDashboard({ user }: ResidentDashboardProps) {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [user.uid]);
 
   // Create a new household
-  const handleCreateHousehold = useCallback(async (householdData: any) => {
+  const handleCreateHousehold = useCallback(async (name: string, addressData?: {
+    address?: string;
+    addressLine2?: string;
+    city?: string;
+    state?: string;
+    postalCode?: string;
+    country?: string;
+  }) => {
     try {
       setLoading(true);
-      const newHousehold = await createHousehold(householdData);
+      const newHousehold = await createHousehold(
+        user.uid,
+        name,
+        addressData
+      );
       setHousehold(newHousehold);
       return newHousehold;
     } catch (err) {
@@ -99,7 +122,7 @@ export default function ResidentDashboard({ user }: ResidentDashboardProps) {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [user.uid]);
 
   if (loading) {
     return (
@@ -110,7 +133,7 @@ export default function ResidentDashboard({ user }: ResidentDashboardProps) {
   }
 
   return (
-    <div className="max-w-5xl mx-auto p-4 space-y-8">
+    <div className="max-w-5xl mx-auto p-4 sm:p-6 space-y-6">
       {/* Error Message */}
       {error && (
         <div className="bg-red-50 dark:bg-red-900/30 border-l-4 border-red-500 text-red-700 dark:text-red-300 px-6 py-4 rounded-xl shadow-card">
@@ -147,10 +170,8 @@ export default function ResidentDashboard({ user }: ResidentDashboardProps) {
       )}
 
       {/* Access Codes Section */}
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-bold text-gray-800 dark:text-white">Access Codes</h2>
-        </div>
+      <div className="space-y-4">
+        <h2 className="text-xl font-bold text-gray-800 dark:text-white">Access Codes</h2>
         
         {user.householdId && household && !household.address && (
           <div className="bg-orange-50 dark:bg-orange-900/30 border-l-4 border-orange-400 text-orange-700 dark:text-orange-200 px-6 py-4 rounded-xl shadow-card">
@@ -176,8 +197,8 @@ export default function ResidentDashboard({ user }: ResidentDashboardProps) {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {accessCodes.map(code => (
             <AccessCodeCard 
-              key={code.id} 
-              code={code} 
+              key={code.id}
+              accessCode={code}
               onDeactivate={() => handleDeactivateCode(code.id)}
             />
           ))}
@@ -191,15 +212,10 @@ export default function ResidentDashboard({ user }: ResidentDashboardProps) {
       </div>
 
       {/* My Household Section */}
-      <div className="space-y-6">
-        <div className="flex items-center">
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-          </svg>
-          <h2 className="text-xl font-bold text-gray-800 dark:text-white">My Household</h2>
-        </div>
+      <div className="space-y-4">
+        <h2 className="text-xl font-bold text-gray-800 dark:text-white">My Household</h2>
         
-        <div className="bg-musa-bg dark:bg-gray-900/50 rounded-xl p-6">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
           {household ? (
             <HouseholdManager 
               user={user}

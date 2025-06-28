@@ -106,34 +106,6 @@ const StatsCard = ({
   </div>
 );
 
-// Quick actions component
-const QuickActions = ({ 
-  onScanQR, 
-  onClearHistory 
-}: { 
-  onScanQR: () => void; 
-  onClearHistory: () => void;
-}) => (
-  <div className="space-y-4">
-    <h3 className="text-lg font-medium text-gray-900 dark:text-white">Quick Actions</h3>
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-      <button
-        type="button"
-        onClick={onScanQR}
-        className="inline-flex items-center justify-center px-4 py-3 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-      >
-        Scan QR Code
-      </button>
-      <button
-        type="button"
-        onClick={onClearHistory}
-        className="inline-flex items-center justify-center px-4 py-3 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md shadow-sm text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-      >
-        Clear History
-      </button>
-    </div>
-  </div>
-);
 
 export default function GuardDashboard({ user }: { user: User }) {
   const router = useRouter();
@@ -237,18 +209,7 @@ export default function GuardDashboard({ user }: { user: User }) {
     }
   };
 
-  // Handle QR code scanning
-  const handleScanQR = () => {
-    router.push('/guard/scan');
-  };
-
-  // Handle clear history
-  const handleClearHistory = () => {
-    if (window.confirm('Are you sure you want to clear your verification history? This action cannot be undone.')) {
-      setVerificationHistory([]);
-      // Note: In a real app, you would also call an API to clear the history on the server
-    }
-  };
+  // Handle QR code scanning - now directly using router.push in the UI
 
   // Icons for stats cards
   const StatsIcon = ({ icon: Icon, className = '' }: { icon: React.ElementType; className?: string }) => (
@@ -344,30 +305,13 @@ export default function GuardDashboard({ user }: { user: User }) {
               {scanResult && (
                 <div className="mt-6">
                   <ScanResultDisplay 
-                    result={scanResult} 
-                    onClose={() => setScanResult(null)} 
+                    result={scanResult}
+                    onClose={() => setScanResult(null)}
                   />
                 </div>
               )}
               
-              <div className="mt-6">
-                <QuickActions 
-                  onScanQR={handleScanQR}
-                  onClearHistory={handleClearHistory}
-                />
-              </div>
-            </div>
-          </div>
-          
-          <div className="lg:col-span-1">
-            <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6 h-full">
-              <h2 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Recent Activity</h2>
-              
-              {isLoading ? (
-                <div className="flex justify-center items-center h-32">
-                  <LoadingSpinner size="md" />
-                </div>
-              ) : verificationHistory.length === 0 ? (
+              {verificationHistory.length === 0 ? (
                 <div className="text-center py-8">
                   <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
