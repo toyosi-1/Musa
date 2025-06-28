@@ -22,7 +22,9 @@ export default function ResidentDashboard({ user }: ResidentDashboardProps) {
   const [household, setHousehold] = useState<Household | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [activeTab, setActiveTab] = useState('access'); // 'access' or 'household'
+  const [activeTab, setActiveTab] = useState('active'); // 'active' or 'expired' for access codes
+  const [showCodeForm, setShowCodeForm] = useState(false);
+  const [showHouseholdForm, setShowHouseholdForm] = useState(false);
   // Reference to track if we've already attempted householdId refresh
   const householdIdCheckedRef = useRef(false);
 
@@ -183,109 +185,50 @@ export default function ResidentDashboard({ user }: ResidentDashboardProps) {
   }
 
   return (
-    <div className="max-w-7xl mx-auto p-4 min-h-screen">
+    <div className="max-w-4xl mx-auto p-4">
+      <h1 className="text-2xl font-bold mb-6 text-gray-800 dark:text-white">Resident Dashboard</h1>
+      
       {error && (
-        <div className="bg-red-50 dark:bg-red-900/30 border-l-4 border-red-500 text-red-700 dark:text-red-300 px-6 py-4 rounded-xl shadow-card mb-8">
-          <div className="flex items-center">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-3 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <p className="font-medium">{error}</p>
-          </div>
+        <div className="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded" role="alert">
+          <p className="font-medium">{error}</p>
         </div>
       )}
       
-      <div className="space-y-6">
-        {/* Welcome Card */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-card p-6">
-          <div className="flex flex-col md:flex-row md:items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Welcome back, {user.displayName?.split(' ')[0] || 'Resident'}!</h1>
-              <p className="text-gray-600 dark:text-gray-400 mt-1">Here's what's happening with your property access.</p>
-            </div>
-            <div className="mt-4 md:mt-0">
-              <button className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors">
-                Generate New Code
-              </button>
-            </div>
+      {/* Welcome Card */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 mb-8">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-semibold text-gray-800 dark:text-white">Welcome, {user.displayName?.split(' ')[0] || 'Resident'}</h2>
+            <p className="text-gray-600 dark:text-gray-400 mt-1">Here's what's happening with your access codes and household.</p>
           </div>
+          <button 
+            className="px-6 py-2.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
+            onClick={() => setShowCodeForm(true)}
+          >
+            Generate New Code
+          </button>
         </div>
+      </div>
 
-        {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-card p-6">
-            <div className="flex items-center">
-              <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-                <svg className="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path>
-                </svg>
-              </div>
-              <div className="ml-4">
-                <p className="text-sm text-gray-500 dark:text-gray-400">Active Codes</p>
-                <p className="text-xl font-semibold text-gray-900 dark:text-white">3</p>
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-card p-6">
-            <div className="flex items-center">
-              <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-lg">
-                <svg className="w-6 h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
-                </svg>
-              </div>
-              <div className="ml-4">
-                <p className="text-sm text-gray-500 dark:text-gray-400">Household Members</p>
-                <p className="text-xl font-semibold text-gray-900 dark:text-white">4</p>
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-card p-6">
-            <div className="flex items-center">
-              <div className="p-3 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
-                <svg className="w-6 h-6 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                </svg>
-              </div>
-              <div className="ml-4">
-                <p className="text-sm text-gray-500 dark:text-gray-400">Upcoming Visits</p>
-                <p className="text-xl font-semibold text-gray-900 dark:text-white">2</p>
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-card p-6">
-            <div className="flex items-center">
-              <div className="p-3 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg">
-                <svg className="w-6 h-6 text-yellow-600 dark:text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
-                </svg>
-              </div>
-              <div className="ml-4">
-                <p className="text-sm text-gray-500 dark:text-gray-400">Notifications</p>
-                <p className="text-xl font-semibold text-gray-900 dark:text-white">5</p>
-              </div>
-            </div>
-          </div>
-        </div>
-        
         {/* Main Content */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left Column - Access Codes */}
           <div className="lg:col-span-2 space-y-6">
             {/* Access Codes Section */}
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-card p-6">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6">
               <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-bold text-gray-900 dark:text-white">Access Codes</h2>
+                <h3 className="text-lg font-semibold text-gray-800 dark:text-white">Access Codes</h3>
                 <div className="flex space-x-2">
-                  <button className="px-3 py-1.5 text-sm bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg transition-colors">
-                    All
-                  </button>
-                  <button className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg transition-colors">
+                  <button 
+                    className={`px-3 py-1.5 text-sm font-medium rounded-md ${activeTab === 'active' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'}`}
+                    onClick={() => setActiveTab('active')}
+                  >
                     Active
                   </button>
-                  <button className="px-3 py-1.5 text-sm bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg transition-colors">
+                  <button 
+                    className={`px-3 py-1.5 text-sm font-medium rounded-md ${activeTab === 'expired' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'}`}
+                    onClick={() => setActiveTab('expired')}
+                  >
                     Expired
                   </button>
                 </div>
@@ -293,26 +236,62 @@ export default function ResidentDashboard({ user }: ResidentDashboardProps) {
               
               <div className="space-y-4">
                 {accessCodes.length > 0 ? (
-                  accessCodes.map((code) => (
-                    <AccessCodeCard 
-                      key={code.id} 
-                      accessCode={code} 
-                      onDeactivate={handleDeactivateCode}
-                      showActions={true}
-                    />
-                  ))
+                  accessCodes
+                    .filter(code => activeTab === 'active' ? code.isActive : !code.isActive)
+                    .map(code => (
+                      <div key={code.id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h4 className="font-medium text-gray-900 dark:text-white">{code.description || 'Access Code'}</h4>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                              {code.code} • {code.isActive ? 'Active' : 'Expired'}
+                            </p>
+                          </div>
+                          <div className="flex space-x-2">
+                            {code.isActive && (
+                              <button 
+                                onClick={() => handleDeactivateCode(code.id)}
+                                className="text-sm text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
+                              >
+                                Deactivate
+                              </button>
+                            )}
+                            <button className="text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300">
+                              Share
+                            </button>
+                          </div>
+                        </div>
+                        {code.expiresAt && (
+                          <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                            Expires: {new Date(code.expiresAt).toLocaleString()}
+                          </div>
+                        )}
+                      </div>
+                    ))
                 ) : (
                   <div className="text-center py-8">
-                    <div className="mx-auto w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mb-4">
-                      <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 4v16m8-8H4"></path>
-                      </svg>
-                    </div>
-                    <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-1">No access codes yet</h3>
-                    <p className="text-gray-500 dark:text-gray-400">Generate your first access code to get started</p>
-                    <button className="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors">
-                      Generate Code
-                    </button>
+                    <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                    <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">No {activeTab} codes</h3>
+                    <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                      {activeTab === 'active' 
+                        ? 'Generate your first access code to get started.' 
+                        : 'No expired access codes.'}
+                    </p>
+                    {activeTab === 'active' && (
+                      <div className="mt-6">
+                        <button
+                          onClick={() => setShowCodeForm(true)}
+                          className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                        >
+                          <svg className="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
+                          </svg>
+                          New Access Code
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
