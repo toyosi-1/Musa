@@ -115,7 +115,7 @@ export default function ResidentDashboard({ user }: ResidentDashboardProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user.uid, user.householdId]);
 
   // Deactivate an access code
   const handleDeactivateCode = async (codeId: string) => {
