@@ -94,9 +94,7 @@ export default function ResidentDashboard({ user }: ResidentDashboardProps) {
     
     try {
       setLoading(true);
-      const newCode = await createAccessCode(user.uid, user.householdId, description, expiresAt);
-      setAccessCodes(prev => [...prev, newCode]);
-      return newCode;
+      const result = await createAccessCode(user.uid, user.householdId, description, expiresAt);
       console.log('Access code created successfully:', result);
       
       // Refresh access codes
