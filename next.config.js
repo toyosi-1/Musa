@@ -56,34 +56,28 @@ const nextConfig = {
   // Add transpilePackages to handle problematic packages
   transpilePackages: ['undici', 'firebase', 'react-firebase-hooks'],
   // Ensure compatibility with older Node.js versions and proper Firebase handling
-  webpack: (config, { isServer }) => {
+  webpack: (config, { isServer, webpack }) => {
     // Browser-specific polyfills for Firebase
     if (!isServer) {
+      // Exclude Node.js modules from client-side bundle
       config.resolve.fallback = {
         ...config.resolve.fallback,
-        // Fixes npm packages that depend on `stream` module
-        stream: require.resolve('stream-browserify'),
-        // Fixes npm packages that depend on `crypto` module
-        crypto: require.resolve('crypto-browserify'),
-        // Fixes npm packages that depend on `buffer` module
+        fs: false,
+        net: false,
+        tls: false,
+        dns: 'mock',
+        child_process: false,
         buffer: require.resolve('buffer/'),
         // Fixes npm packages that depend on `util` module
         util: require.resolve('util/'),
         // Fixes npm packages that depend on `url` module
         url: require.resolve('url/'),
-        // Fixes npm packages that depend on `querystring` module
-        querystring: require.resolve('querystring-es3/'),
         // Fixes npm packages that depend on `path` module
         path: require.resolve('path-browserify'),
         // Fixes npm packages that depend on `os` module
         os: require.resolve('os-browserify/browser'),
-        // Fixes npm packages that depend on `net` module
-        net: false,
-        // Fixes npm packages that depend on `tls` module
-        tls: false,
-        // Fixes npm packages that depend on `fs` module
-        fs: false,
-        // Fixes npm packages that depend on `child_process` module
+        // Fixes npm packages that depend on `querystring` module
+        querystring: require.resolve('querystring-es3'),
         child_process: false,
         // Fixes npm packages that depend on `dns` module
         dns: false,
@@ -104,9 +98,29 @@ const nextConfig = {
       };
     }
     
-    // Force Firebase to be excluded from server bundle
+      // Force Firebase and Puppeteer to be excluded from server bundle
     if (isServer) {
-      config.externals = [...config.externals, 'firebase', 'firebase/app', 'firebase/auth', 'firebase/database'];
+      config.externals = [
+        ...(Array.isArray(config.externals) ? config.externals : []),
+        'firebase',
+        'firebase/app',
+        'firebase/auth',
+        'firebase/database',
+        'puppeteer',
+        'puppeteer-core',
+        'puppeteer-extra',
+        'puppeteer-extra-plugin-stealth',
+        'puppeteer-extra-plugin-recaptcha',
+      ];
+    }
+
+    // Exclude puppeteer from client-side bundle
+    if (!isServer) {
+      config.plugins.push(
+        new webpack.IgnorePlugin({
+          resourceRegExp: /^puppeteer(-core|-extra|(-extra-)?plugin-.*)?$/,
+        })
+      );
     }
 
     // Improve cache handling
@@ -182,6 +196,8 @@ const nextConfig = {
     optimizeCss: true,
     scrollRestoration: true,
     legacyBrowsers: false,
+    // Disable server components external packages for now
+    serverComponentsExternalPackages: [],
   },
   // Enable output file tracing for better optimization
   outputFileTracing: true,

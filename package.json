@@ -53,6 +53,7 @@
     "firebase-admin": "^13.4.0",
     "next-sitemap": "^4.2.3",
     "postcss": "^8",
+    "puppeteer": "^24.11.1",
     "sharp": "^0.34.2",
     "tailwindcss": "^3.3.0",
     "typescript": "^5"
