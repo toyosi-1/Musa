@@ -19,12 +19,18 @@ function HouseholdManager({ user, household, onCreateHousehold, refreshHousehold
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  interface HouseholdMember extends Omit<User, 'uid'> {
-    uid: string; // Using uid instead of id to match User interface
-  }
-
-  const [members, setMembers] = useState<HouseholdMember[]>([]);
+  const [showMembers, setShowMembers] = useState(false);
+  const [showAddressForm, setShowAddressForm] = useState(false);
+  const [members, setMembers] = useState<any[]>([]);
   const [db, setDb] = useState<any>(null);
+
+  // Address form state
+  const [address, setAddress] = useState('');
+  const [addressLine2, setAddressLine2] = useState('');
+  const [city, setCity] = useState('');
+  const [state, setState] = useState('');
+  const [postalCode, setPostalCode] = useState('');
+  const [country, setCountry] = useState('');
 
   // Initialize Firebase database
   useEffect(() => {
@@ -34,191 +40,71 @@ function HouseholdManager({ user, household, onCreateHousehold, refreshHousehold
     };
     initDb();
   }, []);
-  const [showMembers, setShowMembers] = useState(false);
-  const [showAddressForm, setShowAddressForm] = useState(false);
-  
-  // Address form fields
-  const [address, setAddress] = useState(household?.address || '');
-  const [addressLine2, setAddressLine2] = useState(household?.addressLine2 || '');
-  const [city, setCity] = useState(household?.city || '');
-  const [state, setState] = useState(household?.state || '');
-  const [postalCode, setPostalCode] = useState(household?.postalCode || '');
-  const [country, setCountry] = useState(household?.country || '');
 
-  // Create a new household
+  // Load household members
+  useEffect(() => {
+    if (household?.id && db) {
+      const loadMembers = async () => {
+        try {
+          const membersList = await getHouseholdMembers(household.id, db);
+          setMembers(membersList);
+        } catch (err) {
+          console.error('Error loading household members:', err);
+          setError('Failed to load household members');
+        }
+      };
+      loadMembers();
+    }
+  }, [household, db]);
+
   const handleCreateHousehold = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!householdName.trim()) {
-      setError('Please enter a household name');
-      return;
-    }
+    if (!householdName.trim()) return;
     
     setIsLoading(true);
     setError('');
-    console.log('Creating household with name:', householdName, 'for user:', user);
     
     try {
-      // Calling the parent component's onCreateHousehold function
-      console.log('Attempting to create household...');
-      const result = await onCreateHousehold(householdName);
-      console.log('Household creation result:', result);
-      
-      if (result) {
-        setSuccess('Household created successfully!');
-        setHouseholdName('');
-        
-        // Reset after a few seconds
-        setTimeout(() => {
-          setSuccess('');
-        }, 3000);
-      } else {
-        setError('Could not create household. Check console for details.');
-      }
+      await onCreateHousehold(householdName);
+      setSuccess('Household created successfully!');
+      setHouseholdName('');
     } catch (err) {
       console.error('Error creating household:', err);
-      setError(`Failed to create household: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      setError('Failed to create household. Please try again.');
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Invite a member to the household
   const handleInviteMember = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!household) {
-      console.error('No household found for invitation');
-      setError('No household to invite to');
-      return;
-    }
-    
-    if (!inviteEmail.trim()) {
-      setError('Please enter an email address');
-      return;
-    }
+    if (!inviteEmail.trim() || !household?.id) return;
     
     setIsLoading(true);
     setError('');
-    console.log('Inviting member to household:', { 
-      householdId: household.id, 
-      userId: user.uid, 
-      email: inviteEmail 
-    });
     
     try {
-      console.log('Calling createHouseholdInvite...');
-      const invite = await createHouseholdInvite(household.id, user.uid, inviteEmail);
-      console.log('Invitation created successfully:', invite);
-      
-      setSuccess(`Invitation sent to ${inviteEmail}`);
+      await createHouseholdInvite(household.id, inviteEmail, db);
+      setSuccess('Invitation sent successfully!');
       setInviteEmail('');
-      
-      // Reset after a few seconds
-      setTimeout(() => {
-        setSuccess('');
-      }, 3000);
     } catch (err) {
-      console.error('Error inviting member:', err);
-      // Display more specific error message
-      if (err instanceof Error) {
-        setError(`Failed to send invitation: ${err.message}`);
-      } else {
-        setError('Failed to send invitation: Unknown error');
-      }
+      console.error('Error sending invitation:', err);
+      setError('Failed to send invitation. Please try again.');
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Load household members with details
-  const loadMembers = async () => {
-    if (!household) return;
-    
-    setIsLoading(true);
-    setError('');
-    
-    try {
-      const memberIds = await getHouseholdMembers(household.id);
-      // Get member details
-      const membersWithDetails = await Promise.all(
-        memberIds.map(async (memberId) => {
-          const userRef = ref(db, `users/${memberId}`);
-          const userSnapshot = await get(userRef);
-          if (userSnapshot.exists()) {
-            const userData = userSnapshot.val();
-            return {
-              ...userData,
-              uid: memberId,
-              email: userData.email || '',
-              displayName: userData.displayName || userData.email || 'Unknown User',
-              role: userData.role || 'resident',
-              status: userData.status || 'approved',
-              isEmailVerified: userData.isEmailVerified || false,
-              createdAt: userData.createdAt || Date.now()
-            } as HouseholdMember;
-          }
-          return null;
-        })
-      );
-      
-      setMembers(membersWithDetails.filter((member): member is HouseholdMember => member !== null));
-      setShowMembers(true);
-    } catch (err) {
-      console.error('Error loading members:', err);
-      setError('Failed to load household members');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-  
-  // Handle member removal
-  const handleRemoveMember = async (memberId: string) => {
-    if (!household || !confirm('Are you sure you want to remove this member?')) {
-      return;
-    }
-    
-    setIsLoading(true);
-    setError('');
-    
-    try {
-      await removeHouseholdMember(household.id, user.uid, memberId);
-      setSuccess('Member removed successfully');
-      await loadMembers(); // Refresh the member list
-      
-      // Refresh parent component's household data
-      if (refreshHousehold) {
-        await refreshHousehold();
-      }
-      
-      // Reset success message after a few seconds
-      setTimeout(() => setSuccess(''), 3000);
-    } catch (err) {
-      console.error('Error removing member:', err);
-      setError(`Failed to remove member: ${err instanceof Error ? err.message : 'Unknown error'}`);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Handle address update form submission
   const handleUpdateAddress = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!household) return;
-    
-    if (!address || !city || !state || !postalCode || !country) {
-      setError('Please fill in all required address fields');
-      return;
-    }
+    if (!household?.id) return;
     
     setIsLoading(true);
     setError('');
     
     try {
-      const updatedHousehold = await updateHouseholdAddress(
+      await updateHouseholdAddress(
         household.id,
-        user.uid,
         {
           address,
           addressLine2,
@@ -226,32 +112,34 @@ function HouseholdManager({ user, household, onCreateHousehold, refreshHousehold
           state,
           postalCode,
           country
-        }
+        },
+        db
       );
-      
-      // Update local state with new values from the database
-      setAddress(updatedHousehold.address || '');
-      setAddressLine2(updatedHousehold.addressLine2 || '');
-      setCity(updatedHousehold.city || '');
-      setState(updatedHousehold.state || '');
-      setPostalCode(updatedHousehold.postalCode || '');
-      setCountry(updatedHousehold.country || '');
-      
-      // Refresh parent component's household data
-      if (refreshHousehold) {
-        await refreshHousehold();
-      }
       
       setSuccess('Address updated successfully!');
       setShowAddressForm(false);
-      
-      // Reset after a few seconds
-      setTimeout(() => {
-        setSuccess('');
-      }, 3000);
+      if (refreshHousehold) await refreshHousehold();
     } catch (err) {
       console.error('Error updating address:', err);
-      setError(`Failed to update address: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      setError('Failed to update address. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleRemoveMember = async (memberId: string) => {
+    if (!household?.id || !confirm('Are you sure you want to remove this member?')) return;
+    
+    setIsLoading(true);
+    setError('');
+    
+    try {
+      await removeHouseholdMember(household.id, memberId, db);
+      setMembers(members.filter(m => m.uid !== memberId));
+      setSuccess('Member removed successfully!');
+    } catch (err) {
+      console.error('Error removing member:', err);
+      setError('Failed to remove member. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -320,239 +208,208 @@ function HouseholdManager({ user, household, onCreateHousehold, refreshHousehold
           <span className="text-sm text-gray-500 dark:text-gray-400">Name:</span>
           <p className="font-medium">{household.name}</p>
         </div>
-            
-            <div>
-              <span className="text-sm text-gray-500 dark:text-gray-400">Created:</span>
-              <p className="font-medium">{new Date(household.createdAt).toLocaleDateString()}</p>
-            </div>
-            
-            {/* Address Display */}
-            <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Address</span>
-                <button 
-                  onClick={() => setShowAddressForm(!showAddressForm)}
-                  className="text-xs font-medium text-primary hover:text-primary-dark transition"
+        
+        <div>
+          <span className="text-sm text-gray-500 dark:text-gray-400">Created:</span>
+          <p className="font-medium">{new Date(household.createdAt).toLocaleDateString()}</p>
+        </div>
+        
+        {/* Address Section */}
+        <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
+          <div className="flex justify-between items-center mb-2">
+            <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Address</span>
+            <button 
+              onClick={() => setShowAddressForm(!showAddressForm)}
+              className="text-xs font-medium text-primary hover:text-primary-dark transition"
+            >
+              {showAddressForm ? 'Cancel' : household.address ? 'Edit' : 'Add'}
+            </button>
+          </div>
+          
+          {showAddressForm ? (
+            <form onSubmit={handleUpdateAddress} className="mt-2 space-y-3">
+              <div>
+                <input
+                  type="text"
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                  placeholder="Street address"
+                  className="w-full px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 focus:ring-primary-500 focus:border-primary-500 sm:text-sm dark:bg-gray-700 dark:text-white"
+                  required
+                />
+              </div>
+              <div>
+                <input
+                  type="text"
+                  value={addressLine2}
+                  onChange={(e) => setAddressLine2(e.target.value)}
+                  placeholder="Apt, suite, etc. (optional)"
+                  className="w-full px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 focus:ring-primary-500 focus:border-primary-500 sm:text-sm dark:bg-gray-700 dark:text-white"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <input
+                    type="text"
+                    value={city}
+                    onChange={(e) => setCity(e.target.value)}
+                    placeholder="City"
+                    className="w-full px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 focus:ring-primary-500 focus:border-primary-500 sm:text-sm dark:bg-gray-700 dark:text-white"
+                    required
+                  />
+                </div>
+                <div>
+                  <input
+                    type="text"
+                    value={state}
+                    onChange={(e) => setState(e.target.value)}
+                    placeholder="State/Province"
+                    className="w-full px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 focus:ring-primary-500 focus:border-primary-500 sm:text-sm dark:bg-gray-700 dark:text-white"
+                    required
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <input
+                    type="text"
+                    value={postalCode}
+                    onChange={(e) => setPostalCode(e.target.value)}
+                    placeholder="ZIP/Postal code"
+                    className="w-full px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 focus:ring-primary-500 focus:border-primary-500 sm:text-sm dark:bg-gray-700 dark:text-white"
+                    required
+                  />
+                </div>
+                <div>
+                  <input
+                    type="text"
+                    value={country}
+                    onChange={(e) => setCountry(e.target.value)}
+                    placeholder="Country"
+                    className="w-full px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 focus:ring-primary-500 focus:border-primary-500 sm:text-sm dark:bg-gray-700 dark:text-white"
+                    required
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end space-x-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowAddressForm(false)}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
                 >
-                  {showAddressForm ? 'Cancel' : household.address ? 'Edit' : 'Add'}
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="px-4 py-2 text-sm font-medium text-white bg-primary rounded-md hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50"
+                >
+                  {isLoading ? 'Saving...' : 'Save Address'}
                 </button>
               </div>
-              
-              {!showAddressForm && (
-                <div className="text-sm text-gray-700 dark:text-gray-300">
-                  {household.address ? (
-                    <div className="space-y-1">
-                      <p>{household.address}</p>
-                      {household.addressLine2 && <p>{household.addressLine2}</p>}
-                      <p>
-                        {[household.city, household.state, household.postalCode]
-                          .filter(Boolean)
-                          .join(', ')}
-                      </p>
-                      {household.country && <p>{household.country}</p>}
-                    </div>
-                  ) : (
-                    <p className="text-gray-500 dark:text-gray-400 italic">
-                      No address added yet. Guards won't be able to see where visitors are going.
-                    </p>
-                  )}
-                </div>
-              )}
-              
-              {/* Address Form */}
-              {showAddressForm && (
-                <form onSubmit={handleUpdateAddress} className="mt-4 space-y-4">
-                  <div>
-                    <label htmlFor="address" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      Street Address*
-                    </label>
-                    <input
-                      id="address"
-                      type="text"
-                      value={address}
-                      onChange={(e) => setAddress(e.target.value)}
-                      placeholder="123 Main St"
-                      className="w-full px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 focus:ring-primary-500 focus:border-primary-500 sm:text-sm dark:bg-gray-700 dark:text-white"
-                      required
-                    />
-                  </div>
-                  
-                  <div>
-                    <label htmlFor="addressLine2" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      Address Line 2
-                    </label>
-                    <input
-                      id="addressLine2"
-                      type="text"
-                      value={addressLine2}
-                      onChange={(e) => setAddressLine2(e.target.value)}
-                      placeholder="Apt, Suite, Unit, etc."
-                      className="w-full px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 focus:ring-primary-500 focus:border-primary-500 sm:text-sm dark:bg-gray-700 dark:text-white"
-                    />
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label htmlFor="city" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        City*
-                      </label>
-                      <input
-                        id="city"
-                        type="text"
-                        value={city}
-                        onChange={(e) => setCity(e.target.value)}
-                        placeholder="City"
-                        className="w-full px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 focus:ring-primary-500 focus:border-primary-500 sm:text-sm dark:bg-gray-700 dark:text-white"
-                        required
-                      />
-                    </div>
-                    
-                    <div>
-                      <label htmlFor="state" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        State/Province*
-                      </label>
-                      <input
-                        id="state"
-                        type="text"
-                        value={state}
-                        onChange={(e) => setState(e.target.value)}
-                        placeholder="State/Province"
-                        className="w-full px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 focus:ring-primary-500 focus:border-primary-500 sm:text-sm dark:bg-gray-700 dark:text-white"
-                        required
-                      />
-                    </div>
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label htmlFor="postalCode" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Postal Code*
-                      </label>
-                      <input
-                        id="postalCode"
-                        type="text"
-                        value={postalCode}
-                        onChange={(e) => setPostalCode(e.target.value)}
-                        placeholder="Postal/Zip Code"
-                        className="w-full px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 focus:ring-primary-500 focus:border-primary-500 sm:text-sm dark:bg-gray-700 dark:text-white"
-                        required
-                      />
-                    </div>
-                    
-                    <div>
-                      <label htmlFor="country" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Country*
-                      </label>
-                      <input
-                        id="country"
-                        type="text"
-                        value={country}
-                        onChange={(e) => setCountry(e.target.value)}
-                        placeholder="Country"
-                        className="w-full px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 focus:ring-primary-500 focus:border-primary-500 sm:text-sm dark:bg-gray-700 dark:text-white"
-                        required
-                      />
-                    </div>
-                  </div>
-                  
-                  <div className="pt-2">
-                    <button
-                      type="submit"
-                      disabled={isLoading}
-                      className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
-                    >
-                      {isLoading ? 'Updating...' : 'Update Address'}
-                    </button>
-                  </div>
-                </form>
+            </form>
+          ) : household.address ? (
+            <div className="text-sm text-gray-700 dark:text-gray-300">
+              <p>{household.address}</p>
+              {household.addressLine2 && <p>{household.addressLine2}</p>}
+              <p>
+                {[household.city, household.state, household.postalCode]
+                  .filter(Boolean)
+                  .join(', ')}
+              </p>
+              {household.country && <p>{household.country}</p>}
+            </div>
+          ) : (
+            <p className="text-sm text-gray-500 dark:text-gray-400">No address saved</p>
+          )}
+        </div>
+        
+        {/* Members Section */}
+        <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
+          <div className="flex justify-between items-center mb-2">
+            <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
+              Household Members
+            </span>
+            <button 
+              onClick={() => setShowMembers(!showMembers)}
+              className="text-xs font-medium text-primary hover:text-primary-dark transition"
+            >
+              {showMembers ? 'Hide' : 'Show'}
+            </button>
+          </div>
+          
+          {showMembers && (
+            <div className="mt-2">
+              {members.length > 0 ? (
+                <ul className="space-y-2">
+                  {members.map((member) => (
+                    <li key={member.uid} className="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-700">
+                      <div>
+                        <p className="font-medium">{member.displayName || member.email}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          {member.email}
+                          {member.uid === user.uid && ' (You)'}
+                          {member.isHouseholdHead && ' • Head of Household'}
+                        </p>
+                      </div>
+                      {user.isHouseholdHead && member.uid !== user.uid && (
+                        <button 
+                          className="px-3 py-1 text-sm bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50 rounded-md transition-colors"
+                          onClick={() => handleRemoveMember(member.uid)}
+                          disabled={isLoading}
+                        >
+                          Remove
+                        </button>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-sm text-gray-500 dark:text-gray-400">No members found</p>
               )}
             </div>
-            
-            <div>
+          )}
+        </div>
+        
+        {/* Invite Member Section */}
+        {user.isHouseholdHead && (
+          <div className="mt-6">
+            <h3 className="text-md font-medium mb-3">Invite New Member</h3>
+            <form onSubmit={handleInviteMember} className="space-y-3">
+              <div>
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Email Address
+                </label>
+                <input
+                  type="email"
+                  id="email"
+                  value={inviteEmail}
+                  onChange={(e) => setInviteEmail(e.target.value)}
+                  className="w-full px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 focus:ring-primary-500 focus:border-primary-500 sm:text-sm dark:bg-gray-700 dark:text-white"
+                  placeholder="Enter email address"
+                  required
+                />
+              </div>
               <button
-                onClick={loadMembers}
-                className="text-primary hover:text-primary-dark text-sm flex items-center"
+                type="submit"
                 disabled={isLoading}
+                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
-                  <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z" />
-                </svg>
-                {showMembers ? 'Hide Members' : 'Show Members'}
+                {isLoading ? 'Sending Invite...' : 'Send Invitation'}
               </button>
-              
-              {showMembers && (
-                <div className="mt-2">
-                  {isLoading && members.length === 0 ? (
-                    <div className="text-center py-4">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-                    </div>
-                  ) : members.length === 0 ? (
-                    <p className="text-gray-500 dark:text-gray-400 text-center py-4">No members found</p>
-                  ) : (
-                    <ul className="space-y-2">
-                      {members.map((member) => (
-                        <li key={member.uid} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                          <div>
-                            <p className="font-medium">{member.displayName || member.email || 'Unknown User'}</p>
-                            <p className="text-sm text-gray-500 dark:text-gray-400">{member.email || member.uid}</p>
-                          </div>
-                          {user.isHouseholdHead && member.uid !== user.uid && (
-                            <button 
-                              className="px-3 py-1 text-sm bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50 rounded-md transition-colors"
-                              onClick={() => handleRemoveMember(member.uid)}
-                              disabled={isLoading}
-                            >
-                              Remove
-                            </button>
-                          )}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              )}
-            </div>
-            
-            {user.isHouseholdHead && (
-              <div className="mt-6">
-                <h3 className="text-md font-medium mb-3">Invite New Member</h3>
-                <form onSubmit={handleInviteMember} className="space-y-3">
-                  <div>
-                    <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      Email Address
-                    </label>
-                    <input
-                      type="email"
-                      id="email"
-                      value={inviteEmail}
-                      onChange={(e) => setInviteEmail(e.target.value)}
-                      className="w-full px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 focus:ring-primary-500 focus:border-primary-500 sm:text-sm dark:bg-gray-700 dark:text-white"
-                      placeholder="Enter email address"
-                      required
-                    />
-                  </div>
-                  <button
-                    type="submit"
-                    disabled={isLoading}
-                    className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50"
-                  >
-                    {isLoading ? 'Sending Invite...' : 'Send Invitation'}
-                  </button>
-                </form>
-                {error && (
-                  <div className="mt-3 text-sm text-red-600 dark:text-red-400">
-                    {error}
-                  </div>
-                )}
-                {success && (
-                  <div className="mt-3 text-sm text-green-600 dark:text-green-400">
-                    {success}
-                  </div>
-                )}
+            </form>
+            {error && (
+              <div className="mt-3 text-sm text-red-600 dark:text-red-400">
+                {error}
+              </div>
+            )}
+            {success && (
+              <div className="mt-3 text-sm text-green-600 dark:text-green-400">
+                {success}
               </div>
             )}
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
