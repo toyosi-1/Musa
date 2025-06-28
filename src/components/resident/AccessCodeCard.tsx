@@ -6,7 +6,8 @@ import Image from 'next/image';
 
 interface AccessCodeCardProps {
   accessCode: AccessCode;
-  onDeactivate: () => Promise<void>;
+  onDeactivate: (codeId: string) => Promise<void>;
+  showActions?: boolean;
 }
 
 // Default access code to prevent undefined errors
@@ -23,7 +24,7 @@ const defaultAccessCode: AccessCode = {
   usageCount: 0
 };
 
-export default function AccessCodeCard({ accessCode = defaultAccessCode, onDeactivate }: AccessCodeCardProps) {
+export default function AccessCodeCard({ accessCode = defaultAccessCode, onDeactivate, showActions = true }: AccessCodeCardProps) {
   const [isCopied, setIsCopied] = useState(false);
   const [isDeactivating, setIsDeactivating] = useState(false);
   const [showQR, setShowQR] = useState(false);
@@ -85,7 +86,7 @@ export default function AccessCodeCard({ accessCode = defaultAccessCode, onDeact
     
     setIsDeactivating(true);
     try {
-      await onDeactivate();
+      await onDeactivate(safeAccessCode.id);
     } catch (err) {
       console.error('Error deactivating:', err);
     } finally {
