@@ -204,7 +204,7 @@ export default function ResidentDashboard({ user }: ResidentDashboardProps) {
           </p>
         </div>
         
-        {/* Main Content */}
+        {/* Conditional Content */}
         {!user.householdId && !household ? (
           <div className="bg-yellow-50 dark:bg-yellow-900/30 border-l-4 border-yellow-400 text-yellow-800 dark:text-yellow-200 px-6 py-4 rounded-xl shadow-card">
             <div className="flex">
@@ -215,6 +215,14 @@ export default function ResidentDashboard({ user }: ResidentDashboardProps) {
                 <h3 className="font-semibold text-lg">Welcome to Musa!</h3>
                 <p className="mt-1">You need to create or join a household before generating access codes.</p>
               </div>
+            </div>
+            
+            {/* Household Creation Form */}
+            <div className="mt-4">
+              <CreateHouseholdForm
+                onCreateHousehold={handleCreateHousehold}
+                disabled={loading}
+              />
             </div>
           </div>
         ) : (
@@ -237,212 +245,166 @@ export default function ResidentDashboard({ user }: ResidentDashboardProps) {
 
             {activeTab === 'access' && (
               <div className="space-y-6">
-                    {/* Access Codes Content */}
+                {/* Access Codes Content */}
                 <div className="flex items-center justify-between">
                   <h2 className="text-xl font-bold text-gray-800 dark:text-white">Access Codes</h2>
                 </div>
-          
-          {user.householdId && household && !household.address && (
-            <div className="bg-orange-50 dark:bg-orange-900/30 border-l-4 border-orange-400 text-orange-700 dark:text-orange-200 px-6 py-4 rounded-xl shadow-card mb-8">
-              <div className="flex">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-3 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
-                <div>
-                  <h3 className="font-semibold text-lg">Missing Address Information</h3>
-                  <p className="mt-1">Your household has no address set. When guards scan access codes, they won't see where visitors are going. 
-                    <button 
-                      onClick={() => setActiveTab('household')} 
-                      className="ml-1 font-medium underline hover:text-orange-800">
-                      Add your address now
-                    </button>
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-          
-          <div className="card">
-            <div className="mb-4">
-              <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-2 flex items-center">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                Generate New Access Code
-              </h2>
-              <p className="text-gray-600 dark:text-gray-400">Create a new access code for guests or service providers.</p>
-              {user.householdId && household && household.address && (
-                <p className="text-sm text-green-600 dark:text-green-400 mt-1 flex items-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
-                  Guards will see your full address when verifying codes
-                </p>
-              )}
-            </div>
-            
-            {!user.householdId && !household ? (
-              <div className="bg-yellow-50 dark:bg-yellow-900/30 border-l-4 border-yellow-400 p-4 mb-4 rounded">
-                <div className="flex items-center">
-                  <div className="flex-shrink-0">
-                    <svg className="h-5 w-5 text-yellow-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                  <div className="ml-3">
-                    <p className="text-sm text-yellow-700 dark:text-yellow-200">
-                      <strong>Household Required:</strong> You need to create or join a household before you can generate access codes.
-                    </p>
-                    <div className="mt-2">
-                      <button 
-                        onClick={() => setActiveTab('household')} 
-                        className="text-sm font-medium text-yellow-700 dark:text-yellow-200 hover:text-yellow-600 dark:hover:text-yellow-300 underline"
-                      >
-                        Go to Household Management
-                      </button>
+                
+                {user.householdId && household && !household.address && (
+                  <div className="bg-orange-50 dark:bg-orange-900/30 border-l-4 border-orange-400 text-orange-700 dark:text-orange-200 px-6 py-4 rounded-xl shadow-card mb-8">
+                    <div className="flex">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-3 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                      </svg>
+                      <div>
+                        <h3 className="font-semibold text-lg">Missing Address Information</h3>
+                        <p className="mt-1">Your household has no address set. When guards scan access codes, they won't see where visitors are going.</p>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </div>
-            ) : error ? (
-              <div className="bg-red-50 dark:bg-red-900/30 border-l-4 border-red-400 p-4 mb-4 rounded">
-                <p className="text-sm text-red-700 dark:text-red-200">{error}</p>
-              </div>
-            ) : null}
+                )}
 
-            <div className="bg-musa-bg dark:bg-gray-900/50 rounded-xl p-6">
-              <CreateAccessCodeForm 
-                onCreateCode={handleCreateAccessCode} 
-                disabled={!user.householdId && !household}
-                noHouseholdMessage="You need to create or join a household before generating access codes"
-              />
-            </div>
-          </div>
-          
-          <div className="card">
-            <div className="mb-6">
-              <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-2 flex items-center">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
-                </svg>
-                Your Access Codes
-              </h2>
-              <p className="text-gray-600 dark:text-gray-400">Manage your existing access codes.</p>
-            </div>
-            
-            {accessCodes.length === 0 ? (
-              <div className="bg-musa-bg dark:bg-gray-900/50 rounded-xl p-8 text-center">
-                <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
+                {/* Access Code Generation */}
+                <div className="card">
+                  <div className="mb-4">
+                    <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-2 flex items-center">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      Generate New Access Code
+                    </h2>
+                    <p className="text-gray-600 dark:text-gray-400">Create a new access code for guests or service providers.</p>
+                  </div>
+                  
+                  <div className="bg-musa-bg dark:bg-gray-900/50 rounded-xl p-6">
+                    <CreateAccessCodeForm 
+                      onCreateCode={handleCreateAccessCode} 
+                      disabled={!user.householdId && !household}
+                      noHouseholdMessage="You need to create or join a household before generating access codes"
+                    />
+                  </div>
                 </div>
-                <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">No Access Codes</h3>
-                <p className="text-gray-500 dark:text-gray-400 max-w-md mx-auto">
-                  You haven't created any access codes yet. Create your first code using the form above.
-                </p>
-                {household && !household.address && (
-                  <div className="mt-4 text-sm text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/20 p-3 rounded-lg inline-block">
-                    <span className="font-semibold">Tip:</span> Guards won't be able to see your address when scanning codes. 
-                    <button 
-                      onClick={() => setActiveTab('household')} 
-                      className="ml-1 underline hover:text-orange-700 dark:hover:text-orange-300"
-                    >
-                      Add your address
-                    </button>
+
+                {/* Active Access Codes */}
+                <div className="card">
+                  <div className="mb-4">
+                    <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-2 flex items-center">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
+                      </svg>
+                      Your Access Codes
+                    </h2>
+                    <p className="text-gray-600 dark:text-gray-400">Manage your active access codes.</p>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    {loading ? (
+                      <div className="flex justify-center py-8">
+                        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+                      </div>
+                    ) : accessCodes.length > 0 ? (
+                      <div className="space-y-4">
+                        {accessCodes.map((code) => (
+                          <AccessCodeCard 
+                            key={code.id} 
+                            code={code} 
+                            onDeactivate={handleDeactivateCode}
+                            showActions={true}
+                          />
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 bg-musa-bg dark:bg-gray-900/50 rounded-xl">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                        <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">No access codes</h3>
+                        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                          Get started by creating a new access code.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Guest Communication */}
+                {household?.id && (
+                  <div className="card mt-8">
+                    <div className="mb-6">
+                      <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-2 flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                        </svg>
+                        Guest Communication
+                      </h2>
+                      <p className="text-gray-600 dark:text-gray-400">View messages from guests and visitors.</p>
+                    </div>
+                    
+                    <GuestCommunicationCard householdId={household.id} />
                   </div>
                 )}
               </div>
-            ) : (
-              <div className="grid gap-6 md:grid-cols-2">
-                {accessCodes.map(code => (
-                  <AccessCodeCard 
-                    key={code.id} 
-                    accessCode={code}
-                    onDeactivate={() => handleDeactivateCode(code.id)}
-                  />
-                ))}
+            )}
+
+            {activeTab === 'household' && (
+              <div className="space-y-6">
+                {/* Pending Invitations */}
+                {!user.householdId && !household && (
+                  <div className="card">
+                    <div className="mb-6">
+                      <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-2 flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
+                        </svg>
+                        Pending Invitations
+                      </h2>
+                      <p className="text-gray-600 dark:text-gray-400">View and respond to household invitations.</p>
+                    </div>
+                    
+                    <PendingInvitations 
+                      user={user}
+                      onAccept={async () => {
+                        await refreshHousehold();
+                      }} 
+                    />
+                  </div>
+                )}
+
+                {/* Household Management */}
+                <div className="card">
+                  <div className="mb-4">
+                    <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-2 flex items-center">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                      </svg>
+                      {household ? 'Household Management' : 'Create a Household'}
+                    </h2>
+                    <p className="text-gray-600 dark:text-gray-400">
+                      {household ? 'Manage your household members and settings.' : 'Create a new household or join an existing one.'}
+                    </p>
+                  </div>
+                  
+                  <div className="bg-musa-bg dark:bg-gray-900/50 rounded-xl p-6">
+                    {household ? (
+                      <HouseholdManager 
+                        user={user}
+                        household={household}
+                        onCreateHousehold={handleCreateHousehold}
+                        refreshHousehold={refreshHousehold}
+                      />
+                    ) : (
+                      <CreateHouseholdForm
+                        onCreateHousehold={handleCreateHousehold}
+                        disabled={loading}
+                      />
+                    )}
+                  </div>
+                </div>
               </div>
             )}
-          </div>
-          
-          {/* Guest Communication Card */}
-          {household && household.id && (
-            <div className="card mt-8">
-              <div className="mb-6">
-                <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-2 flex items-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-                  </svg>
-                  Guest Communication
-                </h2>
-                <p className="text-gray-600 dark:text-gray-400">View messages from guests and visitors.</p>
-              </div>
-              
-              <GuestCommunicationCard householdId={household.id} />
-            </div>
-          )}
-        </div>
-      )}
-
-      {activeTab === 'household' && (
-        <div className="space-y-6">
-          {/* Pending Invitations */}
-          {!user.householdId && !household && (
-            <div className="card">
-              <div className="mb-6">
-                <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-2 flex items-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
-                  </svg>
-                  Pending Invitations
-                </h2>
-                <p className="text-gray-600 dark:text-gray-400">View and respond to household invitations.</p>
-              </div>
-
-              <PendingInvitations
-                userId={user.uid}
-                onAccept={async () => {
-                  // Refresh household data after accepting an invitation
-                  await refreshHousehold();
-                }}
-              />
-            </div>
-          )}
-
-          {/* Household Management */}
-          <div className="card">
-            <div className="mb-4">
-              <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-2 flex items-center">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                </svg>
-                {household ? 'Household Management' : 'Create a Household'}
-              </h2>
-              <p className="text-gray-600 dark:text-gray-400">
-                {household ? 'Manage your household members and settings.' : 'Create a new household or join an existing one.'}
-              </p>
-            </div>
-
-            <div className="bg-musa-bg dark:bg-gray-900/50 rounded-xl p-6">
-              {household ? (
-                <HouseholdManager
-                  user={user}
-                  household={household}
-                  onCreateHousehold={handleCreateHousehold}
-                  refreshHousehold={refreshHousehold}
-                />
-              ) : (
-                <CreateHouseholdForm
-                  onCreateHousehold={handleCreateHousehold}
-                  disabled={loading}
-                />
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-    </>
-  )}
-</div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
