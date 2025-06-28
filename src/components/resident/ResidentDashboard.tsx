@@ -22,6 +22,7 @@ export default function ResidentDashboard({ user }: ResidentDashboardProps) {
   const [household, setHousehold] = useState<Household | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [activeTab, setActiveTab] = useState('access'); // 'access' or 'household'
   // Reference to track if we've already attempted householdId refresh
   const householdIdCheckedRef = useRef(false);
 
@@ -181,61 +182,6 @@ export default function ResidentDashboard({ user }: ResidentDashboardProps) {
     );
   }
 
-  // Function to handle creating a new household
-  const handleCreateHousehold = async (householdData: any) => {
-    try {
-      setLoading(true);
-      const newHousehold = await createHousehold(householdData);
-      setHousehold(newHousehold);
-      return newHousehold;
-    } catch (error) {
-      console.error('Error creating household:', error);
-      setError('Failed to create household. Please try again.');
-      throw error;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Function to handle creating a new access code
-  const handleCreateAccessCode = async (description: string, expiresAt?: number) => {
-    if (!user.householdId) {
-      setError('You need to create or join a household first');
-      return null;
-    }
-    
-    try {
-      setLoading(true);
-      const newCode = await createAccessCode(user.uid, user.householdId, description, expiresAt);
-      setAccessCodes(prev => [newCode, ...prev]);
-      return newCode;
-    } catch (error) {
-      console.error('Error creating access code:', error);
-      setError('Failed to create access code. Please try again.');
-      return null;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Function to handle deactivating an access code
-  const handleDeactivateCode = async (codeId: string) => {
-    try {
-      setLoading(true);
-      await deactivateAccessCode(codeId);
-      setAccessCodes(prev => 
-        prev.map(code => 
-          code.id === codeId ? { ...code, isActive: false } : code
-        )
-      );
-    } catch (error) {
-      console.error('Error deactivating code:', error);
-      setError('Failed to deactivate access code. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
     <div className="max-w-5xl mx-auto p-4 min-h-screen">
       {error && (
@@ -249,15 +195,16 @@ export default function ResidentDashboard({ user }: ResidentDashboardProps) {
         </div>
       )}
       
-      <div className="space-y-12">
+      <div className="space-y-6">
         {/* Welcome Header */}
-        <div>
+        <div className="mb-6">
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Resident Dashboard</h1>
           <p className="text-sm sm:text-base text-gray-500 dark:text-gray-400 mt-1">
             Welcome back, {user.displayName?.split(' ')[0] || 'Resident'}
           </p>
         </div>
         
+        {/* Main Content */}
         {!user.householdId && !household ? (
           <div className="bg-yellow-50 dark:bg-yellow-900/30 border-l-4 border-yellow-400 text-yellow-800 dark:text-yellow-200 px-6 py-4 rounded-xl shadow-card">
             <div className="flex">
@@ -270,13 +217,30 @@ export default function ResidentDashboard({ user }: ResidentDashboardProps) {
               </div>
             </div>
           </div>
-        ) : null}
-        
-        {/* Access Codes Section */}
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold text-gray-800 dark:text-white">Access Codes</h2>
-          </div>
+        ) : (
+          <>
+            {/* Tabs Navigation */}
+            <div className="flex border-b border-gray-200 dark:border-gray-700 mb-6">
+              <button
+                onClick={() => setActiveTab('access')}
+                className={`px-4 py-2 font-medium text-sm ${activeTab === 'access' ? 'border-b-2 border-primary text-primary' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}
+              >
+                Access Codes
+              </button>
+              <button
+                onClick={() => setActiveTab('household')}
+                className={`px-4 py-2 font-medium text-sm ${activeTab === 'household' ? 'border-b-2 border-primary text-primary' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}
+              >
+                Household
+              </button>
+            </div>
+
+            {activeTab === 'access' && (
+              <div className="space-y-6">
+                    {/* Access Codes Content */}
+                <div className="flex items-center justify-between">
+                  <h2 className="text-xl font-bold text-gray-800 dark:text-white">Access Codes</h2>
+                </div>
           
           {user.householdId && household && !household.address && (
             <div className="bg-orange-50 dark:bg-orange-900/30 border-l-4 border-orange-400 text-orange-700 dark:text-orange-200 px-6 py-4 rounded-xl shadow-card mb-8">
@@ -383,7 +347,7 @@ export default function ResidentDashboard({ user }: ResidentDashboardProps) {
                     <span className="font-semibold">Tip:</span> Guards won't be able to see your address when scanning codes. 
                     <button 
                       onClick={() => setActiveTab('household')} 
-                      className="ml-1 underline hover:text-orange-700"
+                      className="ml-1 underline hover:text-orange-700 dark:hover:text-orange-300"
                     >
                       Add your address
                     </button>
@@ -421,48 +385,49 @@ export default function ResidentDashboard({ user }: ResidentDashboardProps) {
           )}
         </div>
       )}
-      
+
       {activeTab === 'household' && (
-        <div className="space-y-8">
-          {/* Show pending invitations for users without a household */}
+        <div className="space-y-6">
+          {/* Pending Invitations */}
           {!user.householdId && !household && (
             <div className="card">
-              <div className="mb-4">
+              <div className="mb-6">
                 <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-2 flex items-center">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
                   </svg>
                   Pending Invitations
                 </h2>
-                <p className="text-gray-600 dark:text-gray-400">Check for household invitations from other residents.</p>
+                <p className="text-gray-600 dark:text-gray-400">View and respond to household invitations.</p>
               </div>
-              
-              <PendingInvitations 
-                user={user} 
-                onInvitationAccepted={() => {
-                  // Reload the page to refresh user data after accepting an invitation
-                  window.location.reload();
-                }} 
+
+              <PendingInvitations
+                userId={user.uid}
+                onAccept={async () => {
+                  // Refresh household data after accepting an invitation
+                  await refreshHousehold();
+                }}
               />
             </div>
           )}
-          
+
+          {/* Household Management */}
           <div className="card">
             <div className="mb-4">
               <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-2 flex items-center">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                 </svg>
-                Household Management
+                {household ? 'Household Management' : 'Create a Household'}
               </h2>
               <p className="text-gray-600 dark:text-gray-400">
                 {household ? 'Manage your household members and settings.' : 'Create a new household or join an existing one.'}
               </p>
             </div>
-            
+
             <div className="bg-musa-bg dark:bg-gray-900/50 rounded-xl p-6">
               {household ? (
-                <HouseholdManager 
+                <HouseholdManager
                   user={user}
                   household={household}
                   onCreateHousehold={handleCreateHousehold}
@@ -478,6 +443,6 @@ export default function ResidentDashboard({ user }: ResidentDashboardProps) {
           </div>
         </div>
       )}
-    </div>
-  );
-}
+    </>
+  )}
+</div>
