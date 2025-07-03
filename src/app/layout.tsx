@@ -112,13 +112,7 @@ export const metadata: Metadata = {
     statusBarStyle: 'black-translucent',
     capable: true,
   },
-  // Viewport settings
-  viewport: {
-    width: 'device-width',
-    initialScale: 1,
-    maximumScale: 1,
-    userScalable: false,
-  },
+  // Viewport settings are now handled by the viewport export
 };
 
 
@@ -133,9 +127,7 @@ export default function RootLayout({
       lang="en" 
       className={`${inter.variable} font-sans antialiased`}
       style={{
-        '--vh': '1vh', // CSS variable for viewport height
-        height: '100%',
-        overflow: 'hidden',
+        '--vh': '1vh' // CSS variable for viewport height
       } as React.CSSProperties}
     >
       <head>
@@ -182,11 +174,9 @@ export default function RootLayout({
       </head>
       <body className="min-h-screen bg-musa-bg dark:bg-gray-900 text-gray-900 dark:text-white relative overflow-x-hidden touch-manipulation" style={{
         WebkitOverflowScrolling: 'touch',
-        overscrollBehaviorY: 'none',
-        height: '100%',
-        width: '100%',
-        position: 'fixed',
-        overflow: 'hidden',
+        overscrollBehaviorY: 'auto',
+        minHeight: '100vh',
+        width: '100%'
       }}>
         <MobileInitializer />
         <ThemeProvider>
