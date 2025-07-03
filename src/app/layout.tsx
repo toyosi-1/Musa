@@ -19,25 +19,30 @@ const inter = Inter({
 
 // Define viewport configuration for better mobile and PWA support
 export const viewport: Viewport = {
-  // Core viewport settings
+  // Core viewport settings for PWA
   width: 'device-width',
   initialScale: 1,
-  minimumScale: 1,
-  maximumScale: 1, // Disable zooming for better mobile experience
-  userScalable: false,
+  viewportFit: 'cover',
   
-  // PWA and theme settings
+  // Theme colors for different modes
   themeColor: [
     { media: '(prefers-color-scheme: light)', color: '#3b82f6' },
     { media: '(prefers-color-scheme: dark)', color: '#1e40af' },
   ],
   
-  // Viewport behavior
-  viewportFit: 'cover',
-  interactiveWidget: 'resizes-visual',
-  
   // Mobile browser UI
   colorScheme: 'light dark',
+  
+  // iOS specific
+  appleMobileWebAppCapable: 'yes',
+  appleMobileWebAppStatusBarStyle: 'black-translucent',
+  
+  // Disable zooming
+  maximumScale: 1,
+  userScalable: false,
+  
+  // Interactive widget support
+  interactiveWidget: 'resizes-visual',
 };
 
 export const metadata: Metadata = {
@@ -127,7 +132,11 @@ export default function RootLayout({
       lang="en" 
       className={`${inter.variable} font-sans antialiased`}
       style={{
-        '--vh': '1vh' // CSS variable for viewport height
+        height: '100%',
+        width: '100%',
+        margin: 0,
+        padding: 0,
+        overflowX: 'hidden',
       } as React.CSSProperties}
     >
       <head>
@@ -146,19 +155,19 @@ export default function RootLayout({
         <meta name="apple-touch-startup-image" content="/splash/launch-750x1334.png" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" />
         <meta name="apple-touch-startup-image" content="/splash/launch-640x1136.png" media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" />
         
-        {/* Prevent text size changes on orientation change in iOS */}
-        <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
+        {/* Viewport settings */}
+        <meta 
+          name="viewport" 
+          content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no" 
+        />
         
-        {/* Disable auto-zoom on input focus in mobile Safari */}
-        <meta name="format-detection" content="telephone=no,date=no,address=no,email=no,url=no" />
-        
-        {/* Theme color for address bar */}
+        <link rel="manifest" href="/manifest.json" />
+        <link rel="apple-touch-icon" href="/images/icon-192x192.png" />
         <meta name="theme-color" media="(prefers-color-scheme: light)" content="#3b82f6" />
         <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#1e40af" />
         
         <Script
           id="env-script"
-          strategy="beforeInteractive"
           dangerouslySetInnerHTML={{
             __html: getPublicEnvScript(),
           }}
@@ -172,24 +181,41 @@ export default function RootLayout({
         {/* Preload critical resources */}
         <link rel="preload" href="/fonts/inter-var.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
       </head>
-      <body className="min-h-screen bg-musa-bg dark:bg-gray-900 text-gray-900 dark:text-white relative overflow-x-hidden touch-manipulation" style={{
-        WebkitOverflowScrolling: 'touch',
-        overscrollBehaviorY: 'auto',
-        minHeight: '100vh',
-        width: '100%'
-      }}>
+      <body className="min-h-screen bg-musa-bg dark:bg-gray-900 text-gray-900 dark:text-white relative overflow-x-hidden touch-manipulation" 
+        style={{
+          WebkitOverflowScrolling: 'touch',
+          overscrollBehaviorY: 'auto',
+          minHeight: '100vh',
+          width: '100vw',
+          height: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          margin: 0,
+          padding: 0,
+          position: 'relative',
+          overflowX: 'hidden',
+          overflowY: 'auto',
+          WebkitOverflowScrolling: 'touch',
+        }}>
         <MobileInitializer />
         <ThemeProvider>
           <AuthWrapper>
-            <Suspense fallback={<LoadingScreen />}>
-              <div className="min-h-[calc(var(--vh,1vh)*100)] flex flex-col">
-                <main className="flex-grow overflow-y-auto overflow-x-hidden w-full">
-                  <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div className="flex-1 flex flex-col w-full h-full overflow-auto" 
+              style={{
+                WebkitOverflowScrolling: 'touch',
+                paddingTop: 'env(safe-area-inset-top, 0px)',
+                paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+                paddingLeft: 'env(safe-area-inset-left, 0px)',
+                paddingRight: 'env(safe-area-inset-right, 0px)'
+              }}>
+              <Suspense fallback={<LoadingScreen />}>
+                <div className="flex-1 flex flex-col w-full max-w-full mx-auto relative">
+                  <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
                     {children}
-                  </div>
-                </main>
-              </div>
-            </Suspense>
+                  </main>
+                </div>
+              </Suspense>
+            </div>
           </AuthWrapper>
         </ThemeProvider>
       </body>
