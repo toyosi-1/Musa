@@ -1,9 +1,26 @@
 /** @type {import('next').NextConfig} */
 const withPWA = require('next-pwa')({
   dest: 'public',
-  disable: false, // Enable PWA in development for testing
+  disable: process.env.NODE_ENV === 'development',
   register: true,
   skipWaiting: true,
+  buildExcludes: [
+    /middleware-manifest.json$/, 
+    /_middleware.js$/, 
+    /_middleware.js.map$/, 
+    /middleware-runtime.js$/, 
+    /\/server\/.*\.js$/
+  ],
+  exclude: [
+    /\/_next\/static\/chunks\/pages\/api\//,
+    /\/_next\/static\/chunks\/middleware/,
+    /\/_next\/static\/chunks\/webpack/,
+    /\/_next\/static\/chunks\/framework/,
+    /\/_next\/static\/chunks\/main/,
+    /\/_next\/static\/chunks\/polyfills/,
+    /\/_next\/static\/chunks\/react-refresh/,
+    /\/_next\/static\/chunks\/webpack/,
+  ],
   runtimeCaching: [
     {
       urlPattern: /^https?:\/\/.*\.(png|jpg|jpeg|svg|gif|webp|ico)$/i,
@@ -14,6 +31,9 @@ const withPWA = require('next-pwa')({
           maxEntries: 1000,
           maxAgeSeconds: 30 * 24 * 60 * 60, // 30 days
         },
+        cacheableResponse: {
+          statuses: [0, 200]
+        }
       },
     },
     {
@@ -25,8 +45,42 @@ const withPWA = require('next-pwa')({
           maxEntries: 4,
           maxAgeSeconds: 365 * 24 * 60 * 60, // 1 year
         },
+        cacheableResponse: {
+          statuses: [0, 200]
+        }
       },
     },
+    // Cache API responses
+    {
+      urlPattern: /^https?:\/\/api\./,
+      handler: 'NetworkFirst',
+      options: {
+        cacheName: 'api-cache',
+        expiration: {
+          maxEntries: 100,
+          maxAgeSeconds: 60 * 60 // 1 hour
+        },
+        networkTimeoutSeconds: 10,
+        cacheableResponse: {
+          statuses: [0, 200]
+        }
+      }
+    },
+    // Cache static assets
+    {
+      urlPattern: /\/_next\/static/,
+      handler: 'StaleWhileRevalidate',
+      options: {
+        cacheName: 'static-assets',
+        expiration: {
+          maxEntries: 1000,
+          maxAgeSeconds: 30 * 24 * 60 * 60 // 30 days
+        },
+        cacheableResponse: {
+          statuses: [0, 200]
+        }
+      }
+    }
   ],
 });
 
