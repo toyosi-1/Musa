@@ -4,12 +4,17 @@ const withPWA = require('next-pwa')({
   disable: process.env.NODE_ENV === 'development',
   register: true,
   skipWaiting: true,
+  // Disable precaching of build manifest files
+  dynamicStartUrl: false,
+  // Don't precache the build manifest
+  disablePrecacheManifest: true,
   buildExcludes: [
-    /middleware-manifest.json$/, 
-    /_middleware.js$/, 
-    /_middleware.js.map$/, 
-    /middleware-runtime.js$/, 
-    /\/server\/.*\.js$/
+    /middleware-manifest\.json$/, 
+    /_middleware\.js$/, 
+    /_middleware\.js\.map$/, 
+    /middleware-runtime\.js$/, 
+    /\/server\/.*\.js$/,
+    /app-build-manifest\.json$/
   ],
   exclude: [
     /\/_next\/static\/chunks\/pages\/api\//,
@@ -19,8 +24,15 @@ const withPWA = require('next-pwa')({
     /\/_next\/static\/chunks\/main/,
     /\/_next\/static\/chunks\/polyfills/,
     /\/_next\/static\/chunks\/react-refresh/,
-    /\/_next\/static\/chunks\/webpack/,
+    /\/app-build-manifest\.json$/,
+    /\/server\/middleware\.js/,
+    /\/server\/pages\/.*\.js$/,
+    /\/server\/pages\/api\/.*\.js$/,
   ],
+  // Don't precache the build manifest
+  disablePrecacheManifest: true,
+  // Skip waiting for service worker to activate
+  skipWaiting: true,
   runtimeCaching: [
     {
       urlPattern: /^https?:\/\/.*\.(png|jpg|jpeg|svg|gif|webp|ico)$/i,
