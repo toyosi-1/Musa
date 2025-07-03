@@ -51,9 +51,9 @@ export default function DashboardLayout({
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-musa-bg dark:bg-gray-900 safe-area-inset-bottom">
-      <main className="flex-grow overflow-y-auto overflow-x-hidden pb-24 px-4 max-w-md mx-auto w-full h-screen">
-        <div className="min-h-full">
+    <div className="min-h-screen flex flex-col bg-musa-bg dark:bg-gray-900">
+      <main className="flex-grow overflow-y-auto overflow-x-hidden pb-24 px-4 w-full">
+        <div className="max-w-7xl mx-auto w-full py-4">
           {children}
         </div>
       </main>
@@ -61,14 +61,14 @@ export default function DashboardLayout({
       {/* Bottom Navigation */}
       <nav className="fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm shadow-lg border-t border-gray-100 dark:border-gray-700 pb-[max(env(safe-area-inset-bottom),0.5rem)] z-50 transform-gpu will-change-transform">
         <div className="flex justify-around items-center max-w-md mx-auto px-2 py-2">
-          <Link 
-            href="/dashboard" 
-            className={`flex flex-col items-center justify-center p-2 rounded-lg min-w-[60px] ${
-              isActive('/dashboard') && !isActive('/dashboard/profile') 
-                ? 'text-musa-blue dark:text-blue-400' 
-                : 'text-gray-500 dark:text-gray-400 hover:text-musa-blue dark:hover:text-blue-400'
-            } transition-colors`}
-          >
+              <Link 
+                href="/dashboard" 
+                className={`flex flex-col items-center justify-center p-2 rounded-lg min-w-[60px] ${
+                  isActive('/dashboard') && !isActive('/dashboard/profile') 
+                    ? 'text-musa-blue dark:text-blue-400' 
+                    : 'text-gray-500 dark:text-gray-400 hover:text-musa-blue dark:hover:text-blue-400'
+                } transition-colors`}
+              >
             <div className="p-1">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
@@ -110,6 +110,22 @@ export default function DashboardLayout({
               </svg>
             </div>
             <span className="text-xs font-medium">History</span>
+          </Link>
+
+          <Link 
+            href="/dashboard/profile" 
+            className={`flex flex-col items-center justify-center p-2 rounded-lg min-w-[60px] ${
+              isActive('/dashboard/profile') 
+                ? 'text-musa-blue dark:text-blue-400' 
+                : 'text-gray-500 dark:text-gray-400 hover:text-musa-blue dark:hover:text-blue-400'
+            } transition-colors`}
+          >
+            <div className="p-1">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+              </svg>
+            </div>
+            <span className="text-xs font-medium">Profile</span>
           </Link>
 
           <div className="relative group">

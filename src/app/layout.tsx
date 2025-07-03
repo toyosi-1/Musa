@@ -183,7 +183,11 @@ export default function RootLayout({
           <AuthWrapper>
             <Suspense fallback={<LoadingScreen />}>
               <div className="min-h-[calc(var(--vh,1vh)*100)] flex flex-col">
-                {children}
+                <main className="flex-grow overflow-y-auto overflow-x-hidden w-full">
+                  <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+                    {children}
+                  </div>
+                </main>
               </div>
             </Suspense>
           </AuthWrapper>
