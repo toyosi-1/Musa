@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
-import { Suspense } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import Script from 'next/script';
 import './globals.css';
 import AuthWrapper from '@/components/auth/AuthWrapper';
@@ -136,8 +136,14 @@ export default function RootLayout({
         width: '100%',
         margin: 0,
         padding: 0,
-        overflowX: 'hidden',
+        overflow: 'hidden',
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
       } as React.CSSProperties}
+      suppressHydrationWarning
     >
       <head>
         {/* PWA and Mobile Web App Capabilities */}
@@ -181,36 +187,59 @@ export default function RootLayout({
         {/* Preload critical resources */}
         <link rel="preload" href="/fonts/inter-var.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
       </head>
-      <body className="min-h-screen bg-musa-bg dark:bg-gray-900 text-gray-900 dark:text-white relative overflow-x-hidden touch-manipulation" 
+      <body 
+        className={`min-h-screen bg-musa-bg dark:bg-gray-900 text-gray-900 dark:text-white relative touch-manipulation ${isMobile ? 'mobile' : 'desktop'}`}
         style={{
           WebkitOverflowScrolling: 'touch',
-          overscrollBehaviorY: 'auto',
-          minHeight: '100vh',
-          width: '100vw',
-          height: '100%',
-          display: 'flex',
-          flexDirection: 'column',
+          overscrollBehavior: 'contain',
+          height: '100vh',
+          height: 'var(--app-height, 100vh)',
+          width: '100%',
           margin: 0,
           padding: 0,
-          position: 'relative',
-          overflowX: 'hidden',
-          overflowY: 'auto',
-          WebkitOverflowScrolling: 'touch',
-        }}>
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          overflow: 'auto',
+          touchAction: 'pan-y',
+          msTouchAction: 'pan-y',
+          WebkitTapHighlightColor: 'transparent',
+          WebkitFontSmoothing: 'antialiased',
+          MozOsxFontSmoothing: 'grayscale',
+          // Safe area insets
+          paddingTop: 'env(safe-area-inset-top, 0px)',
+          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+          paddingLeft: 'env(safe-area-inset-left, 0px)',
+          paddingRight: 'env(safe-area-inset-right, 0px)',
+        }}
+      >
         <MobileInitializer />
         <ThemeProvider>
           <AuthWrapper>
-            <div className="flex-1 flex flex-col w-full h-full overflow-auto" 
+            <div 
+              className="flex-1 flex flex-col w-full h-full overflow-auto"
               style={{
                 WebkitOverflowScrolling: 'touch',
-                paddingTop: 'env(safe-area-inset-top, 0px)',
-                paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-                paddingLeft: 'env(safe-area-inset-left, 0px)',
-                paddingRight: 'env(safe-area-inset-right, 0px)'
-              }}>
+                overscrollBehavior: 'contain',
+                height: '100%',
+                width: '100%',
+                // Use safe area insets from CSS variables
+                paddingTop: 'var(--safe-padding-top, 0px)',
+                paddingBottom: 'var(--safe-padding-bottom, 0px)',
+                paddingLeft: 'var(--safe-padding-left, 0px)',
+                paddingRight: 'var(--safe-padding-right, 0px)'
+              }}
+            >
               <Suspense fallback={<LoadingScreen />}>
-                <div className="flex-1 flex flex-col w-full max-w-full mx-auto relative">
-                  <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+                <div className="flex-1 flex flex-col w-full h-full max-w-full mx-auto relative">
+                  <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6" style={{
+                    minHeight: 'calc(100vh - env(safe-area-inset-top, 0px) - env(safe-area-bottom, 0px))',
+                    height: '100%',
+                    overflow: 'auto',
+                    WebkitOverflowScrolling: 'touch'
+                  }}>
                     {children}
                   </main>
                 </div>

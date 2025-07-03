@@ -56,17 +56,94 @@ export const unlockBodyScroll = (savedPosition: number) => {
 };
 
 /**
- * Detects if the device is a mobile device based on user agent
- * Note: User agent detection is not 100% reliable but works for most cases
+ * Detects if the device is a mobile device based on user agent and touch support
+ * This is more reliable than user agent sniffing alone
  */
 export const isMobileDevice = (): boolean => {
-  if (typeof window === 'undefined') return false;
+  if (typeof window === 'undefined' || typeof navigator === 'undefined') return false;
   
-  const userAgent = window.navigator.userAgent.toLowerCase();
-  const isMobile = /iphone|ipad|ipod|android|blackberry|windows phone/g.test(userAgent);
-  const isTablet = /(ipad|tablet|playbook|silk)|(android(?!.*mobile))/i.test(userAgent);
+  // Check for touch support
+  const hasTouchScreen = 'ontouchstart' in window || 
+    navigator.maxTouchPoints > 0 || 
+    (navigator as any).msMaxTouchPoints > 0;
   
-  return isMobile || isTablet;
+  if (!hasTouchScreen) return false;
+  
+  // Check for mobile user agent
+  const userAgent = navigator.userAgent || navigator.vendor || (window as any).opera;
+  const isMobileAgent = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini|mobile/i.test(userAgent);
+  
+  // Check screen size as an additional indicator
+  const isSmallScreen = window.innerWidth <= 1024 && window.innerHeight <= 1024;
+  const isMobileScreen = window.innerWidth <= 768;
+  
+  // Return true if it's a mobile agent or has mobile-like characteristics
+  return isMobileAgent || (hasTouchScreen && (isMobileScreen || isSmallScreen));
+};
+
+/**
+ * Detects if the device is running iOS
+ */
+export const isIOS = (): boolean => {
+  if (typeof window === 'undefined' || typeof navigator === 'undefined') return false;
+  
+  const userAgent = navigator.userAgent || navigator.vendor || (window as any).opera;
+  
+  // Check for iOS devices
+  return /iPad|iPhone|iPod/.test(userAgent) || 
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) ||
+    (/iPad|iPhone|iPod/.test(navigator.platform) || 
+    (navigator.userAgent.includes('Mac') && 'ontouchend' in document));
+};
+
+/**
+ * Gets the iOS version if running on iOS
+ */
+export const getIOSVersion = (): { major: number; minor: number; patch: number } | null => {
+  if (!isIOS() || typeof navigator === 'undefined') return null;
+  
+  const match = navigator.userAgent.match(/OS (\d+)_(\d+)_?(\d+)?/);
+  if (!match) return null;
+  
+  return {
+    major: parseInt(match[1], 10) || 0,
+    minor: parseInt(match[2], 10) || 0,
+    patch: match[3] ? parseInt(match[3], 10) : 0
+  };
+};
+
+/**
+ * Checks if the device is running iOS 15 or newer
+ */
+export const isIOS15Plus = (): boolean => {
+  const version = getIOSVersion();
+  return version ? version.major >= 15 : false;
+};
+
+/**
+ * Sets up viewport height CSS variable for mobile browsers
+ * This helps with the 100vh issue on mobile
+ */
+export const setupViewportHeight = (): (() => void) => {
+  if (typeof window === 'undefined') return () => {};
+  
+  const setVH = () => {
+    const vh = window.innerHeight * 0.01;
+    document.documentElement.style.setProperty('--vh', `${vh}px`);
+  };
+  
+  // Set initial value
+  setVH();
+  
+  // Update on resize and orientation change
+  window.addEventListener('resize', setVH);
+  window.addEventListener('orientationchange', setVH);
+  
+  // Return cleanup function
+  return () => {
+    window.removeEventListener('resize', setVH);
+    window.removeEventListener('orientationchange', setVH);
+  };
 };
 
 /**
