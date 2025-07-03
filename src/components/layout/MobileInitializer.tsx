@@ -8,34 +8,7 @@ import {
   setupViewportHeight 
 } from '@/utils/mobileUtils';
 
-// Helper function to detect iOS
-function isIOS() {
-  if (typeof window === 'undefined') return false;
-  return [
-    'iPad Simulator',
-    'iPhone Simulator',
-    'iPod Simulator',
-    'iPad',
-    'iPhone',
-    'iPod'
-  ].includes(navigator.platform) ||
-  (navigator.userAgent.includes('Mac') && 'ontouchend' in document) ||
-  /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-}
-
-// Detect if the device is running iOS 15+
-function isIOS15Plus() {
-  if (typeof window === 'undefined') return false;
-  if (!isIOS()) return false;
-  
-  const userAgent = window.navigator.userAgent;
-  const match = userAgent.match(/OS (\d+)_(\d+)_?(\d+)?/);
-  if (!match) return false;
-  
-  const majorVersion = parseInt(match[1], 10);
-  return majorVersion >= 15;
-}
+// Using isIOS and isIOS15Plus from mobileUtils.ts
 
 // Throttle function to limit the rate of function execution
 const throttle = (func: Function, limit: number) => {
