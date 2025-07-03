@@ -88,6 +88,10 @@ const nextConfig = {
   // Core Next.js configurations
   reactStrictMode: true,
   swcMinify: true,
+  output: 'standalone',
+  poweredByHeader: false,
+  generateEtags: true,
+  compress: true,
   
   // TypeScript and ESLint configurations
   typescript: {

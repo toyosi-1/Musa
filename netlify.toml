@@ -11,11 +11,27 @@
 # Next.js plugin
 [[plugins]]
   package = "@netlify/plugin-nextjs"
+  [plugins.inputs]
+    enableFunctions = true
+    enableImageOptimizer = true
+    enableStaticCache = true
 
-# Redirects for SPA routing
+# Redirects for Next.js App Router
+[[redirects]]
+  from = "/_next/static/*"
+  to = "/_next/static/:splat"
+  status = 200
+
 [[redirects]]
   from = "/*"
-  to = "/index.html"
+  to = "/"
+  status = 200
+  force = true
+
+# Required for Next.js API routes
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
   status = 200
 
 # Security headers
