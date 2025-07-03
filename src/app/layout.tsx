@@ -3,12 +3,38 @@ import { Inter } from 'next/font/google';
 import { Suspense } from 'react';
 import Script from 'next/script';
 import './globals.css';
-import AuthWrapper from '@/components/auth/AuthWrapper';
-import LoadingScreen from '@/components/ui/LoadingScreen';
-import { ThemeProvider } from '@/contexts/ThemeContext';
+
+
+
 import { getPublicEnvScript } from '@/utils/env';
-import MobileInitializer from '@/components/layout/MobileInitializer';
-import { ClientBody } from '@/components/layout/ClientBody';
+
+import dynamic from 'next/dynamic';
+
+// Dynamically import client components with no SSR
+const ClientBody = dynamic(
+  () => import('@/components/layout/ClientBody'),
+  { ssr: false }
+);
+
+const MobileInitializer = dynamic(
+  () => import('@/components/layout/MobileInitializer'),
+  { ssr: false }
+);
+
+const ThemeProvider = dynamic(
+  () => import('@/contexts/ThemeContext').then(mod => mod.ThemeProvider),
+  { ssr: false }
+);
+
+const AuthWrapper = dynamic(
+  () => import('@/components/auth/AuthWrapper'),
+  { ssr: false }
+);
+
+const LoadingScreen = dynamic(
+  () => import('@/components/ui/LoadingScreen'),
+  { ssr: false }
+);
 
 // Load Inter font with all required weights and subsets
 const inter = Inter({

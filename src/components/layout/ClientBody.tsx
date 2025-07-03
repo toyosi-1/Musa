@@ -6,7 +6,7 @@ interface ClientBodyProps {
   children: React.ReactNode;
 }
 
-export default function ClientBody({ children }: ClientBodyProps) {
+const ClientBody: React.FC<ClientBodyProps> = ({ children }) => {
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
@@ -18,7 +18,6 @@ export default function ClientBody({ children }: ClientBodyProps) {
 
       // Handle viewport height on mobile devices
       const updateViewportHeight = () => {
-        const vh = window.innerHeight * 0.01;
         document.documentElement.style.setProperty('--app-height', `${window.innerHeight}px`);
         document.documentElement.style.setProperty('--app-width', `${window.innerWidth}px`);
       };
@@ -68,4 +67,6 @@ export default function ClientBody({ children }: ClientBodyProps) {
       {children}
     </div>
   );
-}
+};
+
+export default ClientBody;
