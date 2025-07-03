@@ -9,7 +9,13 @@ import { ThemeProvider } from '@/contexts/ThemeContext';
 import { getPublicEnvScript } from '@/utils/env';
 import MobileInitializer from '@/components/layout/MobileInitializer';
 
-const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
+// Load Inter font with all required weights and subsets
+const inter = Inter({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-inter',
+  weight: ['300', '400', '500', '600', '700'],
+});
 
 // Define viewport configuration for better mobile and PWA support
 export const viewport: Viewport = {
@@ -95,19 +101,23 @@ export const metadata: Metadata = {
   // Additional meta tags for better PWA support
   other: {
     // Safari pinned tab
-    'mask-icon': { url: '/safari-pinned-tab.svg', color: '#3b82f6' },
-    // Apple touch icon for older iOS versions
-    'apple-touch-icon': { url: '/images/icon-180x180.png', sizes: '180x180' },
-    // Windows 8/10 tile
-    'msapplication-TileImage': { url: '/images/icon-144x144.png' },
-    // Windows 8/10 tile color and config
+    'mask-icon': '/safari-pinned-tab.svg',
     'msapplication-TileColor': '#3b82f6',
     'msapplication-config': '/browserconfig.xml',
-    // PWA capabilities
-    'mobile-web-app-capable': 'yes',
-    'apple-mobile-web-app-capable': 'yes',
-    'apple-mobile-web-app-status-bar-style': 'black-translucent',
-    'apple-mobile-web-app-title': 'Musa',
+    'theme-color': '#3b82f6',
+  },
+  // iOS specific meta tags
+  appleWebApp: {
+    title: 'Musa',
+    statusBarStyle: 'black-translucent',
+    capable: true,
+  },
+  // Viewport settings
+  viewport: {
+    width: 'device-width',
+    initialScale: 1,
+    maximumScale: 1,
+    userScalable: false,
   },
 };
 
@@ -121,7 +131,7 @@ export default function RootLayout({
   return (
     <html 
       lang="en" 
-      className={`${inter.variable} font-sans`}
+      className={`${inter.variable} font-sans antialiased`}
       style={{
         '--vh': '1vh', // CSS variable for viewport height
         height: '100%',
