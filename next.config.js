@@ -172,14 +172,8 @@ const nextConfig = {
   reactStrictMode: true,
   // Enable production browser source maps
   productionBrowserSourceMaps: false,
-  // Optimize for Netlify deployment
-  target: 'serverless',
   // Add trailing slash for better SEO
   trailingSlash: true,
-  // Add production browser source maps
-  productionBrowserSourceMaps: false,
-  // Add powered by header
-  poweredByHeader: false,
   // Add security headers
   devIndicators: {
     buildActivity: true,
@@ -189,7 +183,6 @@ const nextConfig = {
   experimental: {
     optimizeCss: true,
     scrollRestoration: true,
-    legacyBrowsers: false,
   },
   // Enable output file tracing for better optimization
   outputFileTracing: true,
