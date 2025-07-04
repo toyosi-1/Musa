@@ -14,7 +14,9 @@ export default function MusaCharacterSVG({
   size = 200, 
   animated = true 
 }: MusaCharacterSVGProps) {
-  const { actualTheme } = useTheme();
+  // Default to light theme if theme is not available yet
+  const themeContext = useTheme();
+  const actualTheme = themeContext?.actualTheme || 'light';
   const isDarkMode = actualTheme === 'dark';
 
   // Color schemes based on dark mode

@@ -51,11 +51,8 @@ export default function LogoAnimation() {
             onError={() => setImageError(true)}
           />
         ) : (
-          // Fallback when image is not available
-          <div className="w-full h-full flex items-center justify-center">
-            <div className="w-40 h-40 md:w-52 md:h-52 rounded-full bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center text-white font-bold shadow-2xl">
-              <span className="text-6xl md:text-8xl">M</span>
-            </div>
+          <div className="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-800 rounded-full">
+            <span className="text-gray-400">M</span>
           </div>
         )}
       </div>
