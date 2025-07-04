@@ -332,7 +332,5 @@ export {
   onChildRemoved,
   
   // Types
-  type QueryConstraint,
-  type DataSnapshot,
-  type User
+  type QueryConstraint
 };

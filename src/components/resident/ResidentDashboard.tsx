@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
-import { getFirebaseDatabase } from '@/lib/firebase-new';
+import { getFirebaseDatabase } from '@/lib/firebase';
 import { ref, get } from 'firebase/database';
 import { User, AccessCode, Household } from '@/types/user';
 import { getResidentAccessCodes, createAccessCode, deactivateAccessCode } from '@/services/accessCodeService';

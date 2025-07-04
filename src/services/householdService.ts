@@ -1,4 +1,4 @@
-import { getFirebaseDatabase } from '@/lib/firebase-new';
+import { getFirebaseDatabase } from '@/lib/firebase';
 import { ref, push, set, get, update, remove, query, orderByChild, equalTo } from 'firebase/database';
 import { Household, HouseholdInvite } from '@/types/user';
 

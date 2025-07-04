@@ -1,4 +1,4 @@
-import { getFirebaseDatabase } from '@/lib/firebase-new';
+import { getFirebaseDatabase } from '@/lib/firebase';
 import { ref, push, set, get, query, orderByChild, equalTo, update, onValue } from 'firebase/database';
 
 export type GuestMessage = {
@@ -118,14 +118,11 @@ export const subscribeToGuestMessages = (
   householdId: string, 
   callback: (messages: GuestMessage[]) => void
 ): (() => void) => {
-  let unsubscribe = () => {};
+  const db = getFirebaseDatabase();
+  const messagesIndexRef = ref(db, `guestMessagesByHousehold/${householdId}`);
   
-  // Use promise-then pattern instead of await since this function is not async
-  getFirebaseDatabase().then(db => {
-      const messagesIndexRef = ref(db, `guestMessagesByHousehold/${householdId}`);
-    
-    // Use onValue to listen for changes
-      const onValueUnsubscribe = onValue(messagesIndexRef, async (snapshot) => {
+  // Use onValue to listen for changes
+  return onValue(messagesIndexRef, async (snapshot) => {
     try {
       if (!snapshot.exists()) {
         callback([]);
@@ -164,9 +161,4 @@ export const subscribeToGuestMessages = (
       callback([]);
     }
   });
-  
-      unsubscribe = onValueUnsubscribe;
-  });
-  
-  return () => unsubscribe();
 };

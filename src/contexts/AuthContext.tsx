@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { User, UserRole, UserStatus } from '@/types/user';
+import { query, orderByChild, equalTo } from 'firebase/database';
 import { 
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
@@ -16,7 +17,7 @@ import {
   getFirebaseDatabase, 
   waitForFirebase,
   type User as FirebaseAuthUser
-} from '@/lib/firebase-new';
+} from '@/lib/firebase';
 
 interface AuthContextType {
   currentUser: User | null;
@@ -143,8 +144,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         displayName,
         role,
         status: 'pending', // Default status is pending until approved by admin
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+        isEmailVerified: false,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
       };
 
       // Save user to database
