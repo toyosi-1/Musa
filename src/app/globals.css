@@ -488,53 +488,54 @@ button,
     user-select: text;
   }
   
-  /* Better scrolling containers */
-  .scroll-container {
-    -webkit-overflow-scrolling: touch;
-    scroll-behavior: smooth;
-    overscroll-behavior: contain;
-  }
-  
-  /* Hide scrollbars but keep functionality */
-  .hide-scrollbar::-webkit-scrollbar {
-    display: none;
-  }
-  
-  .hide-scrollbar {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-  }
-  
-  /* Better form elements */
-  input[type="text"],
-  input[type="email"],
-  input[type="password"],
-  input[type="tel"],
-  input[type="number"],
-  textarea {
-    font-size: 16px !important; /* Prevent iOS zoom */
-    line-height: 1.5;
-    padding: 0.75rem 1rem;
-    border-radius: 0.5rem;
-    border: 1px solid #e5e7eb;
-    width: 100%;
-    -webkit-appearance: none;
-  }
-  
-  /* Better focus states */
-  input:focus,
-  textarea:focus,
-  select:focus,
-  button:focus {
-    outline: none;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
-    border-color: #3b82f6;
-  }
-  
-  /* Disable pull-to-refresh */
-  body {
-    overscroll-behavior-y: contain;
-  }
+}
+
+/* Better scrolling containers */
+.scroll-container {
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+  overscroll-behavior: contain;
+}
+
+/* Hide scrollbars but keep functionality */
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Better form elements */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="tel"],
+input[type="number"],
+textarea {
+  font-size: 16px !important; /* Prevent iOS zoom */
+  line-height: 1.5;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid #e5e7eb;
+  width: 100%;
+  -webkit-appearance: none;
+}
+
+/* Better focus states */
+input:focus,
+textarea:focus,
+select:focus,
+button:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+  border-color: #3b82f6;
+}
+
+/* Disable pull-to-refresh */
+body {
+  overscroll-behavior-y: contain;
 }
 
 @layer components {
