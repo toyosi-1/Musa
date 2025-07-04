@@ -10,7 +10,7 @@ interface ErrorProps {
   message?: string;
 }
 
-const Error: NextPage<ErrorProps> = ({ statusCode, title, message }) => {
+const Error: NextPage<ErrorProps> = ({ statusCode = 500, title, message }) => {
   const router = useRouter();
 
   // Auto-redirect to home page if offline and error is not 404
@@ -119,9 +119,9 @@ const Error: NextPage<ErrorProps> = ({ statusCode, title, message }) => {
   );
 };
 
-Error.getInitialProps = ({ res, err }: NextPageContext) => {
-  const statusCode = res ? res.statusCode : err ? err.statusCode : 404;
-  return { statusCode };
+Error.getInitialProps = async ({ res, err }: NextPageContext): Promise<ErrorProps> => {
+  const statusCode = res ? res.statusCode : err ? err.statusCode || 500 : 404;
+  return { statusCode } as ErrorProps;
 };
 
 export default Error;

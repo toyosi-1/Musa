@@ -101,11 +101,12 @@ export const metadata: Metadata = {
   // Additional meta tags for better PWA support
   other: {
     // Safari pinned tab
-    'mask-icon': { url: '/safari-pinned-tab.svg', color: '#3b82f6' },
+    'mask-icon': '/safari-pinned-tab.svg',
     // Apple touch icon for older iOS versions
-    'apple-touch-icon': { url: '/images/icon-180x180.png', sizes: '180x180' },
+    'apple-touch-icon': '/images/icon-180x180.png',
+    'apple-touch-icon-sizes': '180x180',
     // Windows 8/10 tile
-    'msapplication-TileImage': { url: '/images/icon-144x144.png' },
+    'msapplication-TileImage': '/images/icon-144x144.png',
     // Windows 8/10 tile color and config
     'msapplication-TileColor': '#3b82f6',
     'msapplication-config': '/browserconfig.xml',

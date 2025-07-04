@@ -26,7 +26,7 @@ export function canInstallPWA(): boolean {
  */
 export async function triggerInstallPrompt(): Promise<boolean> {
   // This function should be called in response to a user gesture
-  const deferredPrompt = (window as any).deferredPrompt as BeforeInstallPromptEvent | null;
+  const deferredPrompt = window.deferredPrompt as PWAInstallPromptEvent | null;
   
   if (!deferredPrompt) {
     throw new Error('No install prompt available. The beforeinstallprompt event was not fired.');
@@ -85,18 +85,18 @@ export function showiOSInstallPrompt() {
 /**
  * Type definition for the BeforeInstallPromptEvent
  */
-export interface BeforeInstallPromptEvent extends Event {
+type PWAInstallPromptEvent = Event & {
   prompt: () => Promise<void>;
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
-}
+};
 
 // Extend the Window interface to include our custom properties
 declare global {
   interface Window {
     // Using any here to avoid type conflicts with other declarations
-    deferredPrompt: any;
+    deferredPrompt: PWAInstallPromptEvent | null;
   }
 }
 
-// Export the interface for use in other files
-export type { BeforeInstallPromptEvent };
+// Export the type for use in other files
+export type { PWAInstallPromptEvent as BeforeInstallPromptEvent };

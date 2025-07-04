@@ -16,7 +16,7 @@ export default function GuestPage() {
   const [accessCodeId, setAccessCodeId] = useState<string | null>(null);
   
   useEffect(() => {
-    const code = searchParams.get('code');
+    const code = searchParams?.get('code');
     if (!code) {
       setError('No access code provided');
       setIsLoading(false);

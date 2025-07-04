@@ -11,12 +11,15 @@ import useAppUpdates from '../hooks/useAppUpdates';
 import { useUpdateNotification, UpdateNotification } from '../hooks/useUpdateNotification';
 import '../app/globals.css';
 
+// Import the BeforeInstallPromptEvent type
+import type { BeforeInstallPromptEvent } from '../utils/pwa';
+
 // Extend the Window interface to include our custom properties
 declare global {
   interface Window {
     gtag: any;
-    // This is typed as any since it's managed by the usePWAInstall hook
-    deferredPrompt: any;
+    // This is managed by the usePWAInstall hook
+    deferredPrompt: BeforeInstallPromptEvent | null;
   }
 }
 
