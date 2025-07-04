@@ -1,437 +1,255 @@
+// Core Firebase services
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
-import { getAuth, connectAuthEmulator, Auth } from 'firebase/auth';
+import { getAuth, connectAuthEmulator, Auth, User } from 'firebase/auth';
 import { 
   getDatabase, 
   connectDatabaseEmulator, 
   Database, 
   ref, 
-  get, 
   onValue, 
-  DataSnapshot 
+  get,
+  DataSnapshot,
+  onDisconnect,
+  set,
+  serverTimestamp,
+  query,
+  orderByChild,
+  equalTo,
+  limitToLast,
+  onChildAdded,
+  onChildChanged,
+  onChildRemoved,
+  off,
+  QueryConstraint
 } from 'firebase/database';
 
-// Firebase configuration - using environment variables
-const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
-  databaseURL: process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL
+// Types
+type FirebaseConfig = {
+  apiKey: string;
+  authDomain: string;
+  projectId: string;
+  storageBucket: string;
+  messagingSenderId: string;
+  appId: string;
+  measurementId?: string;
+  databaseURL: string;
 };
 
-// Initialize Firebase instances
+// Firebase configuration from environment variables
+const firebaseConfig: FirebaseConfig = {
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || '',
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || '',
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || '',
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || '',
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || '',
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || '',
+  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
+  databaseURL: process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL || ''
+};
+
+// Global state
 let firebaseApp: FirebaseApp | null = null;
 let firebaseAuth: Auth | null = null;
 let firebaseDb: Database | null = null;
-
-// Connection status tracking
 let isInitialized = false;
-let connectionPromise: Promise<boolean> | null = null;
+let isInitializing = false;
+let initializationError: Error | null = null;
 
-// Export types for convenience
-type FirebaseAppType = FirebaseApp;
-type AuthType = Auth;
-type DatabaseType = Database;
+// Export types
+export type { FirebaseApp, Auth, User, Database, DataSnapshot };
+
+declare global {
+  interface Window {
+    ENV: {
+      NEXT_PUBLIC_FIREBASE_API_KEY?: string;
+      NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN?: string;
+      NEXT_PUBLIC_FIREBASE_PROJECT_ID?: string;
+      NEXT_PUBLIC_FIREBASE_DATABASE_URL?: string;
+      NEXT_PUBLIC_USE_FIREBASE_EMULATORS?: string;
+    };
+  }
+}
 
 // Connection test timeout (in ms)
 const CONNECTION_TIMEOUT = 10000; // 10 seconds
 
-// Validate Firebase configuration
-const validateFirebaseConfig = () => {
+/**
+ * Validates the Firebase configuration
+ * @throws {Error} If required configuration is missing
+ */
+const validateFirebaseConfig = (): void => {
   const requiredFields = [
     'apiKey',
     'authDomain',
     'projectId',
     'databaseURL'
-  ];
-  
+  ] as const;
+
   const missingFields = requiredFields.filter(
-    field => !firebaseConfig[field as keyof typeof firebaseConfig]
+    field => !firebaseConfig[field]
   );
-  
+
   if (missingFields.length > 0) {
-    console.error('Missing Firebase configuration fields:', missingFields);
-    console.error('Current config values:', {
-      apiKey: firebaseConfig.apiKey ? '[SET]' : '[MISSING]',
-      authDomain: firebaseConfig.authDomain ? '[SET]' : '[MISSING]',
-      projectId: firebaseConfig.projectId ? '[SET]' : '[MISSING]',
-      databaseURL: firebaseConfig.databaseURL ? '[SET]' : '[MISSING]',
-      storageBucket: firebaseConfig.storageBucket ? '[SET]' : '[MISSING]',
-      messagingSenderId: firebaseConfig.messagingSenderId ? '[SET]' : '[MISSING]',
-      appId: firebaseConfig.appId ? '[SET]' : '[MISSING]',
-      measurementId: firebaseConfig.measurementId ? '[SET]' : '[MISSING]'
-    });
-    console.error('');
-    console.error('🔥 FIREBASE SETUP REQUIRED 🔥');
-    console.error('');
-    console.error('To fix login issues:');
-    console.error('1. Copy sample.env.local to .env.local');
-    console.error('2. Replace placeholder values with your Firebase project config');
-    console.error('3. Get your config from: https://console.firebase.google.com');
-    console.error('');
-    console.error('Or create .env.local with these values:');
-    console.error('NEXT_PUBLIC_FIREBASE_API_KEY=your-api-key');
-    console.error('NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com');
-    console.error('NEXT_PUBLIC_FIREBASE_PROJECT_ID=your-project-id');
-    console.error('NEXT_PUBLIC_FIREBASE_DATABASE_URL=https://your-project-rtdb.firebaseio.com');
-    console.error('');
-    return false;
+    const errorMsg = `Missing required Firebase configuration: ${missingFields.join(', ')}`;
+    console.error(`❌ ${errorMsg}`);
+    throw new Error(errorMsg);
   }
-  console.log('Firebase configuration validation passed');
-  return true;
-};
 
-// Performance monitoring helper
-const timeStart = (label: string) => {
-  console.time(`⏱️ ${label}`);
-  return () => console.timeEnd(`⏱️ ${label}`);
-};
-
-// Lazy initialization variables with proper typing
-let app: FirebaseApp | undefined;
-let auth: Auth | undefined;
-let rtdb: Database | undefined;
-let firebaseInitialized = false;
-let initPromise: Promise<boolean> | null = null;
-
-/**
- * Gets the Firebase app instance, initializing it if necessary
- */
-export async function getFirebaseApp(): Promise<FirebaseApp> {
-  // Return undefined immediately in server context
-  if (typeof window === 'undefined') {
-    console.log('Server context detected, returning empty Firebase app stub');
-    return {} as FirebaseApp;
-  }
-  
-  if (!firebaseApp) {
-    try {
-      // Dynamically import Firebase modules only on client side
-      const { initializeApp, getApps, getApp } = await import('firebase/app');
-      
-      // Check if app is already initialized
-      if (getApps().length === 0) {
-        console.log('Initializing new Firebase app');
-        firebaseApp = initializeApp(firebaseConfig);
-      } else {
-        console.log('Using existing Firebase app');
-        firebaseApp = getApp();
-      }
-    } catch (error) {
-      console.error('Error initializing Firebase app:', error);
-      throw new Error('Failed to initialize Firebase app');
-    }
-  }
-  
-  return firebaseApp as FirebaseApp;
-}
-
-/**
- * Gets the Firebase Auth instance, initializing app if necessary
- */
-export async function getFirebaseAuth(): Promise<Auth> {
-  // Return empty stub in server context
-  if (typeof window === 'undefined') {
-    console.log('Server context detected, returning empty Auth stub');
-    return {} as Auth;
-  }
-  
-  if (!firebaseAuth) {
-    try {
-      // Dynamically import Firebase Auth modules
-      const { getAuth, setPersistence, browserLocalPersistence, connectAuthEmulator } = await import('firebase/auth');
-      const app = await getFirebaseApp();
-      
-      firebaseAuth = getAuth(app);
-      
-      // Set persistence - wrapped in try/catch to avoid blocking errors
-      try {
-        await setPersistence(firebaseAuth, browserLocalPersistence);
-      } catch (error: any) {
-        console.warn('Failed to set persistence:', error);
-      }
-      
-      // Connect to emulators in development
-      if (process.env.NODE_ENV === 'development' && 
-          process.env.NEXT_PUBLIC_USE_FIREBASE_EMULATORS === 'true') {
-        try {
-          connectAuthEmulator(firebaseAuth, 'http://localhost:9099', { disableWarnings: true });
-          console.log('Connected to Auth emulator');
-        } catch (err) {
-          console.warn('Failed to connect to Auth emulator:', err);
-        }
-      }
-    } catch (error) {
-      console.error('Error initializing Firebase Auth:', error);
-      throw new Error('Failed to initialize Firebase Auth');
-    }
-  }
-  
-  return firebaseAuth as Auth;
-}
-
-/**
- * Gets the Firebase Realtime Database instance, initializing app if necessary
- */
-export async function getFirebaseDatabase(): Promise<Database> {
-  // Return empty stub in server context
-  if (typeof window === 'undefined') {
-    console.log('Server context detected, returning empty Database stub');
-    return {} as Database;
-  }
-  
-  if (!firebaseDb) {
-    console.log('🔄 Initializing Firebase Database...');
-    try {
-      // Dynamically import Firebase Database modules
-      const { getDatabase, connectDatabaseEmulator } = await import('firebase/database');
-      const app = await getFirebaseApp();
-      
-      // Get database URL from environment variables
-      const databaseURL = window.ENV?.NEXT_PUBLIC_FIREBASE_DATABASE_URL || 
-                         process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL;
-      
-      if (!databaseURL) {
-        console.error('❌ Firebase Database URL is not configured');
-        throw new Error('Firebase Database URL is not configured. Please check your environment variables.');
-      }
-      
-      console.log(`🔗 Initializing database with URL: ${databaseURL}`);
-      
-      // Initialize database with explicit URL
-      firebaseDb = getDatabase(app, databaseURL);
-      
-      // Set shorter timeouts for Firebase operations
-      try {
-        (firebaseDb as any).app.options.databaseTimeoutSeconds = 10; // 10 seconds timeout
-        console.log('⏱️ Set database operation timeout to 10 seconds');
-      } catch (e) {
-        console.warn('⚠️ Could not set database timeout:', e);
-      }
-      
-      // Check if we should use emulators
-      const useEmulators = process.env.NODE_ENV === 'development' && 
-                         process.env.NEXT_PUBLIC_USE_FIREBASE_EMULATORS === 'true';
-      
-      if (useEmulators) {
-        try {
-          console.log('🔌 Connecting to Database emulator...');
-          connectDatabaseEmulator(firebaseDb, 'localhost', 9000);
-          console.log('✅ Connected to Database emulator');
-        } catch (err) {
-          console.warn('⚠️ Failed to connect to Database emulator:', err);
-        }
-      } else {
-        console.log('🌐 Using production Firebase Database');
-      }
-      
-      console.log('✅ Firebase Database initialized successfully');
-    } catch (error: unknown) {
-      console.error('❌ Error initializing Firebase Database:', error);
-      
-      // Provide more detailed error information
-      if (error && typeof error === 'object') {
-        const firebaseError = error as { code?: string; message: string };
-        
-        if (firebaseError.code) {
-          console.error(`Firebase error code: ${firebaseError.code}`);
-          console.error(`Firebase error message: ${firebaseError.message}`);
-          
-          if (firebaseError.code === 'app/duplicate-app') {
-            console.error('A Firebase App named "[DEFAULT]" already exists');
-          } else if (firebaseError.code === 'app/no-app') {
-            console.error('No Firebase App has been created');
-          } else if (firebaseError.code === 'storage/unknown') {
-            console.error('Unknown error occurred while accessing storage');
-          }
-        }
-        
-        throw new Error(`Failed to initialize Firebase Database: ${firebaseError.message || 'Unknown error'}`);
-      }
-      
-      throw new Error('Failed to initialize Firebase Database: Unknown error occurred');
-    }
-  } else {
-    console.log('♻️ Using existing Firebase Database instance');
-  }
-  
-  return firebaseDb as Database;
-}
-
-/**
- * Initialize Firebase with all services
- * Returns a promise that resolves when initialization is complete
- */
-export async function initializeFirebase(): Promise<boolean> {
-  console.log('=== Starting Firebase Initialization ===');
-  console.log('Environment:', process.env.NODE_ENV);
-  console.log('Is Server:', typeof window === 'undefined');
-  console.log('=== Firebase Config ===');
-  console.log('API Key:', process.env.NEXT_PUBLIC_FIREBASE_API_KEY ? '*** (set)' : 'Not set');
-  console.log('Auth Domain:', process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || 'Not set');
-  console.log('Project ID:', process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'Not set');
-  console.log('Database URL:', process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL || 'Not set');
-  console.log('========================');
-  // Skip initialization on server-side
-  if (typeof window === 'undefined') {
-    console.log('⚠️ Skipping Firebase initialization on server side');
-    return false;
-  }
-  
-  // Return existing promise if already initializing
-  if (isInitialized) {
-    console.log('✅ Firebase already initialized');
-    return Promise.resolve(true);
-  }
-  
-  if (initPromise) {
-    console.log('⏳ Firebase initialization in progress, returning existing promise');
-    return initPromise;
-  }
-  
-  console.log('🔥 Starting Firebase initialization process...');
-  
-  // Store the current promise to prevent multiple initializations
-  const currentPromise = connectionPromise;
-  if (currentPromise) return currentPromise;
-  
-  // Create new initialization promise
-  connectionPromise = new Promise<boolean>(async (resolve) => {
-    try {
-      console.log('🔥 Starting Firebase initialization...');
-      
-      // Check configuration
-      console.log('🔥 Validating Firebase configuration...');
-      const isConfigValid = validateFirebaseConfig();
-      if (!isConfigValid) {
-        console.error('❌ Firebase configuration validation failed');
-        throw new Error('Firebase configuration is incomplete. Check your environment variables.');
-      }
-      console.log('✅ Firebase configuration is valid');
-      
-      // Initialize app and services
-      console.log('🔥 [1/3] Initializing Firebase App...');
-      const app = await getFirebaseApp();
-      console.log('✅ [1/3] Firebase App initialized successfully');
-      
-      console.log('🔥 [2/3] Initializing Firebase Auth...');
-      const auth = await getFirebaseAuth();
-      console.log('✅ [2/3] Firebase Auth initialized successfully');
-      
-      console.log('🔥 [3/3] Initializing Firebase Database...');
-      const database = await getFirebaseDatabase();
-      console.log('✅ [3/3] Firebase Database initialized successfully');
-      
-      // Log auth state
-      if (auth) {
-        console.log('🔐 Auth state:', auth.currentUser ? 'User signed in' : 'No user signed in');
-      }
-      
-      // Test database connection with timeout
-      if (typeof window !== 'undefined') {
-        try {
-          // Dynamic import for database operations
-          const { ref, onValue, get, set } = await import('firebase/database');
-          
-          // First, try to connect to the database
-          const connectionPromise = new Promise<void>(async (connResolve, connReject) => {
-            try {
-              // Test connection to the database
-              const testRef = ref(database, 'connection_test');
-              
-              // Try to write and read a test value
-              await set(testRef, { timestamp: Date.now() });
-              const snapshot = await get(testRef);
-              
-              if (snapshot.exists()) {
-                console.log('✅ Successfully connected to Firebase Realtime Database');
-                await set(testRef, null); // Clean up
-                isInitialized = true;
-                connResolve();
-              } else {
-                console.warn('Database connection test failed: No data returned');
-                connResolve(); // Still resolve to not block initialization
-              }
-            } catch (e) {
-              console.error('❌ Database connection test failed:', e);
-              connResolve(); // Still resolve to not block initialization
-            }
-          });
-          
-          // Also set up the connection state listener for real-time updates
-          const connectedRef = ref(database, '.info/connected');
-          const connectionStateUnsubscribe = onValue(connectedRef, (snapshot) => {
-            console.log(snapshot.val() ? '📡 Connected to database' : '❌ Disconnected from database');
-          });
-          
-          // Race against timeout
-          const timeoutPromise = new Promise<void>((connResolve) => {
-            setTimeout(() => {
-              console.warn('⚠️ Database connection check timed out after 5 seconds');
-              connResolve();
-            }, 5000);
-          });
-          
-          // Wait for either connection or timeout
-          await Promise.race([connectionPromise, timeoutPromise]);
-          
-          // Clean up the connection state listener after a delay
-          setTimeout(() => {
-            try {
-              connectionStateUnsubscribe();
-            } catch (e) {
-              console.warn('Error cleaning up connection listener:', e);
-            }
-          }, 10000);
-          
-        } catch (error) {
-          console.error('❌ Database connection check failed:', error);
-          // Continue initialization anyway
-        }
-      }
-      
-      isInitialized = true;
-      console.log('Firebase initialization completed');
-      resolve(true);
-    } catch (error) {
-      console.error('Firebase initialization failed:', error);
-      resolve(false);
-    }
-  });
-  
-  return connectionPromise;
+  console.log('✅ Firebase configuration is valid');
 };
 
 /**
- * Test database connection
+ * Initializes the Firebase app
  */
-const testDatabaseConnection = async (): Promise<boolean> => {
-  if (!firebaseDb) return false;
+const initializeFirebaseApp = (): FirebaseApp => {
+  if (firebaseApp) {
+    console.log('♻️ Using existing Firebase App instance');
+    return firebaseApp;
+  }
+
+  console.log('🔥 Initializing Firebase App...');
+  validateFirebaseConfig();
+
+  try {
+    // Initialize Firebase
+    firebaseApp = initializeApp(firebaseConfig);
+    console.log('✅ Firebase App initialized successfully');
+    return firebaseApp;
+  } catch (error) {
+    console.error('❌ Error initializing Firebase App:', error);
+    throw error;
+  }
+};
+
+/**
+ * Initializes Firebase Auth
+ */
+const initializeAuth = (app: FirebaseApp): Auth => {
+  if (firebaseAuth) {
+    console.log('♻️ Using existing Firebase Auth instance');
+    return firebaseAuth;
+  }
+
+  console.log('🔑 Initializing Firebase Auth...');
   
   try {
-    // Simple test query with timeout
-    const testRef = ref(firebaseDb, '.info/connected');
-    const snapshot = await Promise.race([
-      get(testRef),
-      new Promise<DataSnapshot>((_, reject) => 
-        setTimeout(() => reject(new Error('Connection timeout')), CONNECTION_TIMEOUT)
-      )
-    ]);
+    // Initialize Firebase Auth
+    firebaseAuth = getAuth(app);
     
-    return snapshot.val() === true;
+    // Connect to emulator in development if enabled
+    if (process.env.NODE_ENV === 'development' && 
+        process.env.NEXT_PUBLIC_USE_FIREBASE_EMULATORS === 'true') {
+      console.log('🔌 Connecting to Auth emulator...');
+      connectAuthEmulator(firebaseAuth, 'http://localhost:9099');
+      console.log('✅ Connected to Auth emulator');
+    }
+    
+    console.log('✅ Firebase Auth initialized successfully');
+    return firebaseAuth;
   } catch (error) {
-    console.error('Database connection test failed:', error);
-    return false;
+    console.error('❌ Error initializing Firebase Auth:', error);
+    throw error;
   }
 };
 
 /**
- * Get Firebase Auth instance
+ * Initializes Firebase Realtime Database
  */
-export const getAuthInstance = (): Auth => {
+const initializeDatabase = (app: FirebaseApp): Database => {
+  if (firebaseDb) {
+    console.log('♻️ Using existing Firebase Database instance');
+    return firebaseDb;
+  }
+
+  console.log('💾 Initializing Firebase Database...');
+  
+  try {
+    // Initialize Firebase Database
+    firebaseDb = getDatabase(app);
+    
+    // Set up connection monitoring
+    const connectedRef = ref(firebaseDb, '.info/connected');
+    onValue(connectedRef, (snap) => {
+      if (snap.val() === true) {
+        console.log('✅ Connected to Firebase Database');
+      } else {
+        console.log('❌ Disconnected from Firebase Database');
+      }
+    });
+    
+    // Connect to emulator in development if enabled
+    if (process.env.NODE_ENV === 'development' && 
+        process.env.NEXT_PUBLIC_USE_FIREBASE_EMULATORS === 'true') {
+      console.log('🔌 Connecting to Database emulator...');
+      connectDatabaseEmulator(firebaseDb, 'localhost', 9000);
+      console.log('✅ Connected to Database emulator');
+    }
+    
+    console.log('✅ Firebase Database initialized successfully');
+    return firebaseDb;
+  } catch (error) {
+    console.error('❌ Error initializing Firebase Database:', error);
+    throw error;
+  }
+};
+
+/**
+ * Initializes all Firebase services
+ */
+export const initializeFirebase = async (): Promise<{
+  app: FirebaseApp;
+  auth: Auth;
+  db: Database;
+}> => {
+  // Skip if already initialized
+  if (isInitialized && firebaseApp && firebaseAuth && firebaseDb) {
+    console.log('♻️ Firebase already initialized');
+    return { app: firebaseApp, auth: firebaseAuth, db: firebaseDb };
+  }
+
+  // Prevent multiple initializations
+  if (isInitializing) {
+    console.log('⏳ Firebase initialization already in progress');
+    throw new Error('Firebase initialization already in progress');
+  }
+
+  isInitializing = true;
+  console.log('🚀 Initializing Firebase...');
+  
+  try {
+    // Initialize Firebase services
+    const app = initializeFirebaseApp();
+    const auth = initializeAuth(app);
+    const db = initializeDatabase(app);
+    
+    // Update state
+    isInitialized = true;
+    isInitializing = false;
+    
+    console.log('🎉 Firebase initialized successfully');
+    return { app, auth, db };
+  } catch (error) {
+    isInitializing = false;
+    initializationError = error as Error;
+    console.error('🔥 Failed to initialize Firebase:', error);
+    throw error;
+  }
+};
+
+/**
+ * Gets the Firebase App instance
+ */
+export const getFirebaseApp = (): FirebaseApp => {
+  if (!firebaseApp) {
+    throw new Error('Firebase App not initialized. Call initializeFirebase() first.');
+  }
+  return firebaseApp;
+};
+
+/**
+ * Gets the Firebase Auth instance
+ */
+export const getFirebaseAuth = (): Auth => {
   if (!firebaseAuth) {
     throw new Error('Firebase Auth not initialized. Call initializeFirebase() first.');
   }
@@ -439,9 +257,9 @@ export const getAuthInstance = (): Auth => {
 };
 
 /**
- * Get Firebase Database instance
+ * Gets the Firebase Database instance
  */
-export const getDatabaseInstance = (): Database => {
+export const getFirebaseDatabase = (): Database => {
   if (!firebaseDb) {
     throw new Error('Firebase Database not initialized. Call initializeFirebase() first.');
   }
@@ -449,49 +267,72 @@ export const getDatabaseInstance = (): Database => {
 };
 
 /**
- * Check if Firebase is ready
+ * Checks if Firebase is initialized
  */
-export const isFirebaseReady = (): boolean => isInitialized;
-
-/**
- * Wait for Firebase to be ready
- */
-export const waitForFirebase = async (): Promise<boolean> => {
-  if (isInitialized) return true;
-  if (connectionPromise) return connectionPromise;
-  return initializeFirebase();
+export const isFirebaseReady = (): boolean => {
+  return isInitialized && !!firebaseApp && !!firebaseAuth && !!firebaseDb;
 };
 
-// Initialize Firebase on the client side
-if (typeof window !== 'undefined' && !isInitialized) {
-  // Start initialization in the background
-  connectionPromise = initializeFirebase()
-    .then(success => {
-      isInitialized = success;
-      if (success) {
-        console.log('Firebase initialized successfully');
-      } else {
-        console.error('Firebase initialization failed');
+/**
+ * Waits for Firebase to be ready
+ */
+export const waitForFirebase = async (timeout = 10000): Promise<boolean> => {
+  if (isFirebaseReady()) {
+    return true;
+  }
+
+  return new Promise((resolve, reject) => {
+    const startTime = Date.now();
+    
+    const checkReady = () => {
+      if (isFirebaseReady()) {
+        resolve(true);
+        return;
       }
-      return success;
-    })
-    .catch(error => {
-      console.error('Firebase initialization error:', error);
-      isInitialized = false;
-      return false;
-    });
+      
+      if (Date.now() - startTime > timeout) {
+        reject(new Error('Firebase initialization timed out'));
+        return;
+      }
+      
+      if (initializationError) {
+        reject(initializationError);
+        return;
+      }
+      
+      setTimeout(checkReady, 100);
+    };
+    
+    checkReady();
+  });
+};
+
+// Initialize Firebase automatically in browser environment
+if (typeof window !== 'undefined') {
+  initializeFirebase().catch(error => {
+    console.error('Failed to initialize Firebase automatically:', error);
+  });
 }
 
-// Export initialized instances
-export { firebaseApp, firebaseAuth, firebaseDb };
-
-// Export database helpers
-export { ref, onValue, get };
-
-// Export types
-export type { 
-  FirebaseAppType as FirebaseApp, 
-  AuthType as Auth, 
-  DatabaseType as Database,
-  DataSnapshot 
+export {
+  // Firebase SDK
+  ref,
+  get,
+  set,
+  query,
+  onValue,
+  off,
+  onDisconnect,
+  serverTimestamp,
+  orderByChild,
+  equalTo,
+  limitToLast,
+  onChildAdded,
+  onChildChanged,
+  onChildRemoved,
+  
+  // Types
+  type QueryConstraint,
+  type DataSnapshot,
+  type User
 };

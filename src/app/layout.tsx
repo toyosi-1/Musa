@@ -36,12 +36,14 @@ const LoadingScreen = dynamic(
   { ssr: false }
 );
 
-// Load Inter font with all required weights and subsets
+// Load Inter font with optimized settings
 const inter = Inter({
   subsets: ['latin'],
   display: 'swap',
   variable: '--font-inter',
-  weight: ['300', '400', '500', '600', '700'],
+  weight: ['400', '500', '600', '700'],
+  preload: true,
+  adjustFontFallback: false,
 });
 
 // Define viewport configuration for better mobile and PWA support

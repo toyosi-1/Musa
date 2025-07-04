@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { getFirebaseAuth, getFirebaseDatabase, isFirebaseReady, waitForFirebase } from '@/lib/firebase';
+import { getFirebaseAuth, getFirebaseDatabase, isFirebaseReady, waitForFirebase } from '@/lib/firebase-new';
 import { signInWithEmailAndPassword, getAuth, User as FirebaseUser } from 'firebase/auth';
 import { ref, get, getDatabase } from 'firebase/database';
 

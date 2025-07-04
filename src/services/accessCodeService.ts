@@ -1,4 +1,4 @@
-import { getFirebaseDatabase } from '@/lib/firebase';
+import { getFirebaseDatabase } from '@/lib/firebase-new';
 import { ref, push, set, get, query, orderByChild, equalTo, update, remove } from 'firebase/database';
 import * as QRCodeLib from 'qrcode';
 import { AccessCode } from '@/types/user';

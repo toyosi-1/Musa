@@ -1,4 +1,4 @@
-import { getFirebaseDatabase } from '@/lib/firebase';
+import { getFirebaseDatabase } from '@/lib/firebase-new';
 import { ref, get, update } from 'firebase/database';
 import { User } from '@/types/user';
 

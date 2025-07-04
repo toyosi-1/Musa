@@ -8,7 +8,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { UserRole } from '@/types/user';
-import { isFirebaseReady, waitForFirebase } from '@/lib/firebase';
+import { isFirebaseReady, waitForFirebase } from '@/lib/firebase-new';
 
 // Form validation schema
 const authSchema = z.object({

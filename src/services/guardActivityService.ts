@@ -1,7 +1,7 @@
 'use client';
 
 import { ref, set, get, update, query, orderByChild, limitToLast } from 'firebase/database';
-import { getFirebaseDatabase } from '@/lib/firebase';
+import { getFirebaseDatabase } from '@/lib/firebase-new';
 
 export type VerificationRecord = {
   id: string;

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { initializeFirebase, isFirebaseReady } from '@/lib/firebase';
+import { initializeFirebase, isFirebaseReady } from '@/lib/firebase-new';
 
 export default function DebugPage() {
   const [logs, setLogs] = useState<string[]>(['Debugging Firebase initialization...']);
