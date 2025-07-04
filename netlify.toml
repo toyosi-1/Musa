@@ -1,12 +1,27 @@
 [build]
-  command = "npm run build"
+  command = "npm run netlify-build"
   publish = ".next"
   functions = ".netlify/functions"
 
 [build.environment]
-  NODE_VERSION = "18"
+  NODE_VERSION = "18.0.0"
+  NPM_VERSION = "9.0.0"
   NEXT_TELEMETRY_DISABLED = "1"
   NODE_OPTIONS = "--max_old_space_size=4096"
+  
+  # Build flags for Next.js
+  NETLIFY_NEXT_PLUGIN_SKIP = "false"
+  NETLIFY_NEXT_PLUGIN_FORCE_BUILD = "true"
+  
+  # Required environment variables (set these in Netlify UI)
+  # NEXT_PUBLIC_FIREBASE_API_KEY
+  # NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+  # NEXT_PUBLIC_FIREBASE_PROJECT_ID
+  # NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+  # NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+  # NEXT_PUBLIC_FIREBASE_APP_ID
+  # NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
+  # NEXT_PUBLIC_FIREBASE_DATABASE_URL
 
 # Next.js plugin
 [[plugins]]
