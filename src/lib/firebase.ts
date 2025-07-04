@@ -7,7 +7,9 @@ import {
   ref, 
   get, 
   onValue, 
-  DataSnapshot 
+  DataSnapshot,
+  goOnline,
+  goOffline
 } from 'firebase/database';
 
 // Firebase configuration - using environment variables
@@ -206,8 +208,23 @@ export async function getFirebaseDatabase(): Promise<Database> {
       
       // Set shorter timeouts for Firebase operations
       try {
-        (firebaseDb as any).app.options.databaseTimeoutSeconds = 10; // 10 seconds timeout
-        console.log('⏱️ Set database operation timeout to 10 seconds');
+        // Increase the default timeout for initial connection
+        (firebaseDb as any).app.options.databaseTimeoutSeconds = 30; // 30 seconds timeout for initial connection
+        console.log('⏱️ Set database operation timeout to 30 seconds');
+        
+        // Add offline support
+        goOnline(firebaseDb);
+        console.log('🌐 Enabled Firebase Database online mode');
+        
+        // Set up connection state monitoring
+        const connectedRef = ref(firebaseDb, '.info/connected');
+        onValue(connectedRef, (snap) => {
+          if (snap.val() === true) {
+            console.log('✅ Database connection established');
+          } else {
+            console.log('⚠️ Database connection lost');
+          }
+        });
       } catch (e) {
         console.warn('⚠️ Could not set database timeout:', e);
       }
