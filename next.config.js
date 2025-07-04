@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const withPWA = require('next-pwa')({
   dest: 'public',
-  disable: false, // Enable PWA in development for testing
+  disable: process.env.NODE_ENV !== 'production', // Disable PWA in development
   register: true,
   skipWaiting: true,
   runtimeCaching: [
@@ -166,6 +166,14 @@ const nextConfig = {
   compress: true,
   // Enable ETag generation for better caching
   generateEtags: true,
+  // Disable X-Powered-By header for security
+  poweredByHeader: false,
+  // Enable React strict mode
+  reactStrictMode: true,
+  // Enable production browser source maps
+  productionBrowserSourceMaps: false,
+  // Optimize for Netlify deployment
+  target: 'serverless',
   // Add trailing slash for better SEO
   trailingSlash: true,
   // Add production browser source maps
