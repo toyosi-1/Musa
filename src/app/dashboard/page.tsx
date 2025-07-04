@@ -1,12 +1,22 @@
 "use client";
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import { useAuth } from '@/contexts/AuthContext';
-import GuardDashboard from '@/components/guard/GuardDashboard';
-import ResidentDashboard from '@/components/resident/ResidentDashboard';
 import AppLayout from '@/components/layout/AppLayout';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
+
+// Dynamically import client-side only components
+const GuardDashboard = dynamic(
+  () => import('@/components/guard/GuardDashboard'),
+  { ssr: false }
+);
+
+const ResidentDashboard = dynamic(
+  () => import('@/components/resident/ResidentDashboard'),
+  { ssr: false }
+);
 
 export default function Dashboard() {
   const { currentUser, loading } = useAuth();

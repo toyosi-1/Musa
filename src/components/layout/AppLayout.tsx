@@ -1,10 +1,20 @@
 "use client";
 
-import { ReactNode } from 'react';
-import StatusGuard from '../auth/StatusGuard';
+import { ReactNode, useEffect, useState } from 'react';
+import dynamic from 'next/dynamic';
 import { useAuth } from '@/contexts/AuthContext';
 import LoadingSpinner from '../ui/LoadingSpinner';
-import UnifiedNavbar from './UnifiedNavbar';
+
+// Dynamically import client-side only components
+const StatusGuard = dynamic(
+  () => import('../auth/StatusGuard'),
+  { ssr: false }
+);
+
+const UnifiedNavbar = dynamic(
+  () => import('./UnifiedNavbar'),
+  { ssr: false }
+);
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -19,10 +29,15 @@ export default function AppLayout({
   requireStatus = 'approved',
   requireAdmin = false
 }: AppLayoutProps) {
+  const [isClient, setIsClient] = useState(false);
   const { currentUser, loading } = useAuth();
   
-  // Show loading spinner while auth state is being determined
-  if (loading) {
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+  
+  // Show loading spinner while auth state is being determined or during SSR
+  if (loading || !isClient) {
     return <LoadingSpinner size="lg" fullScreen />;
   }
 
