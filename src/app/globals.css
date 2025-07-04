@@ -6,6 +6,10 @@
 :root {
   --app-height: 100%;
   --mobile-height: -webkit-fill-available;
+  --safe-area-top: env(safe-area-inset-top, 0px);
+  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-area-left: env(safe-area-inset-left, 0px);
+  --safe-area-right: env(safe-area-inset-right, 0px);
 }
 
 html, body, #__next {
@@ -17,8 +21,11 @@ html, body, #__next {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
-  overscroll-behavior-y: none;
+  overscroll-behavior-y: contain;
   -webkit-overflow-scrolling: touch;
+  touch-action: manipulation;
+  position: relative;
+  overflow-x: hidden;
 }
 
 /* iOS PWA specific styles */
@@ -329,11 +336,121 @@ select {
   }
 }
 
+/* Base button styles for better touch targets */
+button,
+[role="button"],
+input[type="button"],
+input[type="submit"],
+input[type="reset"],
+.touch-target {
+  min-height: 44px;
+  min-width: 44px;
+  position: relative;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Better touch feedback */
+button:active,
+[role="button"]:active,
+.touch-target:active {
+  opacity: 0.8;
+  transform: scale(0.98);
+  transition: transform 0.1s ease, opacity 0.1s ease;
+}
+
+/* Scrollbar styling for better mobile experience */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+/* Responsive typography */
+html {
+  font-size: 16px;
+}
+
 @media (max-width: 640px) {
-  /* Minimum touch target size */
-  .touch-target,
-  button,
-  [role="button"],
+  html {
+    font-size: 15px;
+  }
+}
+
+/* Safe area padding for notched devices */
+.safe-area-padding {
+  padding-top: var(--safe-area-top, 0px);
+  padding-bottom: var(--safe-area-bottom, 0px);
+  padding-left: var(--safe-area-left, 0px);
+  padding-right: var(--safe-area-right, 0px);
+}
+
+/* Improved form elements for mobile */
+input,
+select,
+textarea {
+  font-size: 1rem;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  border-radius: 0.375rem;
+  padding: 0.5rem 0.75rem;
+  width: 100%;
+  max-width: 100%;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+/* Better focus states for accessibility */
+*:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+  border-radius: 0.25rem;
+}
+
+/* Animation for better feedback */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out forwards;
+}
+
+/* Responsive spacing utilities */
+@screen sm {
+  .container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
+
+/* Hide scrollbar but keep functionality */
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Minimum touch target size */
+.touch-target,
+button,
+[role="button"],
   a[role="button"],
   .btn,
   input[type="button"],

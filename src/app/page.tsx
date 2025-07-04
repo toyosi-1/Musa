@@ -6,54 +6,68 @@ import LogoAnimation from '@/components/ui/illustrations/LogoAnimation';
 export default function Home() {
   return (
     <main className="min-h-screen flex flex-col">
-      <header className="bg-primary p-4 text-white">
+      <header className="bg-primary px-4 py-3 sm:p-4 text-white sticky top-0 z-50 shadow-md">
         <div className="container mx-auto flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-white dark:text-white">Musa</h1>
-          <div className="space-x-4">
-            <Link href="/auth/login" className="hover:underline">Login</Link>
-            <Link href="/auth/register" className="bg-white text-primary px-4 py-2 rounded-md font-semibold hover:bg-gray-100">
+          <h1 className="text-xl sm:text-2xl font-bold text-white">Musa</h1>
+          <div className="flex items-center space-x-2 sm:space-x-4">
+            <Link href="/auth/login" className="text-sm sm:text-base px-3 py-1.5 hover:bg-primary-600 rounded transition-colors">
+              Login
+            </Link>
+            <Link 
+              href="/auth/register" 
+              className="bg-white text-primary text-sm sm:text-base px-3 py-1.5 sm:px-4 sm:py-2 rounded-md font-semibold hover:bg-gray-100 active:bg-gray-200 transition-colors"
+            >
               Register
             </Link>
           </div>
         </div>
       </header>
 
-      <section className="flex-grow container mx-auto py-16 px-4 flex flex-col md:flex-row items-center justify-between gap-12">
-
-        <div className="md:w-1/2 space-y-6 animate-slide-in-right">
-          <h2 className="text-4xl font-bold text-gray-800 dark:text-white">Modern Estate Access Control</h2>
-          <p className="text-xl text-gray-600">
+      <section className="flex-grow container mx-auto py-8 sm:py-12 md:py-16 px-4 flex flex-col md:flex-row items-center justify-between gap-8 sm:gap-12">
+        <div className="w-full md:w-1/2 space-y-4 sm:space-y-6 animate-slide-in-right">
+          <h2 className="text-3xl sm:text-4xl font-bold text-gray-800 dark:text-white leading-tight">
+            Modern Estate Access Control
+          </h2>
+          <p className="text-base sm:text-lg text-gray-600 dark:text-gray-300">
             Musa is a seamless, fast, and user-friendly access control system designed for estates.
             No more manual security checks – just scan and go.
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 pt-4">
-            <Link href="/auth/register?role=resident" className="btn-primary text-center">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-2 sm:pt-4">
+            <Link 
+              href="/auth/register?role=resident" 
+              className="btn-primary text-center py-2.5 px-4 text-sm sm:text-base"
+            >
               Register as Resident
             </Link>
-            <Link href="/auth/register?role=guard" className="btn-secondary text-center">
+            <Link 
+              href="/auth/register?role=guard" 
+              className="btn-secondary text-center py-2.5 px-4 text-sm sm:text-base"
+            >
               Register as Guard
             </Link>
           </div>
         </div>
-        <div className="md:w-1/2 flex justify-center animate-slide-in-left">
-          <div className="flex flex-col items-center">
+        <div className="w-full md:w-1/2 flex justify-center animate-slide-in-left mt-8 md:mt-0">
+          <div className="w-64 h-64 sm:w-80 sm:h-80 md:w-96 md:h-96 flex items-center justify-center">
             <LogoAnimation />
           </div>
         </div>
       </section>
 
-      <section className="bg-gray-100 dark:bg-gray-800 py-16 px-4 transition-colors duration-300">
-        <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-bold text-center mb-12 text-gray-800 dark:text-white animate-fade-in">How It Works</h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-              <div className="bg-white dark:bg-gray-700 rounded-lg p-6 shadow-lg hover:shadow-card-hover transition-all duration-300 transform hover:scale-105 animate-slide-up">
-                <div className="bg-primary-50 dark:bg-primary-900/30 w-16 h-16 rounded-full flex items-center justify-center text-primary dark:text-primary-300 shadow-md mb-4 mx-auto transform transition-transform duration-300 hover:scale-110 hover:rotate-6">
+      <section className="bg-gray-100 dark:bg-gray-800 py-12 sm:py-16 px-4 transition-colors duration-300">
+        <div className="container mx-auto px-2 sm:px-4">
+          <h2 className="text-2xl sm:text-3xl font-bold text-center mb-8 sm:mb-12 text-gray-800 dark:text-white animate-fade-in">
+            How It Works
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+            <div className="bg-white dark:bg-gray-700 rounded-xl p-5 sm:p-6 shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-[1.02] animate-slide-up">
+              <div className="bg-primary-50 dark:bg-primary-900/30 w-14 h-14 sm:w-16 sm:h-16 rounded-full flex items-center justify-center text-primary dark:text-primary-300 shadow-md mb-4 mx-auto transform transition-transform duration-300 hover:scale-110 hover:rotate-6">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                   </svg>
                 </div>
-                <h3 className="text-xl font-semibold mb-2 text-gray-800 dark:text-white text-center">For Residents</h3>
-                <p className="text-gray-600 dark:text-gray-300 text-center">
+                <h3 className="text-lg sm:text-xl font-semibold mb-2 text-gray-800 dark:text-white text-center">For Residents</h3>
+                <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300 text-center leading-relaxed">
                   Generate private QR or text-based access codes to share with guests. Family heads can manage household members.
                 </p>
               </div>
@@ -64,8 +78,8 @@ export default function Home() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                   </svg>
                 </div>
-                <h3 className="text-xl font-semibold mb-2 text-gray-800 dark:text-white text-center">For Guards</h3>
-                <p className="text-gray-600 dark:text-gray-300 text-center">
+                <h3 className="text-lg sm:text-xl font-semibold mb-2 text-gray-800 dark:text-white text-center">For Guards</h3>
+                <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300 text-center leading-relaxed">
                   Easily scan or enter access codes for instant verification. Simple green/red indicators for fast access control.
                 </p>
               </div>
@@ -76,8 +90,8 @@ export default function Home() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                   </svg>
                 </div>
-                <h3 className="text-xl font-semibold mb-2 text-gray-800 dark:text-white text-center">Privacy-Focused</h3>
-                <p className="text-gray-600 dark:text-gray-300 text-center">
+                <h3 className="text-lg sm:text-xl font-semibold mb-2 text-gray-800 dark:text-white text-center">Privacy-Focused</h3>
+                <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300 text-center leading-relaxed">
                   Guards can verify access without knowing who codes belong to. Family heads cannot see members' codes.
                 </p>
               </div>
