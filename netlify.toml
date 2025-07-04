@@ -11,10 +11,6 @@
 # Next.js plugin
 [[plugins]]
   package = "@netlify/plugin-nextjs"
-  [plugins.inputs]
-    enableFunctions = true
-    enableImageOptimizer = true
-    enableStaticCache = true
 
 # Redirects for Next.js App Router
 [[redirects]]
