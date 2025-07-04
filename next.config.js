@@ -4,10 +4,6 @@ const withPWA = require('next-pwa')({
   disable: process.env.NODE_ENV === 'development',
   register: true,
   skipWaiting: true,
-  // Disable precaching of build manifest files
-  dynamicStartUrl: false,
-  // Don't precache the build manifest
-  disablePrecacheManifest: true,
   buildExcludes: [
     /middleware-manifest\.json$/, 
     /_middleware\.js$/, 
@@ -29,10 +25,10 @@ const withPWA = require('next-pwa')({
     /\/server\/pages\/.*\.js$/,
     /\/server\/pages\/api\/.*\.js$/,
   ],
-  // Don't precache the build manifest
-  disablePrecacheManifest: true,
   // Skip waiting for service worker to activate
   skipWaiting: true,
+  // Disable development logs in production
+  disableDevLogs: process.env.NODE_ENV === 'production',
   runtimeCaching: [
     {
       urlPattern: /^https?:\/\/.*\.(png|jpg|jpeg|svg|gif|webp|ico)$/i,
