@@ -62,7 +62,6 @@ const nextConfig = {
     config.resolve.alias = {
       ...config.resolve.alias,
       '@/lib/firebase': path.resolve(__dirname, 'src/lib/firebase.ts'),
-      '@/lib/firebase-new': path.resolve(__dirname, 'src/lib/firebase.ts'), // Alias for backward compatibility
       '@/lib': path.resolve(__dirname, 'src/lib'),
       '@': path.resolve(__dirname, 'src')
     };
