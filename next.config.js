@@ -1,4 +1,5 @@
 /** @type {import('next').NextConfig} */
+const path = require('path');
 const withPWA = require('next-pwa')({
   dest: 'public',
   disable: process.env.NODE_ENV !== 'production', // Disable PWA in development
@@ -57,6 +58,14 @@ const nextConfig = {
   transpilePackages: ['undici', 'firebase', 'react-firebase-hooks'],
   // Ensure compatibility with older Node.js versions and proper Firebase handling
   webpack: (config, { isServer }) => {
+    // Add path aliases
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      '@/lib/firebase': path.resolve(__dirname, 'src/lib/firebase.ts'),
+      '@/lib/firebase-new': path.resolve(__dirname, 'src/lib/firebase.ts'), // Alias for backward compatibility
+      '@/lib': path.resolve(__dirname, 'src/lib'),
+      '@': path.resolve(__dirname, 'src')
+    };
     // Browser-specific polyfills for Firebase
     if (!isServer) {
       config.resolve.fallback = {
