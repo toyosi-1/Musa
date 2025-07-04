@@ -487,8 +487,6 @@ button,
     -ms-user-select: text;
     user-select: text;
   }
-  
-}
 
 /* Better scrolling containers */
 .scroll-container {
@@ -499,7 +497,6 @@ button,
 
 /* Hide scrollbars but keep functionality */
 .hide-scrollbar::-webkit-scrollbar {
-  display: none;
   display: none;
 }
 
