@@ -98,6 +98,21 @@ const nextConfig = {
   swcMinify: true,
   output: 'standalone',
   poweredByHeader: false,
+  basePath: process.env.NEXT_PUBLIC_BASE_PATH || '',
+  assetPrefix: process.env.NEXT_PUBLIC_BASE_PATH || '',
+  // Configure static asset handling
+  staticPageGenerationTimeout: 30,
+  // Configure asset optimization
+  optimizeFonts: true,
+  optimizeImages: true,
+  // Configure image optimization
+  images: {
+    domains: ['firebasestorage.googleapis.com'],
+    minimumCacheTTL: 60 * 60 * 24 * 30, // 30 days
+    unoptimized: false,
+    path: '/_next/image',
+    loader: 'default',
+  },
   generateEtags: true,
   compress: true,
   

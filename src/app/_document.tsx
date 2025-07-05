@@ -5,8 +5,8 @@ export default function Document() {
     <Html lang="en" className="h-full">
       <Head>
         <meta name="application-name" content="Musa" />
+        <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="Musa" />
         <meta name="format-detection" content="telephone=no" />
         <meta name="mobile-web-app-capable" content="yes" />
@@ -41,15 +41,16 @@ export default function Document() {
         <link rel="apple-touch-icon" href="/images/musa-icon.png" />
         
         {/* Preconnect to external domains */}
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link rel="preconnect" href="https://www.google-analytics.com" />
         
         {/* Preload critical resources */}
         <link rel="preload" href="/fonts/inter-var-latin.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
+        <link rel="preload" href="/static/css/app/layout.css" as="style" />
+        <link rel="preload" href="/static/chunks/main-app.js" as="script" />
         
         {/* Ensure proper MIME type for CSS */}
-        <link rel="stylesheet" href="/_next/static/css/app/layout.css" />
+        <link rel="stylesheet" href="/static/css/app/layout.css" type="text/css" media="all" />
       </Head>
       <body className="min-h-full bg-musa-bg dark:bg-gray-900 text-gray-900 dark:text-white">
         <Main />
