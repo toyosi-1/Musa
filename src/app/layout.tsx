@@ -127,16 +127,10 @@ export default function RootLayout({
       lang="en" 
       className={`${inter.variable} font-sans antialiased`}
       style={{
-        height: 'var(--app-height, 100vh)',
+        height: '100%',
         width: '100%',
         margin: 0,
         padding: 0,
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        overflow: 'hidden',
       } as React.CSSProperties}
       suppressHydrationWarning
     >
