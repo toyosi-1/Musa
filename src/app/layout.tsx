@@ -163,7 +163,7 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.googleapis.com" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="https://fonts.gstatic.com" />
       </head>
-      <body className={`${inter.variable} font-sans antialiased bg-musa-bg dark:bg-gray-900 text-gray-900 dark:text-white min-h-screen flex flex-col`}>
+      <body className={`${inter.variable} font-sans antialiased bg-musa-bg dark:bg-gray-900 text-gray-900 dark:text-white flex flex-col h-screen`}>
         {/* Mobile viewport fix */}
         <div className="fixed top-0 left-0 w-full h-full pointer-events-none -z-10" style={{ WebkitTapHighlightColor: 'transparent' }} />
         
@@ -172,12 +172,10 @@ export default function RootLayout({
           <ThemeProvider>
             <AuthWrapper>
               <div 
-                className="flex-1 flex flex-col w-full h-full overflow-auto"
+                className="flex-1 flex flex-col w-full h-full overflow-hidden"
                 style={{
                   WebkitOverflowScrolling: 'touch',
                   overscrollBehavior: 'contain',
-                  height: '100%',
-                  width: '100%',
                   paddingTop: 'var(--safe-padding-top, 0px)',
                   paddingBottom: 'var(--safe-padding-bottom, 0px)',
                   paddingLeft: 'var(--safe-padding-left, 0px)',
@@ -185,11 +183,11 @@ export default function RootLayout({
                 }}
               >
                 <Suspense fallback={
-                  <div className="flex items-center justify-center min-h-screen">
+                  <div className="flex items-center justify-center h-full">
                     <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
                   </div>
                 }>
-                  <div className="flex-1 flex flex-col w-full h-full max-w-full mx-auto relative">
+                  <div className="flex-1 flex flex-col w-full h-full max-w-full mx-auto relative overflow-y-auto">
                     <main 
                       className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6"
                       style={{
