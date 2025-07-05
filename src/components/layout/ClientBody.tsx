@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useViewportHeight } from '@/hooks/useViewportHeight';
 
 interface ClientBodyProps {
   children: React.ReactNode;
@@ -11,8 +12,9 @@ const ClientBody: React.FC<ClientBodyProps> = ({ children }) => {
   const [isMobile, setIsMobile] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
   const [isAndroid, setIsAndroid] = useState(false);
-  const [viewportHeight, setViewportHeight] = useState('100vh');
-  const [viewportWidth, setViewportWidth] = useState('100vw');
+  
+  // Use viewport height hook
+  const { height: viewportHeight, isMobile: isMobileDevice } = useViewportHeight();
 
   useEffect(() => {
     // Set mounted state to true after component mounts
@@ -24,7 +26,7 @@ const ClientBody: React.FC<ClientBodyProps> = ({ children }) => {
       
       // Device detection
       const userAgent = window.navigator.userAgent.toLowerCase();
-      const mobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent);
+      const mobile = isMobileDevice || /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent);
       const ios = /iphone|ipad|ipod/i.test(userAgent);
       const android = /android/i.test(userAgent);
       
@@ -32,15 +34,10 @@ const ClientBody: React.FC<ClientBodyProps> = ({ children }) => {
       setIsIOS(ios);
       setIsAndroid(android);
 
-      // Get viewport dimensions
-      const vh = window.innerHeight * 0.01;
-      const vw = window.innerWidth * 0.01;
-      
-      // Update CSS variables
-      document.documentElement.style.setProperty('--vh', `${vh}px`);
-      document.documentElement.style.setProperty('--vw', `${vw}px`);
-      document.documentElement.style.setProperty('--app-height', `${window.innerHeight}px`);
-      document.documentElement.style.setProperty('--app-width', `${window.innerWidth}px`);
+      // Update document classes based on device
+      document.documentElement.classList.toggle('mobile', mobile);
+      document.documentElement.classList.toggle('ios', ios);
+      document.documentElement.classList.toggle('android', android);
       
       // For mobile browsers with dynamic toolbars
       if (mobile) {
@@ -60,29 +57,23 @@ const ClientBody: React.FC<ClientBodyProps> = ({ children }) => {
 
     // Use both resize and visualViewport for better mobile support
     window.addEventListener('resize', handleResize, { passive: true });
-    window.addEventListener('orientationchange', updateViewport, { passive: true });
+    window.addEventListener('orientationchange', handleResize, { passive: true });
     
     // Visual viewport API for mobile browsers with dynamic toolbars
     if (window.visualViewport) {
       window.visualViewport.addEventListener('resize', handleResize, { passive: true });
-      window.visualViewport.addEventListener('scroll', handleResize, { passive: true });
     }
-
-    // Force update after a short delay to catch any missed updates
-    const initialUpdateTimer = setTimeout(updateViewport, 500);
-
-    // Cleanup
+    
+    // Clean up event listeners
     return () => {
-      clearTimeout(resizeTimer);
-      clearTimeout(initialUpdateTimer);
       window.removeEventListener('resize', handleResize);
-      window.removeEventListener('orientationchange', updateViewport);
+      window.removeEventListener('orientationchange', handleResize);
       if (window.visualViewport) {
         window.visualViewport.removeEventListener('resize', handleResize);
-        window.visualViewport.removeEventListener('scroll', handleResize);
       }
+      clearTimeout(resizeTimer);
     };
-  }, []);
+  }, [isMobileDevice]);
   
   // Don't render anything until the component is mounted on the client
   if (!isMounted) {

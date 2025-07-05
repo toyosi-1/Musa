@@ -4,11 +4,26 @@
 @import 'tailwindcss/utilities';
 
 /* Base mobile styles */
-html {
+:root {
+  --app-height: 100vh;
+  --app-width: 100vw;
+}
+
+html, body {
   -webkit-text-size-adjust: 100%;
   -webkit-tap-highlight-color: transparent;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
 }
 
 /* Safe area insets for iOS devices */
@@ -49,10 +64,19 @@ body {
   }
 }
 
-/* Fix for iOS viewport height */
+/* Full viewport height fix for all devices */
 @supports (-webkit-touch-callout: none) {
+  /* iOS specific */
   .h-screen {
     height: -webkit-fill-available;
+    height: var(--app-height);
+  }
+  
+  /* Fix for iOS 15+ viewport height issue */
+  @supports (height: 100svh) {
+    :root {
+      --app-height: 100svh;
+    }
   }
 }
 
@@ -74,12 +98,25 @@ button:focus {
   display: none;
 }
 
-/* Fix for iOS bounce effect */
-body {
+/* Full-screen container */
+#__next {
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+
+/* Prevent body scroll when modal is open */
+body.no-scroll {
+  overflow: hidden;
   position: fixed;
   width: 100%;
   height: 100%;
-  overflow: hidden;
 }
 
 /* Fix for Android keyboard */
