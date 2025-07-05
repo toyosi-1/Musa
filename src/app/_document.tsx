@@ -34,8 +34,11 @@ export default function Document() {
         <link rel="apple-touch-startup-image" href="/splash/ipadpro2_splash.png" media="(device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2)" />
         
         {/* PWA related */}
+        {/* Favicon and app icons */}
         <link rel="manifest" href="/manifest.json" />
         <link rel="shortcut icon" href="/favicon.ico" />
+        <link rel="icon" type="image/svg+xml" href="/images/musa-icon.svg" />
+        <link rel="apple-touch-icon" href="/images/musa-icon.png" />
         
         {/* Preconnect to external domains */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -44,6 +47,9 @@ export default function Document() {
         
         {/* Preload critical resources */}
         <link rel="preload" href="/fonts/inter-var-latin.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
+        
+        {/* Ensure proper MIME type for CSS */}
+        <link rel="stylesheet" href="/_next/static/css/app/layout.css" />
       </Head>
       <body className="min-h-full bg-musa-bg dark:bg-gray-900 text-gray-900 dark:text-white">
         <Main />

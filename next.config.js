@@ -232,6 +232,12 @@ const nextConfig = {
   compress: true,
   // Enable ETag generation for better caching
   generateEtags: true,
+  // Disable static optimization for now to prevent 404s
+  output: 'standalone',
+  // Add base path if needed
+  basePath: process.env.NEXT_PUBLIC_BASE_PATH || '',
+  // Add asset prefix
+  assetPrefix: process.env.NODE_ENV === 'production' ? process.env.NEXT_PUBLIC_BASE_PATH || '' : '',
   // Add trailing slash for better SEO
   trailingSlash: true,
   // Add production browser source maps
