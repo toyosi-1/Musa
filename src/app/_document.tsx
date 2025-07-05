@@ -16,29 +16,20 @@ export default function Document() {
         <meta name="theme-color" content="#000000" />
         
         {/* iOS specific */}
-        <link rel="apple-touch-icon" href="/icons/touch-icon-iphone.png" />
-        <link rel="apple-touch-icon" sizes="152x152" href="/icons/touch-icon-ipad.png" />
-        <link rel="apple-touch-icon" sizes="180x180" href="/icons/touch-icon-iphone-retina.png" />
-        <link rel="apple-touch-icon" sizes="167x167" href="/icons/touch-icon-ipad-retina.png" />
+        <link rel="apple-touch-icon" href="/images/icon-180x180.png" />
+        <link rel="apple-touch-icon" sizes="152x152" href="/images/icon-152x152.png" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/images/icon-180x180.png" />
+        <link rel="apple-touch-icon" sizes="167x167" href="/images/icon-152x152.png" />
         
-        {/* Splash screens for iOS */}
-        <link rel="apple-touch-startup-image" href="/splash/iphone5_splash.png" media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2)" />
-        <link rel="apple-touch-startup-image" href="/splash/iphone6_splash.png" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)" />
-        <link rel="apple-touch-startup-image" href="/splash/iphoneplus_splash.png" media="(device-width: 621px) and (device-height: 1104px) and (-webkit-device-pixel-ratio: 3)" />
-        <link rel="apple-touch-startup-image" href="/splash/iphonex_splash.png" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)" />
-        <link rel="apple-touch-startup-image" href="/splash/iphonexr_splash.png" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2)" />
-        <link rel="apple-touch-startup-image" href="/splash/iphonexsmax_splash.png" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3)" />
-        <link rel="apple-touch-startup-image" href="/splash/ipad_splash.png" media="(device-width: 768px) and (device-height: 1024px) and (-webkit-device-pixel-ratio: 2)" />
-        <link rel="apple-touch-startup-image" href="/splash/ipadpro1_splash.png" media="(device-width: 834px) and (device-height: 1112px) and (-webkit-device-pixel-ratio: 2)" />
-        <link rel="apple-touch-startup-image" href="/splash/ipadpro3_splash.png" media="(device-width: 834px) and (device-height: 1194px) and (-webkit-device-pixel-ratio: 2)" />
-        <link rel="apple-touch-startup-image" href="/splash/ipadpro2_splash.png" media="(device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2)" />
+        {/* Splash screens for iOS - using the largest icon as a fallback */}
+        <link rel="apple-touch-startup-image" href="/images/icon-512x512.png" />
         
         {/* PWA related */}
         {/* Favicon and app icons */}
         <link rel="manifest" href="/manifest.json" />
         <link rel="shortcut icon" href="/favicon.ico" />
-        <link rel="icon" type="image/svg+xml" href="/images/musa-icon.svg" />
-        <link rel="apple-touch-icon" href="/images/musa-icon.png" />
+        <link rel="icon" type="image/png" sizes="192x192" href="/images/icon-192x192.png" />
+        <link rel="icon" type="image/png" sizes="512x512" href="/images/icon-512x512.png" />
         
         {/* Preconnect to external domains */}
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
