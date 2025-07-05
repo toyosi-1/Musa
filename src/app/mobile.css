@@ -49,12 +49,12 @@ html, body {
 /* Fix for iOS elastic scrolling */
 html,
 body {
-  overscroll-behavior-y: none;
+  overscroll-behavior-y: contain;
   -webkit-overflow-scrolling: touch;
   height: 100%;
   width: 100%;
-  position: fixed;
-  overflow: hidden;
+  position: relative;
+  overflow: auto;
 }
 
 /* Fix for Android Chrome address bar */
