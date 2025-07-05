@@ -9,11 +9,11 @@ export default function Document() {
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-title" content="Musa" />
         <meta name="format-detection" content="telephone=no" />
-        <meta name="mobile-web-app-capable" content="yes" />
         <meta name="msapplication-config" content="/browserconfig.xml" />
         <meta name="msapplication-TileColor" content="#2B5797" />
         <meta name="msapplication-tap-highlight" content="no" />
-        <meta name="theme-color" content="#000000" />
+        <meta name="theme-color" content="#000000" media="(prefers-color-scheme: light)" />
+        <meta name="theme-color" content="#1a1a1a" media="(prefers-color-scheme: dark)" />
         
         {/* iOS specific */}
         <link rel="apple-touch-icon" href="/images/icon-180x180.png" />
@@ -37,7 +37,6 @@ export default function Document() {
         
         {/* Preload critical resources */}
         <link rel="preload" href="/fonts/inter-var-latin.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
-        <link rel="preload" href="/static/css/app/layout.css" as="style" />
         <link rel="preload" href="/static/chunks/main-app.js" as="script" />
         
         {/* Ensure proper MIME type for CSS */}

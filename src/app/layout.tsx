@@ -111,8 +111,18 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: '/images/musa-icon.svg', type: 'image/svg+xml' },
-      { url: '/favicon.ico', sizes: '32x32', type: 'image/x-icon' }
+      { url: '/favicon.ico', sizes: '32x32', type: 'image/x-icon' },
+      { url: '/images/icon-192x192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/images/icon-512x512.png', sizes: '512x512', type: 'image/png' },
+      { url: '/images/icon-180x180.png', sizes: '180x180', type: 'image/png' },
+      { url: '/images/icon-152x152.png', sizes: '152x152', type: 'image/png' },
+      { url: '/images/icon-144x144.png', sizes: '144x144', type: 'image/png' },
+      { url: '/images/icon-96x96.png', sizes: '96x96', type: 'image/png' },
+      { url: '/images/icon-72x72.png', sizes: '72x72', type: 'image/png' }
+    ],
+    apple: [
+      { url: '/images/icon-180x180.png', sizes: '180x180', type: 'image/png' },
+      { url: '/images/icon-152x152.png', sizes: '152x152', type: 'image/png' }
     ]
   },
 };
@@ -131,6 +141,9 @@ export default function RootLayout({
         width: '100%',
         margin: 0,
         padding: 0,
+        overflow: 'hidden',
+        WebkitOverflowScrolling: 'touch',
+        position: 'relative'
       } as React.CSSProperties}
       suppressHydrationWarning
     >
@@ -163,7 +176,18 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.googleapis.com" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="https://fonts.gstatic.com" />
       </head>
-      <body className={`${inter.variable} font-sans antialiased bg-musa-bg dark:bg-gray-900 text-gray-900 dark:text-white`}>
+      <body className={`${inter.variable} font-sans antialiased bg-musa-bg dark:bg-gray-900 text-gray-900 dark:text-white`} style={{
+        height: '100%',
+        width: '100%',
+        margin: 0,
+        padding: 0,
+        overflow: 'auto',
+        WebkitOverflowScrolling: 'touch',
+        position: 'relative',
+        WebkitTextSizeAdjust: '100%',
+        WebkitFontSmoothing: 'antialiased',
+        MozOsxFontSmoothing: 'grayscale',
+      }}>
         {/* Mobile viewport fix */}
         <div className="fixed top-0 left-0 w-full h-full pointer-events-none -z-10" style={{ WebkitTapHighlightColor: 'transparent' }} />
         
@@ -172,12 +196,19 @@ export default function RootLayout({
           <ThemeProvider>
             <AuthWrapper>
               <div 
-                className="main-scroll-container"
+                className="main-scroll-container w-full h-full overflow-y-auto overflow-x-hidden"
                 style={{
                   paddingTop: 'var(--safe-padding-top, 0px)',
                   paddingBottom: 'var(--safe-padding-bottom, 0px)',
                   paddingLeft: 'var(--safe-padding-left, 0px)',
-                  paddingRight: 'var(--safe-padding-right, 0px)'
+                  paddingRight: 'var(--safe-padding-right, 0px)',
+                  WebkitOverflowScrolling: 'touch',
+                  overscrollBehavior: 'contain',
+                  position: 'relative',
+                  height: '100%',
+                  width: '100%',
+                  display: 'flex',
+                  flexDirection: 'column'
                 }}
               >
                 <Suspense fallback={
@@ -185,7 +216,7 @@ export default function RootLayout({
                     <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
                   </div>
                 }>
-                  <div className="flex-1 flex flex-col w-full h-full max-w-full mx-auto relative overflow-y-auto">
+                  <div className="flex-1 flex flex-col w-full max-w-full mx-auto relative">
                     <main 
                       className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6"
                       style={{

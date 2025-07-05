@@ -6,10 +6,12 @@ import { useEffect } from 'react';
 export default function PerformanceOptimizations() {
   useEffect(() => {
     // Preload critical resources after initial render
-    const preloadLinks = [
-      { href: '/_next/static/css/app/layout.css', as: 'style' },
+    const preloadLinks: Array<{
+      href: string;
+      as: string;
+      type?: string;
+    }> = [
       { href: '/_next/static/chunks/main-app.js', as: 'script' },
-      { href: '/images/musa-icon.svg', as: 'image', type: 'image/svg+xml' },
     ];
 
     preloadLinks.forEach(({ href, as, type }) => {
