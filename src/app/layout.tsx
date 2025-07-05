@@ -81,12 +81,6 @@ export const metadata: Metadata = {
     viewportFit: 'cover',
     userScalable: false,
   },
-  other: {
-    'mobile-web-app-capable': 'yes',
-    'apple-mobile-web-app-capable': 'yes',
-    'apple-mobile-web-app-status-bar-style': 'black-translucent',
-    'format-detection': 'telephone=no',
-  },
   metadataBase: new URL('https://musa-security-app.windsurf.build'),
   alternates: {
     canonical: '/',
@@ -112,25 +106,20 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
+      { url: '/images/musa-icon.svg', type: 'image/svg+xml' },
       { url: '/favicon.ico', sizes: '32x32', type: 'image/x-icon' },
-      { url: '/favicon.svg', sizes: 'any', type: 'image/svg+xml' },
-      { url: '/images/icon-72x72.png', sizes: '72x72', type: 'image/png' },
-      { url: '/images/icon-96x96.png', sizes: '96x96', type: 'image/png' },
-      { url: '/images/icon-128x128.png', sizes: '128x128', type: 'image/png' },
-      { url: '/images/icon-144x144.png', sizes: '144x144', type: 'image/png' },
-      { url: '/images/icon-152x152.png', sizes: '152x152', type: 'image/png' },
       { url: '/images/icon-192x192.png', sizes: '192x192', type: 'image/png' },
-      { url: '/images/icon-384x384.png', sizes: '384x384', type: 'image/png' },
       { url: '/images/icon-512x512.png', sizes: '512x512', type: 'image/png' },
     ],
     apple: [
-      { url: '/images/icon-180x180.png', sizes: '180x180', type: 'image/png' },
-      { url: '/images/icon-152x152.png', sizes: '152x152', type: 'image/png' },
-      { url: '/images/icon-144x144.png', sizes: '144x144', type: 'image/png' },
-      { url: '/images/icon-128x128.png', sizes: '128x128', type: 'image/png' },
+      { url: '/images/icon-180x180.png', sizes: '180x180', type: 'image/png' }
     ]
   },
   other: {
+    'mobile-web-app-capable': 'yes',
+    'apple-mobile-web-app-capable': 'yes',
+    'apple-mobile-web-app-status-bar-style': 'black-translucent',
+    'format-detection': 'telephone=no',
     'mask-icon': '/safari-pinned-tab.svg',
     'msapplication-TileColor': '#3b82f6',
     'msapplication-config': '/browserconfig.xml',
