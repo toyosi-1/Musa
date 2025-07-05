@@ -59,8 +59,8 @@ export default function DashboardLayout({
         
         {/* Bottom Navigation - Moved inside main content */}
 
-      {/* Bottom Navigation - Removed fixed positioning */}
-      <nav className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm shadow-lg border-t border-gray-100 dark:border-gray-700 pb-[max(env(safe-area-inset-bottom),0.5rem)] mt-auto">
+      {/* Navigation - Now scrolls with content */}
+      <nav className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm shadow-lg border-t border-gray-100 dark:border-gray-700 pb-[max(env(safe-area-inset-bottom),0.5rem)]">
         <div className="flex justify-around items-center max-w-md mx-auto px-2 py-2">
               <Link 
                 href="/dashboard" 
