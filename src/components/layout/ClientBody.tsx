@@ -7,35 +7,45 @@ interface ClientBodyProps {
 }
 
 const ClientBody: React.FC<ClientBodyProps> = ({ children }) => {
+  const [isMounted, setIsMounted] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
-    // Check if window is defined (client-side)
-    if (typeof window !== 'undefined') {
+    // Set mounted state to true after component mounts
+    setIsMounted(true);
+    
+    // Only run on client-side
+    const updateViewportHeight = () => {
+      if (typeof window === 'undefined') return;
+      
+      // Update mobile detection
       const userAgent = window.navigator.userAgent.toLowerCase();
       const mobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent);
       setIsMobile(mobile);
 
-      // Handle viewport height on mobile devices
-      const updateViewportHeight = () => {
-        document.documentElement.style.setProperty('--app-height', `${window.innerHeight}px`);
-        document.documentElement.style.setProperty('--app-width', `${window.innerWidth}px`);
-      };
+      // Update viewport dimensions
+      document.documentElement.style.setProperty('--app-height', `${window.innerHeight}px`);
+      document.documentElement.style.setProperty('--app-width', `${window.innerWidth}px`);
+    };
 
-      // Set initial height
-      updateViewportHeight();
+    // Set initial values
+    updateViewportHeight();
 
-      // Update height on resize or orientation change
-      window.addEventListener('resize', updateViewportHeight, { passive: true });
-      window.addEventListener('orientationchange', updateViewportHeight, { passive: true });
+    // Add event listeners
+    window.addEventListener('resize', updateViewportHeight, { passive: true });
+    window.addEventListener('orientationchange', updateViewportHeight, { passive: true });
 
-      // Cleanup event listeners
-      return () => {
-        window.removeEventListener('resize', updateViewportHeight);
-        window.removeEventListener('orientationchange', updateViewportHeight);
-      };
-    }
+    // Cleanup
+    return () => {
+      window.removeEventListener('resize', updateViewportHeight);
+      window.removeEventListener('orientationchange', updateViewportHeight);
+    };
   }, []);
+  
+  // Don't render anything until the component is mounted on the client
+  if (!isMounted) {
+    return null;
+  }
   
   return (
     <div 

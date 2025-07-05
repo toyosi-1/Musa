@@ -4,16 +4,20 @@ import { Suspense } from 'react';
 import Script from 'next/script';
 import './globals.css';
 
-
-
 import { getPublicEnvScript } from '@/utils/env';
-
 import dynamic from 'next/dynamic';
 
 // Dynamically import client components with no SSR
 const ClientBody = dynamic(
   () => import('@/components/layout/ClientBody'),
-  { ssr: false }
+  { 
+    ssr: false,
+    loading: () => (
+      <div className="min-h-screen bg-musa-bg dark:bg-gray-900 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    )
+  }
 );
 
 const MobileInitializer = dynamic(
@@ -23,17 +27,22 @@ const MobileInitializer = dynamic(
 
 const ThemeProvider = dynamic(
   () => import('@/contexts/ThemeContext').then(mod => mod.ThemeProvider),
-  { ssr: false }
+  { 
+    ssr: false,
+    loading: () => (
+      <div className="min-h-screen bg-musa-bg dark:bg-gray-900" />
+    )
+  }
 );
 
 const AuthWrapper = dynamic(
   () => import('@/components/auth/AuthWrapper'),
-  { ssr: false }
-);
-
-const LoadingScreen = dynamic(
-  () => import('@/components/ui/LoadingScreen'),
-  { ssr: false }
+  { 
+    ssr: false,
+    loading: () => (
+      <div className="min-h-screen bg-musa-bg dark:bg-gray-900" />
+    )
+  }
 );
 
 // Load Inter font with optimized settings
@@ -195,14 +204,21 @@ export default function RootLayout({
                 paddingRight: 'var(--safe-padding-right, 0px)'
               }}
             >
-              <Suspense fallback={<LoadingScreen />}>
+              <Suspense fallback={
+                <div className="flex items-center justify-center min-h-screen">
+                  <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+                </div>
+              }>
                 <div className="flex-1 flex flex-col w-full h-full max-w-full mx-auto relative">
-                  <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6" style={{
-                    minHeight: 'calc(100vh - env(safe-area-inset-top, 0px) - env(safe-area-bottom, 0px))',
-                    height: '100%',
-                    overflow: 'auto',
-                    WebkitOverflowScrolling: 'touch'
-                  }}>
+                  <main 
+                    className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6"
+                    style={{
+                      minHeight: 'calc(100vh - env(safe-area-inset-top, 0px) - env(safe-area-bottom, 0px))',
+                      height: '100%',
+                      overflow: 'auto',
+                      WebkitOverflowScrolling: 'touch'
+                    }}
+                  >
                     {children}
                   </main>
                 </div>
