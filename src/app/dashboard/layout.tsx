@@ -51,15 +51,15 @@ export default function DashboardLayout({
   };
 
   return (
-    <div className="flex flex-col h-screen bg-musa-bg dark:bg-gray-900">
-      {/* Main content area that will scroll */}
-      <div className="flex-1 overflow-y-auto overflow-x-hidden">
-        <div className="max-w-7xl mx-auto w-full px-4 py-4">
+    <div className="flex flex-col h-full bg-musa-bg dark:bg-gray-900">
+      {/* Main content area */}
+      <div className="flex-1 overflow-y-auto -webkit-overflow-scrolling-touch">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           {children}
         </div>
       </div>
       
-      {/* Bottom Navigation - Fixed at bottom */}
+      {/* Bottom navigation */}
       <nav className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm shadow-lg border-t border-gray-100 dark:border-gray-700 pb-[max(env(safe-area-inset-bottom),0.5rem)]">
         <div className="flex justify-around items-center max-w-md mx-auto px-2 py-2">
               <Link 
