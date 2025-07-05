@@ -145,8 +145,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         role,
         status: 'pending', // Default status is pending until approved by admin
         isEmailVerified: false,
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
+        createdAt: Date.now()
       };
 
       // Save user to database
