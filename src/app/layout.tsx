@@ -2,10 +2,14 @@ import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import { Suspense } from 'react';
 import Script from 'next/script';
+import dynamic from 'next/dynamic';
+import { getPublicEnvScript } from '@/utils/env';
 import './globals.css';
 
-import { getPublicEnvScript } from '@/utils/env';
-import dynamic from 'next/dynamic';
+const PerformanceOptimizations = dynamic(
+  () => import('@/components/common/PerformanceOptimizations'),
+  { ssr: false }
+);
 
 // Dynamically import client components with no SSR
 const ClientBody = dynamic(
@@ -45,12 +49,12 @@ const AuthWrapper = dynamic(
   }
 );
 
-// Load Inter font with optimized settings
+// Load Inter font with optimized settings - only load regular and bold weights initially
 const inter = Inter({
   subsets: ['latin'],
   display: 'swap',
   variable: '--font-inter',
-  weight: ['400', '500', '600', '700'],
+  weight: ['400', '700'], // Only load regular and bold weights initially
   preload: true,
   adjustFontFallback: false,
 });
@@ -70,34 +74,43 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: 'Musa - Estate Access Control',
-  description: 'A seamless, fast, and user-friendly access control system for estates',
+  title: 'Musa - Your Security Partner',
+  description: 'Musa - Advanced security solutions for your digital life',
   generator: 'Next.js',
-  keywords: ['estate', 'security', 'access control', 'pwa', 'nextjs'],
+  applicationName: 'Musa Security',
+  referrer: 'origin-when-cross-origin',
+  keywords: ['security', 'cybersecurity', 'privacy', 'vpn', 'protection'],
   authors: [{ name: 'Musa Team' }],
-  creator: 'Musa Team',
-  publisher: 'Musa',
-  formatDetection: {
-    email: false,
-    address: false,
-    telephone: false,
+  colorScheme: 'dark',
+  themeColor: '#1a1a1a',
+  viewport: {
+    width: 'device-width',
+    initialScale: 1,
+    maximumScale: 1,
+    viewportFit: 'cover',
+  },
+  other: {
+    'mobile-web-app-capable': 'yes',
+    'apple-mobile-web-app-capable': 'yes',
+    'apple-mobile-web-app-status-bar-style': 'black-translucent',
+    'format-detection': 'telephone=no',
   },
   metadataBase: new URL('https://musa-security-app.windsurf.build'),
   alternates: {
     canonical: '/',
   },
   openGraph: {
-    title: 'Musa - Estate Access Control',
-    description: 'A seamless, fast, and user-friendly access control system for estates',
+    title: 'Musa - Your Security Partner',
+    description: 'Musa - Advanced security solutions for your digital life',
     url: 'https://musa-security-app.windsurf.build',
-    siteName: 'Musa',
+    siteName: 'Musa Security',
     locale: 'en_US',
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Musa - Estate Access Control',
-    description: 'A seamless, fast, and user-friendly access control system for estates',
+    title: 'Musa - Your Security Partner',
+    description: 'Musa - Advanced security solutions for your digital life',
     creator: '@musa',
   },
   appleWebApp: {
@@ -105,7 +118,6 @@ export const metadata: Metadata = {
     statusBarStyle: 'black-translucent',
     title: 'Musa',
   },
-  applicationName: 'Musa',
   icons: {
     icon: [
       { url: '/favicon.ico', sizes: '32x32', type: 'image/x-icon' },
@@ -133,8 +145,6 @@ export const metadata: Metadata = {
   },
 };
 
-
-
 export default function RootLayout({
   children,
 }: {
@@ -153,18 +163,13 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <head>
-        {/* Standard meta tags */}
-        <meta name="mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta charSet="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+        <meta name="theme-color" content="#1a1a1a" />
         
-        {/* Preload critical resources */}
-        <link 
-          rel="preload" 
-          href="/fonts/inter-var.woff2" 
-          as="font" 
-          type="font/woff2" 
-          crossOrigin="anonymous" 
-        />
+        {/* Performance optimizations */}
+        <PerformanceOptimizations />
+        
         {/* iOS specific meta tags */}
         <meta name="apple-touch-startup-image" content="/splash/launch-1242x2688.png" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />
         <meta name="apple-touch-startup-image" content="/splash/launch-1125x2436.png" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />
@@ -187,46 +192,58 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.googleapis.com" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="https://fonts.gstatic.com" />
       </head>
-      <ClientBody>
-        <MobileInitializer />
-        <ThemeProvider>
-          <AuthWrapper>
-            <div 
-              className="flex-1 flex flex-col w-full h-full overflow-auto"
-              style={{
-                WebkitOverflowScrolling: 'touch',
-                overscrollBehavior: 'contain',
-                height: '100%',
-                width: '100%',
-                paddingTop: 'var(--safe-padding-top, 0px)',
-                paddingBottom: 'var(--safe-padding-bottom, 0px)',
-                paddingLeft: 'var(--safe-padding-left, 0px)',
-                paddingRight: 'var(--safe-padding-right, 0px)'
-              }}
-            >
-              <Suspense fallback={
-                <div className="flex items-center justify-center min-h-screen">
-                  <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-                </div>
-              }>
-                <div className="flex-1 flex flex-col w-full h-full max-w-full mx-auto relative">
-                  <main 
-                    className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6"
-                    style={{
-                      minHeight: 'calc(100vh - env(safe-area-inset-top, 0px) - env(safe-area-bottom, 0px))',
-                      height: '100%',
-                      overflow: 'auto',
-                      WebkitOverflowScrolling: 'touch'
-                    }}
-                  >
-                    {children}
-                  </main>
-                </div>
-              </Suspense>
-            </div>
-          </AuthWrapper>
-        </ThemeProvider>
-      </ClientBody>
+      <body className={`${inter.variable} font-sans antialiased bg-musa-bg dark:bg-gray-900 text-gray-900 dark:text-white min-h-screen flex flex-col`}>
+        {/* Mobile viewport fix */}
+        <div className="fixed top-0 left-0 w-full h-full pointer-events-none -z-10" style={{ WebkitTapHighlightColor: 'transparent' }} />
+        
+        <ClientBody>
+          <MobileInitializer />
+          <ThemeProvider>
+            <AuthWrapper>
+              <div 
+                className="flex-1 flex flex-col w-full h-full overflow-auto"
+                style={{
+                  WebkitOverflowScrolling: 'touch',
+                  overscrollBehavior: 'contain',
+                  height: '100%',
+                  width: '100%',
+                  paddingTop: 'var(--safe-padding-top, 0px)',
+                  paddingBottom: 'var(--safe-padding-bottom, 0px)',
+                  paddingLeft: 'var(--safe-padding-left, 0px)',
+                  paddingRight: 'var(--safe-padding-right, 0px)'
+                }}
+              >
+                <Suspense fallback={
+                  <div className="flex items-center justify-center min-h-screen">
+                    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+                  </div>
+                }>
+                  <div className="flex-1 flex flex-col w-full h-full max-w-full mx-auto relative">
+                    <main 
+                      className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6"
+                      style={{
+                        minHeight: 'calc(100vh - env(safe-area-inset-top, 0px) - env(safe-area-bottom, 0px))',
+                        height: '100%',
+                        overflow: 'auto',
+                        WebkitOverflowScrolling: 'touch'
+                      }}
+                    >
+                      {children}
+                    </main>
+                  </div>
+                </Suspense>
+              </div>
+            </AuthWrapper>
+          </ThemeProvider>
+        </ClientBody>
+        {/* Load non-critical resources after initial render */}
+        <link
+          rel="preload"
+          href={`${process.env.NEXT_PUBLIC_BASE_PATH || ''}/_next/static/chunks/main-app.js`}
+          as="script"
+          crossOrigin="anonymous"
+        />
+      </body>
     </html>
   );
 }
