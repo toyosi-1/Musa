@@ -60,27 +60,32 @@ const inter = Inter({
   adjustFontFallback: false,
 });
 
+// Viewport configuration should be a separate export in Next.js 13+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  minimumScale: 1,
+  maximumScale: 1,
+  viewportFit: 'cover',
+  userScalable: false,
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#3b82f6' },
+    { media: '(prefers-color-scheme: dark)', color: '#1e40af' },
+  ],
+  colorScheme: 'dark',
+};
+
 export const metadata: Metadata = {
-  title: 'Musa - Your Security Partner',
+  title: {
+    default: 'Musa - Your Security Partner',
+    template: '%s | Musa Security',
+  },
   description: 'Musa - Advanced security solutions for your digital life',
   generator: 'Next.js',
   applicationName: 'Musa Security',
   referrer: 'origin-when-cross-origin',
   keywords: ['security', 'cybersecurity', 'privacy', 'vpn', 'protection'],
   authors: [{ name: 'Musa Team' }],
-  colorScheme: 'dark',
-  themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#3b82f6' },
-    { media: '(prefers-color-scheme: dark)', color: '#1e40af' },
-  ],
-  viewport: {
-    width: 'device-width',
-    initialScale: 1,
-    minimumScale: 1,
-    maximumScale: 1,
-    viewportFit: 'cover',
-    userScalable: false,
-  },
   metadataBase: new URL('https://musa-security-app.windsurf.build'),
   alternates: {
     canonical: '/',
@@ -109,15 +114,6 @@ export const metadata: Metadata = {
       { url: '/images/musa-icon.svg', type: 'image/svg+xml' },
       { url: '/favicon.ico', sizes: '32x32', type: 'image/x-icon' }
     ]
-  },
-  other: {
-    'mobile-web-app-capable': 'yes',
-    'apple-mobile-web-app-capable': 'yes',
-    'apple-mobile-web-app-status-bar-style': 'black-translucent',
-    'format-detection': 'telephone=no',
-    'mask-icon': '/safari-pinned-tab.svg',
-    'msapplication-TileColor': '#3b82f6',
-    'msapplication-config': '/browserconfig.xml',
   },
 };
 

@@ -3,9 +3,9 @@
 import { BellIcon } from '@heroicons/react/24/outline';
 import { useState, useEffect } from 'react';
 
-type NotificationBellProps = {
+type NotificationBellProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
   count?: number;
-  onClick?: () => void;
+  onClick?: React.MouseEventHandler<HTMLButtonElement>;
   className?: string;
 };
 

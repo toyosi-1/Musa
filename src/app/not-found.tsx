@@ -1,6 +1,14 @@
+'use client';
+
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 export default function NotFound() {
+  const router = useRouter();
+  
+  const handleGoBack = () => {
+    router.back();
+  };
   return (
     <div className="min-h-screen bg-musa-bg dark:bg-gray-900 flex flex-col items-center justify-center p-4">
       <div className="max-w-md w-full bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8 text-center">
@@ -19,7 +27,7 @@ export default function NotFound() {
             Go to Home
           </Link>
           <button
-            onClick={() => window.history.back()}
+            onClick={handleGoBack}
             className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
           >
             Go Back

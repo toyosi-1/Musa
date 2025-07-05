@@ -1,13 +1,15 @@
+'use client';
+
 import React from 'react';
 import { cn } from '@/lib/utils';
 
-type ButtonProps = {
+type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
   className?: string;
   variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'link';
   size?: 'sm' | 'md' | 'lg';
   isLoading?: boolean;
   disabled?: boolean;
-  onClick?: () => void;
+  onClick?: React.MouseEventHandler<HTMLButtonElement>;
   type?: 'button' | 'submit' | 'reset';
   children: React.ReactNode;
 };
