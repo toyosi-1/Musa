@@ -9,18 +9,28 @@ export default function PerformanceOptimizations() {
     const preloadLinks = [
       { href: '/_next/static/css/app/layout.css', as: 'style' },
       { href: '/_next/static/chunks/main-app.js', as: 'script' },
-      { href: '/images/icon-192x192.png', as: 'image', type: 'image/png' },
-      { href: '/images/icon-512x512.png', as: 'image', type: 'image/png' },
+      { href: '/images/musa-icon.svg', as: 'image', type: 'image/svg+xml' },
     ];
 
     preloadLinks.forEach(({ href, as, type }) => {
-      const link = document.createElement('link');
-      link.rel = 'preload';
-      link.href = href;
-      link.as = as as any;
-      if (type) link.type = type;
-      link.crossOrigin = 'anonymous';
-      document.head.appendChild(link);
+      try {
+        // Only preload if the link doesn't already exist
+        if (!document.querySelector(`link[href="${href}"]`)) {
+          const link = document.createElement('link');
+          link.rel = 'preload';
+          link.href = href;
+          link.as = as as any;
+          if (type) link.type = type;
+          link.crossOrigin = 'anonymous';
+          link.onerror = () => {
+            console.warn(`Failed to preload: ${href}`);
+            document.head.removeChild(link);
+          };
+          document.head.appendChild(link);
+        }
+      } catch (error) {
+        console.warn(`Error preloading ${href}:`, error);
+      }
     });
 
     // Cleanup function
