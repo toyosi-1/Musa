@@ -163,7 +163,7 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.googleapis.com" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="https://fonts.gstatic.com" />
       </head>
-      <body className={`${inter.variable} font-sans antialiased bg-musa-bg dark:bg-gray-900 text-gray-900 dark:text-white`}>
+      <body className={`${inter.variable} font-sans antialiased bg-musa-bg dark:bg-gray-900 text-gray-900 dark:text-white h-screen-ios`}>
         {/* Mobile viewport fix */}
         <div className="fixed top-0 left-0 w-full h-full pointer-events-none -z-10" style={{ WebkitTapHighlightColor: 'transparent' }} />
         
@@ -180,7 +180,7 @@ export default function RootLayout({
                   paddingRight: 'var(--safe-padding-right, 0px)'
                 }}
               >
-                <div className="scroll-container">
+                <div className="main-content">
                 <Suspense fallback={
                   <div className="flex items-center justify-center h-full">
                     <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
@@ -205,6 +205,16 @@ export default function RootLayout({
             </AuthWrapper>
           </ThemeProvider>
         </ClientBody>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              // Add iOS specific class to body
+              if (/(iPad|iPhone|iPod)/g.test(navigator.userAgent)) {
+                document.body.classList.add('ios-fix');
+              }
+            `,
+          }}
+        />
         {/* Load non-critical resources after initial render */}
         <link
           rel="preload"

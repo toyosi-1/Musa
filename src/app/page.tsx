@@ -5,8 +5,8 @@ import LogoAnimation from '@/components/ui/illustrations/LogoAnimation';
 
 export default function Home() {
   return (
-    <div className="flex flex-col min-h-screen">
-      <div className="flex-1 overflow-y-auto">
+    <div className="flex flex-col h-full">
+      <div className="flex-1 w-full">
       <header className="bg-primary px-4 py-3 sm:p-4 text-white sticky top-0 z-50 shadow-md">
         <div className="container mx-auto flex justify-between items-center">
           <h1 className="text-xl sm:text-2xl font-bold text-white">Musa</h1>

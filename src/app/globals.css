@@ -12,11 +12,12 @@
   --safe-area-right: env(safe-area-inset-right, 0px);
 }
 
-/* Base styles for html and body */
-html {
-  height: 100%;
+/* Reset and base styles */
+html, body {
+  margin: 0;
+  padding: 0;
   width: 100%;
-  overflow-x: hidden;
+  height: 100%;
   -webkit-text-size-adjust: 100%;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -24,29 +25,58 @@ html {
   -webkit-tap-highlight-color: transparent;
 }
 
-body {
-  margin: 0;
-  padding: 0;
-  width: 100%;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  overflow-x: hidden;
+/* iOS specific fixes */
+@supports (-webkit-touch-callout: none) {
+  html, body {
+    /* Prevent default body scrolling on iOS */
+    position: fixed;
+    overflow: hidden;
+    -webkit-overflow-scrolling: touch;
+    height: 100%;
+    width: 100%;
+  }
 }
 
-/* Ensure the root layout takes full height */
+/* Root layout container */
 #__next {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
   width: 100%;
+  position: relative;
+  overflow: hidden;
 }
 
-/* Allow content to scroll when it overflows */
-.scroll-container {
+/* Main content wrapper that will scroll */
+.main-content {
   flex: 1;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  width: 100%;
+  position: relative;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Ensure all direct children of body take full height */
+body > * {
+  min-height: 100%;
+  position: relative;
+}
+
+/* Fix for iOS elastic scrolling */
+body.ios-fix {
+  position: fixed;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Fix for iOS viewport height */
+@supports (-webkit-touch-callout: none) {
+  .h-screen-ios {
+    height: -webkit-fill-available;
+    min-height: -webkit-fill-available;
+  }
 }
 
 /* iOS PWA specific styles */
