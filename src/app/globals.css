@@ -14,18 +14,20 @@
 
 html, body, #__next {
   height: 100%;
-  width: 100%;
+  width: 100vw;
   margin: 0;
   padding: 0;
   -webkit-text-size-adjust: 100%;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
-  overscroll-behavior-y: contain;
+  overscroll-behavior-y: auto;
   -webkit-overflow-scrolling: touch;
-  touch-action: manipulation;
+  touch-action: pan-y;
   position: relative;
   overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-tap-highlight-color: transparent;
 }
 
 /* iOS PWA specific styles */
@@ -35,14 +37,11 @@ html, body, #__next {
     height: 100% !important;
     width: 100% !important;
     max-width: 100vw;
-    max-height: 100vh;
-    overflow: hidden;
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
+    max-height: 100%;
+    overflow: auto;
+    position: relative;
     -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: auto;
   }
   
   /* Ensure full viewport height */
@@ -492,7 +491,14 @@ button,
 .scroll-container {
   -webkit-overflow-scrolling: touch;
   scroll-behavior: smooth;
-  overscroll-behavior: contain;
+  overscroll-behavior: auto;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  height: 100%;
+  width: 100%;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  will-change: scroll-position;
 }
 
 /* Hide scrollbars but keep functionality */
@@ -531,9 +537,17 @@ button:focus {
   border-color: #3b82f6;
 }
 
-/* Disable pull-to-refresh */
+/* Enable smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Better scrolling */
 body {
-  overscroll-behavior-y: contain;
+  overscroll-behavior-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overflow-y: auto;
+  min-height: 100%;
 }
 
 @layer components {
