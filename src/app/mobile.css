@@ -1,0 +1,134 @@
+/* Mobile-specific optimizations */
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+
+/* Base mobile styles */
+html {
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Safe area insets for iOS devices */
+@supports (padding: max(0px)) {
+  :root {
+    --safe-area-top: env(safe-area-inset-top, 0px);
+    --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-area-left: env(safe-area-inset-left, 0px);
+    --safe-area-right: env(safe-area-inset-right, 0px);
+  }
+}
+
+/* Prevent zoom on input focus on mobile */
+@media screen and (-webkit-min-device-pixel-ratio: 0) {
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* Fix for iOS elastic scrolling */
+html,
+body {
+  overscroll-behavior-y: none;
+  -webkit-overflow-scrolling: touch;
+  height: 100%;
+  width: 100%;
+  position: fixed;
+  overflow: hidden;
+}
+
+/* Fix for Android Chrome address bar */
+@media (display-mode: standalone) {
+  body {
+    height: 100%;
+    overflow: auto;
+  }
+}
+
+/* Fix for iOS viewport height */
+@supports (-webkit-touch-callout: none) {
+  .h-screen {
+    height: -webkit-fill-available;
+  }
+}
+
+/* Fix for Android input highlight */
+input:focus,
+select:focus,
+textarea:focus,
+button:focus {
+  outline: none;
+}
+
+/* Hide scrollbar but keep functionality */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Fix for iOS bounce effect */
+body {
+  position: fixed;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Fix for Android keyboard */
+@media (max-width: 768px) {
+  input,
+  textarea {
+    font-size: 16px !important;
+  }
+  
+  /* Prevent zoom on focus */
+  @media screen and (-webkit-min-device-pixel-ratio: 0) {
+    input[type="color"],
+    input[type="date"],
+    input[type="datetime"],
+    input[type="datetime-local"],
+    input[type="email"],
+    input[type="month"],
+    input[type="number"],
+    input[type="password"],
+    input[type="search"],
+    input[type="tel"],
+    input[type="text"],
+    input[type="time"],
+    input[type="url"],
+    input[type="week"],
+    select:focus,
+    textarea {
+      font-size: 16px !important;
+    }
+  }
+}
+
+/* Fix for iOS input zoom */
+@supports (-webkit-touch-callout: none) {
+  input[type="date"],
+  input[type="datetime-local"],
+  input[type="time"],
+  select {
+    min-height: 2.5em;
+  }
+}
+
+/* Fix for Android tap highlight */
+* {
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Fix for iOS overscroll behavior */
+body {
+  overscroll-behavior-y: contain;
+}

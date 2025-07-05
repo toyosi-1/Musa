@@ -5,6 +5,7 @@ import Script from 'next/script';
 import dynamic from 'next/dynamic';
 import { getPublicEnvScript } from '@/utils/env';
 import './globals.css';
+import './mobile.css';
 
 const PerformanceOptimizations = dynamic(
   () => import('@/components/common/PerformanceOptimizations'),
@@ -59,20 +60,6 @@ const inter = Inter({
   adjustFontFallback: false,
 });
 
-// Define viewport configuration for better mobile and PWA support
-export const viewport: Viewport = {
-  width: 'device-width',
-  initialScale: 1,
-  viewportFit: 'cover',
-  themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#3b82f6' },
-    { media: '(prefers-color-scheme: dark)', color: '#1e40af' },
-  ],
-  colorScheme: 'light dark',
-  maximumScale: 1,
-  interactiveWidget: 'resizes-visual',
-};
-
 export const metadata: Metadata = {
   title: 'Musa - Your Security Partner',
   description: 'Musa - Advanced security solutions for your digital life',
@@ -82,12 +69,17 @@ export const metadata: Metadata = {
   keywords: ['security', 'cybersecurity', 'privacy', 'vpn', 'protection'],
   authors: [{ name: 'Musa Team' }],
   colorScheme: 'dark',
-  themeColor: '#1a1a1a',
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#3b82f6' },
+    { media: '(prefers-color-scheme: dark)', color: '#1e40af' },
+  ],
   viewport: {
     width: 'device-width',
     initialScale: 1,
+    minimumScale: 1,
     maximumScale: 1,
     viewportFit: 'cover',
+    userScalable: false,
   },
   other: {
     'mobile-web-app-capable': 'yes',
@@ -164,7 +156,6 @@ export default function RootLayout({
     >
       <head>
         <meta charSet="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
         <meta name="theme-color" content="#1a1a1a" />
         
         {/* Performance optimizations */}
