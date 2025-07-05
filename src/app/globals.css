@@ -12,29 +12,41 @@
   --safe-area-right: env(safe-area-inset-right, 0px);
 }
 
-html, body, #__next {
+/* Base styles for html and body */
+html {
   height: 100%;
   width: 100%;
-  margin: 0;
-  padding: 0;
+  overflow-x: hidden;
   -webkit-text-size-adjust: 100%;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
-  overscroll-behavior-y: auto;
-  -webkit-overflow-scrolling: touch;
-  touch-action: pan-y;
-  position: relative;
-  overflow-x: hidden;
   -webkit-tap-highlight-color: transparent;
 }
 
-/* Ensure body takes full height and can scroll */
 body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
   min-height: 100vh;
-  overflow-y: auto;
   display: flex;
   flex-direction: column;
+  overflow-x: hidden;
+}
+
+/* Ensure the root layout takes full height */
+#__next {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  width: 100%;
+}
+
+/* Allow content to scroll when it overflows */
+.scroll-container {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* iOS PWA specific styles */
