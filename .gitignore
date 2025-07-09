@@ -72,3 +72,6 @@ firebase-debug.*.log
 **/workbox-*.js
 **/sw.js
 **/worker-*.js
+
+# Local Netlify folder
+.netlify

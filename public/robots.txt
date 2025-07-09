@@ -1,0 +1,9 @@
+# *
+User-agent: *
+Allow: /
+
+# Host
+Host: https://musa-security-app.windsurf.build
+
+# Sitemaps
+Sitemap: https://musa-security-app.windsurf.build/sitemap.xml
