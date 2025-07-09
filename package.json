@@ -12,8 +12,8 @@
     "netlify-build": "npm install && npm run build"
   },
   "engines": {
-    "node": "18.x",
-    "npm": "9.x"
+    "node": ">=18.17.0",
+    "npm": ">=9.6.7"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
