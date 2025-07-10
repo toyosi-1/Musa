@@ -177,19 +177,19 @@ export default function RootLayout({
         {/* Preload critical resources */}
         <link rel="preload" href="/fonts/inter-var.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
       </head>
-      <body className="min-h-screen bg-musa-bg dark:bg-gray-900 text-gray-900 dark:text-white relative overflow-x-hidden touch-manipulation" style={{
+      <body className="min-h-screen bg-musa-bg dark:bg-gray-900 text-gray-900 dark:text-white relative touch-manipulation" style={{
         WebkitOverflowScrolling: 'touch',
-        overscrollBehaviorY: 'none',
+        overscrollBehaviorY: 'auto',
         height: '100%',
         width: '100%',
-        position: 'fixed',
-        overflow: 'hidden',
+        overflowX: 'hidden',
+        overflowY: 'auto',
       }}>
         <MobileInitializer />
         <ThemeProvider>
           <AuthWrapper>
             <Suspense fallback={<LoadingScreen />}>
-              <div className="min-h-[calc(var(--vh,1vh)*100)] flex flex-col">
+              <div className="min-h-screen flex flex-col">
                 {children}
               </div>
             </Suspense>
