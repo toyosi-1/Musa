@@ -2,7 +2,7 @@
 const path = require('path');
 const withPWA = require('next-pwa')({
   dest: 'public',
-  disable: process.env.NODE_ENV !== 'production', // Disable PWA in development
+  disable: process.env.NODE_ENV === 'development',
   register: true,
   skipWaiting: true,
   runtimeCaching: [
@@ -40,144 +40,74 @@ const nextConfig = {
   staticPageGenerationTimeout: 300,
   output: 'standalone',
   
-  // Webpack optimizations
-  webpack: (config, { isServer }) => {
-    // Enable Webpack 5's filesystem caching
-    config.cache = {
-      type: 'filesystem',
-      buildDependencies: {
-        config: [__filename],
-      },
-    };
-
-    // Enable tree shaking and module concatenation
-    config.optimization = {
-      ...config.optimization,
-      usedExports: true,
-      sideEffects: true,
-      moduleIds: 'deterministic',
-      runtimeChunk: 'single',
-      splitChunks: {
-        chunks: 'all',
-        maxInitialRequests: 10,
-        minSize: 0,
-        cacheGroups: {
-          vendor: {
-            name: 'vendors',
-            test: /[\\/]node_modules[\\/]/,
-            chunks: 'all',
-          },
-        },
-      },
-    };
-
-    return config;
-  },
-  
-  // TypeScript and ESLint configurations
-  typescript: {
-    ignoreBuildErrors: true,
-  },
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
-  
-  // Compression and optimization
-  compress: true,
-  generateEtags: true,
-  poweredByHeader: false,
+  // Optimize font loading
+  optimizeFonts: true,
   
   // Experimental features
   experimental: {
-    // Enable server components external packages
-    serverComponentsExternalPackages: ['firebase-admin'],
-    optimizeCss: true,
-    optimizePackageImports: ['lucide-react', 'date-fns'],
-    optimizeServerReact: true,
-    // Enable app directory
-    appDir: true,
-    // Enable server actions
-    serverActions: true,
+    optimizePackageImports: ['@mui/material', '@emotion/styled', '@emotion/react'],
+    // Server Actions are enabled by default in Next.js 14+
   },
-  // Static generation is now handled by Next.js App Router automatically
-  // Add transpilePackages to handle problematic packages
-  transpilePackages: ['undici', 'firebase', 'react-firebase-hooks'],
-  // Ensure compatibility with older Node.js versions and proper Firebase handling
-  webpack: (config, { isServer }) => {
-    // Add path aliases
-    config.resolve.alias = {
-      ...config.resolve.alias,
-      '@/lib/firebase': path.resolve(__dirname, 'src/lib/firebase.ts'),
-      '@/lib': path.resolve(__dirname, 'src/lib'),
-      '@': path.resolve(__dirname, 'src')
-    };
-    // Browser-specific polyfills for Firebase
-    if (!isServer) {
-      config.resolve.fallback = {
-        ...config.resolve.fallback,
-        // Fixes npm packages that depend on `stream` module
-        stream: require.resolve('stream-browserify'),
-        // Fixes npm packages that depend on `crypto` module
-        crypto: require.resolve('crypto-browserify'),
-        // Fixes npm packages that depend on `buffer` module
-        buffer: require.resolve('buffer/'),
-        // Fixes npm packages that depend on `util` module
-        util: require.resolve('util/'),
-        // Fixes npm packages that depend on `url` module
-        url: require.resolve('url/'),
-        // Fixes npm packages that depend on `querystring` module
-        querystring: require.resolve('querystring-es3/'),
-        // Fixes npm packages that depend on `path` module
-        path: require.resolve('path-browserify'),
-        // Fixes npm packages that depend on `os` module
-        os: require.resolve('os-browserify/browser'),
-        // Fixes npm packages that depend on `net` module
-        net: false,
-        // Fixes npm packages that depend on `tls` module
-        tls: false,
-        // Fixes npm packages that depend on `fs` module
-        fs: false,
-        // Fixes npm packages that depend on `child_process` module
-        child_process: false,
-        // Fixes npm packages that depend on `dns` module
-        dns: false,
-        // Fixes npm packages that depend on `http2` module
-        http2: false,
-        // Fixes npm packages that depend on `zlib` module
-        zlib: false,
-        crypto: false,
-        fs: false,
-        os: false,
-        path: false,
-        net: false,
-        tls: false,
-        child_process: false,
-        http: false,
-        https: false,
-        zlib: false
+  
+  webpack: (config, { isServer, dev, isServer: isServerParam }) => {
+    // Enable Webpack 5's filesystem caching in development
+    if (!dev) {
+      config.cache = {
+        type: 'filesystem',
+        buildDependencies: {
+          config: [__filename],
+        },
       };
     }
     
-    // Force Firebase to be excluded from server bundle
-    if (isServer) {
-      config.externals = [...config.externals, 'firebase', 'firebase/app', 'firebase/auth', 'firebase/database'];
+    // Configure optimization for production only
+    if (!dev) {
+      config.optimization = {
+        ...config.optimization,
+        concatenateModules: true,
+        sideEffects: true,
+        minimize: true,
+        minimizer: ['...'],
+      };
     }
-
-    // Improve cache handling
-    if (!config.cache) config.cache = {};
-    config.cache.type = 'filesystem';
-    config.cache.buildDependencies = {
-      config: [__filename]
+    
+    config.resolve.fallback = {
+      ...config.resolve.fallback,
+      stream: require.resolve('stream-browserify'),
+      crypto: require.resolve('crypto-browserify'),
+      buffer: require.resolve('buffer/'),
+      util: require.resolve('util/'),
+      url: require.resolve('url/'),
+      querystring: require.resolve('querystring-es3/'),
+      path: require.resolve('path-browserify'),
+      os: require.resolve('os-browserify/browser'),
+      net: false,
+      tls: false,
+      fs: false,
+      child_process: false,
+      dns: false,
+      http2: false,
+      zlib: false,
     };
     
-    // Enable source maps in development for better debugging
-    if (!isServer) {
-      config.devtool = 'source-map';
-    }
-
+    config.plugins.push(
+      new (require('webpack').ProvidePlugin)({
+        process: 'process/browser',
+        Buffer: ['buffer', 'Buffer'],
+      })
+    );
+    
     return config;
   },
-  // Add security headers
+  
+  images: {
+    domains: ['firebasestorage.googleapis.com'],
+    minimumCacheTTL: 60 * 60 * 24 * 7, // 1 week
+    formats: ['image/webp', 'image/avif'],
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+  },
+  
   async headers() {
     return [
       {
@@ -189,7 +119,7 @@ const nextConfig = {
           },
           {
             key: 'X-Frame-Options',
-            value: 'DENY',
+            value: 'SAMEORIGIN',
           },
           {
             key: 'X-XSS-Protection',
@@ -201,65 +131,37 @@ const nextConfig = {
           },
           {
             key: 'Permissions-Policy',
-            value: 'camera=(), microphone=(), geolocation=()',
+            value: 'camera=(), microphone=(), geolocation=(), interest-cohort=()',
+          },
+          {
+            key: 'Strict-Transport-Security',
+            value: 'max-age=63072000; includeSubDomains; preload',
           },
         ],
       },
     ];
   },
-  // Image optimization configuration
-  images: {
-    domains: ['firebasestorage.googleapis.com'],
-    minimumCacheTTL: 60 * 60 * 24 * 30, // 30 days
-    formats: ['image/webp', 'image/avif'],
-    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
-    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
-    dangerouslyAllowSVG: false,
-    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
-    unoptimized: process.env.NODE_ENV !== 'production', // Only optimize in production
-    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
-    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
-    dangerouslyAllowSVG: true,
-    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
-    unoptimized: true,
-  },
-  // Generate a static build ID for caching
-  generateBuildId: async () => 'build',
-  // Compression and performance
+  
   compress: true,
   poweredByHeader: false,
   generateEtags: true,
   httpAgentOptions: {
     keepAlive: true,
   },
-  // Preload all pages for better performance
-  experimental: {
-    optimizeCss: true,
-    scrollRestoration: true,
-    optimizePackageImports: ['lucide-react', '@heroicons/react'],
+  
+  env: {
+    NEXT_PUBLIC_APP_ENV: process.env.NODE_ENV,
   },
-  // Enable ETag generation for better caching
-  generateEtags: true,
-  // Disable X-Powered-By header for security
-  poweredByHeader: false,
-  // Enable React strict mode
-  reactStrictMode: true,
-  // Enable production browser source maps
-  productionBrowserSourceMaps: false,
-  // Add trailing slash for better SEO
-  trailingSlash: true,
-  // Add security headers
-  devIndicators: {
-    buildActivity: true,
-    buildActivityPosition: 'bottom-right',
-  },
-  // Add experimental features
-  experimental: {
-    optimizeCss: true,
-    scrollRestoration: true,
-  },
-  // Enable output file tracing for better optimization
-  outputFileTracing: true,
+};
+
+// Generate a static build ID for caching
+nextConfig.generateBuildId = async () => {
+  try {
+    const { execSync } = require('child_process');
+    return execSync('git rev-parse HEAD').toString().trim();
+  } catch (error) {
+    return Date.now().toString();
+  }
 };
 
 module.exports = withPWA(nextConfig);
