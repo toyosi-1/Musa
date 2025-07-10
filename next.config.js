@@ -40,6 +40,40 @@ const nextConfig = {
   staticPageGenerationTimeout: 300,
   output: 'standalone',
   
+  // Webpack optimizations
+  webpack: (config, { isServer }) => {
+    // Enable Webpack 5's filesystem caching
+    config.cache = {
+      type: 'filesystem',
+      buildDependencies: {
+        config: [__filename],
+      },
+    };
+
+    // Enable tree shaking and module concatenation
+    config.optimization = {
+      ...config.optimization,
+      usedExports: true,
+      sideEffects: true,
+      moduleIds: 'deterministic',
+      runtimeChunk: 'single',
+      splitChunks: {
+        chunks: 'all',
+        maxInitialRequests: 10,
+        minSize: 0,
+        cacheGroups: {
+          vendor: {
+            name: 'vendors',
+            test: /[\\/]node_modules[\\/]/,
+            chunks: 'all',
+          },
+        },
+      },
+    };
+
+    return config;
+  },
+  
   // TypeScript and ESLint configurations
   typescript: {
     ignoreBuildErrors: true,
@@ -177,7 +211,12 @@ const nextConfig = {
   images: {
     domains: ['firebasestorage.googleapis.com'],
     minimumCacheTTL: 60 * 60 * 24 * 30, // 30 days
-    formats: ['image/webp'],
+    formats: ['image/webp', 'image/avif'],
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+    dangerouslyAllowSVG: false,
+    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
+    unoptimized: process.env.NODE_ENV !== 'production', // Only optimize in production
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
     dangerouslyAllowSVG: true,
@@ -186,8 +225,19 @@ const nextConfig = {
   },
   // Generate a static build ID for caching
   generateBuildId: async () => 'build',
-  // Add compression
+  // Compression and performance
   compress: true,
+  poweredByHeader: false,
+  generateEtags: true,
+  httpAgentOptions: {
+    keepAlive: true,
+  },
+  // Preload all pages for better performance
+  experimental: {
+    optimizeCss: true,
+    scrollRestoration: true,
+    optimizePackageImports: ['lucide-react', '@heroicons/react'],
+  },
   // Enable ETag generation for better caching
   generateEtags: true,
   // Disable X-Powered-By header for security

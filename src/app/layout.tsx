@@ -11,40 +11,71 @@ const MobileInitializer = dynamic(() => import('@/components/layout/MobileInitia
   ssr: false
 });
 
-// Optimize font loading with font-display: swap
+// Optimize font loading with variable fonts and better fallbacks
 const inter = Inter({ 
   subsets: ['latin'],
   display: 'swap',
   variable: '--font-inter',
+  weight: ['100', '200', '300', '400', '500', '600', '700', '800', '900'],
+  style: ['normal', 'italic'],
+  fallback: ['system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
   preload: true,
-  fallback: ['system-ui', 'sans-serif'],
   adjustFontFallback: true,
-  weight: ['400', '500', '600', '700'],
 });
 
-// Preload critical CSS
+// Critical CSS for above-the-fold content
 const criticalCSS = `
-  html, body {
-    height: 100%;
-    margin: 0;
-    padding: 0;
+  /*! Critical CSS - Inlined for optimal performance */
+  :root {
+    --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+    --bg-light: #f9fafb;
+    --text-light: #111827;
+    --bg-dark: #111827;
+    --text-dark: #f9fafb;
+  }
+  
+  /* Critical layout styles */
+  *, *::before, *::after { box-sizing: border-box; }
+  
+  html {
+    -webkit-text-size-adjust: 100%;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-  }
-  
-  /* Critical CSS for above-the-fold content */
-  body {
-    font-family: var(--font-inter), system-ui, -apple-system, sans-serif;
-    background-color: #f9fafb;
-    color: #111827;
+    font-size: 16px;
     line-height: 1.5;
+    tab-size: 4;
+    text-rendering: optimizeLegibility;
   }
   
+  body {
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    font-family: var(--font-sans);
+    background-color: var(--bg-light);
+    color: var(--text-light);
+    line-height: 1.5;
+    overflow-x: hidden;
+  }
+  
+  /* Dark mode support */
   @media (prefers-color-scheme: dark) {
     body {
-      background-color: #111827;
-      color: #f9fafb;
+      background-color: var(--bg-dark);
+      color: var(--text-dark);
     }
+  }
+  
+  /* Critical layout components */
+  #__next {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+  
+  /* Improve readability and tap targets */
+  a, button, input, textarea {
+    -webkit-tap-highlight-color: transparent;
   }
 `;
 
@@ -74,23 +105,38 @@ export const viewport: Viewport = {
 // Define type for preload assets
 interface PreloadAsset {
   href: string;
-  as: 'style' | 'font';
+  as: 'style' | 'font' | 'image';
   type?: string;
   crossOrigin?: 'anonymous' | 'use-credentials';
+  imageSrcSet?: string;
+  imageSizes?: string;
+  'data-font-display'?: string;
 }
 
 // Preload critical assets
 const preloadedAssets: PreloadAsset[] = [
+  // Critical CSS
   { 
-    href: '/_next/static/css/app/layout.css', 
-    as: 'style'
+    href: '/_next/static/css/app/layout.css',
+    as: 'style',
+    crossOrigin: 'anonymous'
   },
+  // Variable font with all weights
   { 
-    href: '/_next/static/media/Inter.var.woff2', 
+    href: '/_next/static/media/Inter.var.woff2',
     as: 'font',
     type: 'font/woff2',
-    crossOrigin: 'anonymous'
-  }
+    crossOrigin: 'anonymous',
+    // Add font-display descriptor
+    'data-font-display': 'swap'
+  },
+  // Preload hero image if exists
+  // { 
+  //   href: '/images/hero.jpg',
+  //   as: 'image',
+  //   imageSrcSet: '/images/hero-640.jpg 640w, /images/hero-1024.jpg 1024w, /images/hero-1280.jpg 1280w',
+  //   imageSizes: '(max-width: 640px) 100vw, (max-width: 1024px) 100vw, 1280px'
+  // }
 ];
 
 export const metadata: Metadata = {
