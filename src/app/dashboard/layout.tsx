@@ -51,8 +51,8 @@ export default function DashboardLayout({
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-musa-bg dark:bg-gray-900 safe-area-inset-bottom">
-      <main className="flex-grow overflow-y-auto overflow-x-hidden pb-24 px-4 max-w-md mx-auto w-full h-screen">
+    <div className="h-screen flex flex-col bg-musa-bg dark:bg-gray-900 safe-area-inset-bottom overflow-hidden">
+      <main className="flex-1 overflow-y-auto overflow-x-hidden pb-24 px-4 max-w-md mx-auto w-full">
         <div className="min-h-full">
           {children}
         </div>

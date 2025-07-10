@@ -46,11 +46,25 @@
 }
 
 /* Improved mobile scrolling and keyboard handling */
-html, body {
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
   height: 100%;
-  width: 100%;
+  overflow: hidden;
+}
+
+body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
   -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: none;
+  position: fixed;
   overflow-y: auto;
+  width: 100%;
+  scroll-behavior: smooth;
   overscroll-behavior-y: auto;
 }
 
@@ -129,14 +143,22 @@ html {
   overscroll-behavior-y: contain;
   touch-action: pan-y;
   -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
   -webkit-font-smoothing: antialiased;
+  font-smoothing: antialiased;
   -webkit-tap-highlight-color: transparent;
+  tap-highlight-color: transparent;
 }
 
 /* Remove default button styles on iOS */
 button {
   -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  border-radius: 0;
   -webkit-border-radius: 0;
+  -moz-border-radius: 0;
+  outline: none;
 }
 
 /* Better form elements on mobile */
