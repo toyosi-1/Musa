@@ -50,22 +50,25 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --header-height: 64px;
+  --nav-height: 72px;
+}
+
 html {
   height: 100%;
   overflow: hidden;
 }
 
 body {
-  height: 100%;
   margin: 0;
   padding: 0;
+  height: 100%;
+  width: 100%;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-y: none;
-  position: fixed;
-  overflow-y: auto;
-  width: 100%;
-  scroll-behavior: smooth;
-  overscroll-behavior-y: auto;
+  position: relative;
+  overflow: hidden;
 }
 
 /* Mobile viewport height fix */
