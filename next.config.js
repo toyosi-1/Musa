@@ -36,6 +36,10 @@ const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
   
+  // Performance optimizations
+  staticPageGenerationTimeout: 300,
+  output: 'standalone',
+  
   // TypeScript and ESLint configurations
   typescript: {
     ignoreBuildErrors: true,
@@ -44,10 +48,18 @@ const nextConfig = {
     ignoreDuringBuilds: true,
   },
   
+  // Compression and optimization
+  compress: true,
+  generateEtags: true,
+  poweredByHeader: false,
+  
   // Experimental features
   experimental: {
     // Enable server components external packages
     serverComponentsExternalPackages: ['firebase-admin'],
+    optimizeCss: true,
+    optimizePackageImports: ['lucide-react', 'date-fns'],
+    optimizeServerReact: true,
     // Enable app directory
     appDir: true,
     // Enable server actions
@@ -165,7 +177,11 @@ const nextConfig = {
   images: {
     domains: ['firebasestorage.googleapis.com'],
     minimumCacheTTL: 60 * 60 * 24 * 30, // 30 days
-    // Disable image optimization during export
+    formats: ['image/webp'],
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+    dangerouslyAllowSVG: true,
+    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
     unoptimized: true,
   },
   // Generate a static build ID for caching
