@@ -1,8 +1,32 @@
 [build]
   command = "npm run build"
-  publish = ".next"
+  publish = "out"
   functions = ".netlify/functions"
-  edge_handlers = "netlify/edge-handlers"
+
+# Basic redirect that makes the homepage work
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Required for Next.js static export with dynamic routes
+[[redirects]]
+  from = "/:path"
+  to = "/:path/index.html"
+  status = 200
+
+# Required for Next.js static export with nested dynamic routes
+[[redirects]]
+  from = "/*/"
+  to = "//index.html"
+  status = 200
+
+# Required for Next.js static export with _next/static
+[[redirects]]
+  from = "/_next/static/*"
+  to = "/_next/static/:splat"
+  status = 200
+  force = true
 
 [build.environment]
   # Node.js version

@@ -33,12 +33,18 @@ const withPWA = require('next-pwa')({
 const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
-  output: 'standalone',
+  output: 'export',
+  distDir: 'out',
+  images: {
+    unoptimized: true,
+  },
   poweredByHeader: false,
   generateEtags: true,
   httpAgentOptions: {
     keepAlive: true,
   },
+  // Ensure static export works with next/image
+  trailingSlash: true,
   
   // Image optimization
   images: {

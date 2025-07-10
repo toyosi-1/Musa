@@ -3,13 +3,20 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "postbuild": "next-sitemap",
-    "prebuild": "node scripts/generate-icons.js && node scripts/generate-splash-screens.js",
-    "dev": "next dev --hostname 0.0.0.0",
-    "build": "next build",
+    "dev": "next dev",
+    "build": "next build && next export",
     "start": "next start",
     "lint": "next lint",
-    "netlify-build": "npm install --legacy-peer-deps && npm run build"
+    "postbuild": "next-sitemap",
+    "prebuild": "node scripts/generate-icons.js && node scripts/generate-splash-screens.js",
+    "netlify-build": "npm install --legacy-peer-deps && npm run build",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "typecheck": "tsc --noEmit",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint:fix": "eslint . --fix"
   },
   "engines": {
     "node": ">=18.17.0",
