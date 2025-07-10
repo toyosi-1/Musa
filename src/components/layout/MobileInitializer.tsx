@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { isMobileDevice } from '@/utils/mobileUtils';
 
 // Helper function to detect iOS
@@ -18,7 +18,15 @@ function isIOS() {
 }
 
 export default function MobileInitializer() {
+  const [isClient, setIsClient] = useState(false);
+
   useEffect(() => {
+    // Set isClient to true when component mounts on the client
+    setIsClient(true);
+    
+    // Only run on client-side
+    if (typeof document === 'undefined' || typeof window === 'undefined') return;
+    
     const html = document.documentElement;
     const isMobile = isMobileDevice();
     
@@ -27,22 +35,24 @@ export default function MobileInitializer() {
       html.classList.add('is-mobile');
       
       // Add touch-action manipulation for better scrolling
-      document.body.style.touchAction = 'manipulation';
+      if (document.body) {
+        document.body.style.touchAction = 'manipulation';
+      }
     }
 
     // Handle viewport height for mobile browsers
     const setAppHeight = () => {
-      if (typeof window !== 'undefined') {
-        // Get the viewport height and multiply it by 1% to get a value for a vh unit
-        const vh = window.innerHeight * 0.01;
-        // Set the value in the --vh custom property to the root of the document
-        document.documentElement.style.setProperty('--vh', `${vh}px`);
-        
-        // Add a class when the virtual keyboard is visible (only for mobile)
-        if (isMobile) {
-          const isKeyboardVisible = window.innerHeight < window.outerHeight * 0.8;
-          html.classList.toggle('keyboard-visible', isKeyboardVisible);
-        }
+      if (typeof window === 'undefined' || !document.documentElement) return;
+      
+      // Get the viewport height and multiply it by 1% to get a value for a vh unit
+      const vh = window.innerHeight * 0.01;
+      // Set the value in the --vh custom property to the root of the document
+      document.documentElement.style.setProperty('--vh', `${vh}px`);
+      
+      // Add a class when the virtual keyboard is visible (only for mobile)
+      if (isMobile) {
+        const isKeyboardVisible = window.innerHeight < window.outerHeight * 0.8;
+        html.classList.toggle('keyboard-visible', isKeyboardVisible);
       }
     };
 
@@ -68,5 +78,8 @@ export default function MobileInitializer() {
     };
   }, []);
 
+  // Don't render anything on the server
+  if (!isClient) return null;
+  
   return null; // This component doesn't render anything
 }

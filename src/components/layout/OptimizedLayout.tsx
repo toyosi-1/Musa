@@ -1,5 +1,7 @@
+'use client';
+
 import dynamic from 'next/dynamic';
-import { Suspense } from 'react';
+import { Suspense, useEffect } from 'react';
 import SplashScreen from '@/components/ui/SplashScreen';
 import { LoadingSkeleton } from '@/components/ui/LoadingSkeleton';
 
@@ -19,6 +21,29 @@ interface OptimizedLayoutProps {
 }
 
 export default function OptimizedLayout({ children }: OptimizedLayoutProps) {
+  useEffect(() => {
+    // Add fade-in animation for initial page load
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+      .animate-fade-in {
+        animation: fadeIn 0.3s ease-in-out;
+      }
+    `;
+    
+    document.head.appendChild(style);
+    
+    // Cleanup function to remove the style element when component unmounts
+    return () => {
+      if (document.head.contains(style)) {
+        document.head.removeChild(style);
+      }
+    };
+  }, []);
+
   return (
     <Suspense fallback={<LoadingSkeleton />}>
       <ThemeProvider>
@@ -30,19 +55,4 @@ export default function OptimizedLayout({ children }: OptimizedLayoutProps) {
       </ThemeProvider>
     </Suspense>
   );
-}
-
-// Add fade-in animation for initial page load
-const style = document.createElement('style');
-style.textContent = `
-  @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-  }
-  .animate-fade-in {
-    animation: fadeIn 0.3s ease-in-out;
-  }
-`;
-if (typeof document !== 'undefined') {
-  document.head.appendChild(style);
 }

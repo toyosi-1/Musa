@@ -23,6 +23,9 @@ export default function StatusGuard({
   const [authorized, setAuthorized] = useState(false);
 
   useEffect(() => {
+    // Only run on client-side
+    if (typeof window === 'undefined') return;
+    
     // Wait until auth state is resolved
     if (!loading) {
       // Check if user exists

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import Script from 'next/script';
 import dynamic from 'next/dynamic';
+import NonCriticalCSS from '@/components/layout/NonCriticalCSS';
 import './globals.css';
 import { getPublicEnvScript } from '@/utils/env';
 import OptimizedLayout from '@/components/layout/OptimizedLayout';
@@ -286,20 +287,7 @@ export default function RootLayout({
         </OptimizedLayout>
         
         {/* Load non-critical CSS asynchronously */}
-        <link 
-          rel="stylesheet" 
-          href="/_next/static/css/app/globals.css" 
-          media="print" 
-          onLoad={(e: React.SyntheticEvent<HTMLLinkElement>) => {
-            const target = e.target as HTMLLinkElement;
-            target.media = 'all';
-          }}
-        />
-        
-        {/* Fallback for browsers that don't support media='print' */}
-        <noscript>
-          <link rel="stylesheet" href="/_next/static/css/app/globals.css" />
-        </noscript>
+        <NonCriticalCSS />
       </body>
     </html>
   );
