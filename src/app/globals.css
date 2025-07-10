@@ -55,20 +55,17 @@
   --nav-height: 72px;
 }
 
-html {
+html, body {
   height: 100%;
-  overflow: hidden;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  -webkit-overflow-scrolling: touch;
 }
 
 body {
-  margin: 0;
-  padding: 0;
-  height: 100%;
-  width: 100%;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior-y: none;
+  overflow: auto;
   position: relative;
-  overflow: hidden;
 }
 
 /* Mobile viewport height fix */

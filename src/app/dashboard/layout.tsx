@@ -51,7 +51,7 @@ export default function DashboardLayout({
   };
 
   return (
-    <div className="flex flex-col h-[100dvh] bg-musa-bg dark:bg-gray-900">
+    <div className="flex flex-col h-screen bg-musa-bg dark:bg-gray-900 overflow-hidden">
       <main className="flex-1 overflow-y-auto overflow-x-hidden pb-24 px-4 max-w-md mx-auto w-full">
         <div className="min-h-full py-4">
           {children}
