@@ -2,11 +2,8 @@
   command = "npm run build"
   publish = "out"
   functions = ".netlify/functions"
-  
+
 [build.environment]
-  # Required for static exports
-  NETLIFY_NEXT_PLUGIN_SKIP = "true"
-  
   # Node.js version
   NODE_VERSION = "18.17.0"
   NPM_VERSION = "9.8.1"
@@ -14,77 +11,29 @@
   # Build optimizations
   NODE_OPTIONS = "--max_old_space_size=4096"
   NEXT_TELEMETRY_DISABLED = "1"
+  
+  # Required for static exports
+  NETLIFY_NEXT_PLUGIN_SKIP = "true"
+  
+  # Build settings
+  NETLIFY_USE_YARN = "false"
+  YARN_VERSION = "1.22.19"
+  NETLIFY_BUILD_CACHE = "true"
 
-# Basic redirect that makes the homepage work
+# Required redirects for static exports
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
+  force = false
 
-# Required for Next.js static export with dynamic routes
-[[redirects]]
-  from = "/:path"
-  to = "/:path/index.html"
-  status = 200
-
-# Required for Next.js static export with nested dynamic routes
-[[redirects]]
-  from = "/*/"
-  to = "//index.html"
-  status = 200
-
-# Required for Next.js static export with _next/static
 [[redirects]]
   from = "/_next/static/*"
   to = "/_next/static/:splat"
   status = 200
   force = true
 
-[build.environment]
-  # Node.js version
-  NODE_VERSION = "18.17.0"
-  NPM_VERSION = "9.8.1"
-  
-  # Build optimizations
-  NODE_OPTIONS = "--max_old_space_size=4096"
-  NEXT_TELEMETRY_DISABLED = "1"
-  
-  # Next.js specific
-  NETLIFY_NEXT_PLUGIN_SKIP = "false"
-  NETLIFY_NEXT_PLUGIN_FORCE_BUILD = "true"
-  
-  # Build caching
-  NETLIFY_BUILD_CACHE = "true"
-  
-  # Required environment variables (set these in Netlify UI)
-  # NEXT_PUBLIC_FIREBASE_API_KEY
-  # NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
-  # NEXT_PUBLIC_FIREBASE_PROJECT_ID
-  # NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
-  
-  # Build settings
-  NETLIFY_USE_YARN = "false"
-  YARN_VERSION = "1.22.19"
-  
-  # Enable Next.js ISR
-  NETLIFY_NEXT_PLUGIN_USE_NEXT_IMAGE = "true"
-  NETLIFY_NEXT_PLUGIN_USE_IMAGE_OPTIMIZER = "true"
-  # NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
-  # NEXT_PUBLIC_FIREBASE_APP_ID
-  # NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
-  # NEXT_PUBLIC_FIREBASE_DATABASE_URL
-
-# Next.js plugin
-[[plugins]]
-  package = "@netlify/plugin-nextjs"
-
-# Redirects for SPA routing
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
-
-# Explicit MIME types for static assets
+# Headers for static assets
 [[headers]]
   for = "/*.js"
   [headers.values]
@@ -96,6 +45,41 @@
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
     Content-Type = "text/css; charset=utf-8"
+
+[[headers]]
+  for = "/*.json"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+    Content-Type = "application/json; charset=utf-8"
+
+[[headers]]
+  for = "/*.webp"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+    Content-Type = "image/webp"
+
+[[headers]]
+  for = "/*.png"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+    Content-Type = "image/png"
+
+[[headers]]
+  for = "/*.svg"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+    Content-Type = "image/svg+xml"
+
+# Security headers
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.google-analytics.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://*.google.com https://*.gstatic.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*.google-analytics.com https://*.analytics.google.com;"
 
 [[headers]]
   for = "/*.woff2"
