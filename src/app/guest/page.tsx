@@ -14,14 +14,27 @@ export default function GuestPage() {
   const [householdId, setHouseholdId] = useState<string | null>(null);
   const [householdName, setHouseholdName] = useState<string | null>(null);
   const [accessCodeId, setAccessCodeId] = useState<string | null>(null);
+  const [code, setCode] = useState<string | null>(null);
   
+  // Get the code from URL on client side
   useEffect(() => {
-    const code = searchParams?.get('code');
+    const urlCode = searchParams?.get('code') || null;
+    setCode(urlCode);
+  }, [searchParams]);
+  
+  // Verify the code once it's available
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
     if (!code) {
       setError('No access code provided');
       setIsLoading(false);
       return;
     }
+    
+    // Reset loading state when code changes
+    setIsLoading(true);
+    setError(null);
 
     const verifyCode = async () => {
       try {
