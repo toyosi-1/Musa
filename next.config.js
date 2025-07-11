@@ -121,8 +121,10 @@ const nextConfig = {
     // Only run these optimizations in production
     if (!dev) {
       // Minify CSS in production
-      const OptimizeCSSAssetsPlugin = require('optimize-css-assets-webpack-plugin');
-      config.optimization.minimizer.push(new OptimizeCSSAssetsPlugin({}));
+      const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
+      config.optimization.minimizer.push(
+        new CssMinimizerPlugin()
+      );
       
       // Enable tree shaking
       config.optimization.usedExports = true;
