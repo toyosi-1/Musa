@@ -53,9 +53,6 @@ const poppins = Poppins({
 // Critical CSS is now in critical.css file
 // This reduces the amount of JavaScript in the initial bundle
 
-// Import critical CSS as a string
-import criticalCSS from '!!raw-loader!./critical.css';
-
 // Define viewport configuration for better mobile and PWA support
 export const viewport: Viewport = {
   // Core viewport settings
