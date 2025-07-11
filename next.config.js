@@ -118,6 +118,12 @@ const nextConfig = {
   
   // Webpack optimizations
   webpack: (config, { isServer, dev }) => {
+    // Configure raw-loader for CSS files
+    config.module.rules.push({
+      test: /\.css$/,
+      use: ['raw-loader']
+    });
+
     // Only run these optimizations in production
     if (!dev) {
       // Minify CSS in production

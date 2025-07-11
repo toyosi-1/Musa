@@ -1,11 +1,14 @@
 import type { Metadata, Viewport } from 'next';
-import { Inter } from 'next/font/google';
+import { Inter, Poppins } from 'next/font/google';
 import Script from 'next/script';
 import dynamic from 'next/dynamic';
+import { Suspense } from 'react';
 import { getPublicEnvScript } from '@/utils/env';
 import PerformanceMonitor from '@/components/PerformanceMonitor';
 import './globals.css';
-import './critical.css';
+
+// Import critical CSS as a string
+const criticalCSS = require('!!raw-loader!./critical.css').default;
 
 // Lazy load non-critical components with loading states
 const MobileInitializer = dynamic(
@@ -34,48 +37,24 @@ const inter = Inter({
   subsets: ['latin'],
   display: 'swap',
   variable: '--font-inter',
-  // Only include weights that are actually used
   weight: ['400', '500', '600', '700'],
-  // Use 'swap' to ensure text remains visible during webfont load
   fallback: ['system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'],
   preload: true,
   adjustFontFallback: true,
 });
 
+const poppins = Poppins({
+  weight: ['400', '500', '600', '700'],
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-poppins',
+});
+
 // Critical CSS is now in critical.css file
 // This reduces the amount of JavaScript in the initial bundle
-  
-  body {
-    margin: 0;
-    padding: 0;
-    min-height: 100vh;
-    font-family: var(--font-sans);
-    background-color: var(--bg-light);
-    color: var(--text-light);
-    line-height: 1.5;
-    overflow-x: hidden;
-  }
-  
-  /* Dark mode support */
-  @media (prefers-color-scheme: dark) {
-    body {
-      background-color: var(--bg-dark);
-      color: var(--text-dark);
-    }
-  }
-  
-  /* Critical layout components */
-  #__next {
-    display: flex;
-    flex-direction: column;
-    min-height: 100vh;
-  }
-  
-  /* Improve readability and tap targets */
-  a, button, input, textarea {
-    -webkit-tap-highlight-color: transparent;
-  }
-`;
+
+// Import critical CSS as a string
+import criticalCSS from '!!raw-loader!./critical.css';
 
 // Define viewport configuration for better mobile and PWA support
 export const viewport: Viewport = {
@@ -164,6 +143,10 @@ export const metadata: Metadata = {
   },
 };
 
+interface RootLayoutProps {
+  children: React.ReactNode;
+}
+
 export default function RootLayout({ children }: RootLayoutProps) {
   return (
     <html lang="en" className={`${inter.variable} ${poppins.variable}`}>
@@ -219,10 +202,10 @@ export default function RootLayout({ children }: RootLayoutProps) {
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
           </div>
         }>
-          <MainLayout>
+          <LazyOptimizedLayout>
             {children}
-          </MainLayout>
-          <MobileInitializer />
+            <MobileInitializer />
+          </LazyOptimizedLayout>
         </Suspense>
         
         {/* Google Tag Manager (noscript) */}
@@ -235,10 +218,10 @@ export default function RootLayout({ children }: RootLayoutProps) {
             title="Google Tag Manager"
           />
         </noscript>
-        <meta name="format-detection" content="telephone=no,date=no,address=no,email=no,url=no" />
         
         {/* Environment variables */}
-        <script
+        <Script
+          id="env-vars"
           dangerouslySetInnerHTML={{
             __html: getPublicEnvScript(),
           }}
@@ -247,26 +230,6 @@ export default function RootLayout({ children }: RootLayoutProps) {
         
         {/* Performance monitoring */}
         <PerformanceMonitor />
-      </head>
-      <body className="min-h-screen bg-background-light dark:bg-background-dark text-foreground-light dark:text-foreground-dark">
-        <LazyOptimizedLayout>
-          {children}
-          <MobileInitializer />
-        </LazyOptimizedLayout>
-        
-        {/* Lazy load non-critical scripts */}
-        <Script
-          src="https://www.googletagmanager.com/gtag/js"
-          strategy="afterInteractive"
-        />
-        <Script id="google-analytics" strategy="afterInteractive">
-          {`
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
-            gtag('config', '${process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID}');
-          `}
-        </Script>
       </body>
     </html>
   );
