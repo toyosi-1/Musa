@@ -3,6 +3,15 @@
 import { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 
+// Type for the gtag function
+type Gtag = {
+  (command: 'config', targetId: string, config?: any): void;
+  (command: 'event', eventName: string, eventParams?: any): void;
+  (command: 'set', target: string, field: string | { [key: string]: any }, value?: any): void;
+  (command: 'get', target: string, field: string, callback: (field: string | { [key: string]: any }) => void): void;
+  (command: 'consent', consent: 'default' | 'update', params: any): void;
+};
+
 type WebVitalsMetric = {
   id: string;
   name: string;
@@ -23,7 +32,7 @@ declare global {
       getLCP: (callback: (metric: WebVitalsMetric) => void) => void;
       getTTFB: (callback: (metric: WebVitalsMetric) => void) => void;
     };
-    gtag?: (...args: any[]) => void;
+    gtag: Gtag;
   }
 }
 
