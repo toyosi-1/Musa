@@ -31,27 +31,29 @@ const withPWA = require('next-pwa')({
 });
 
 const nextConfig = {
-  reactStrictMode: true,
-  swcMinify: true,
+  // Static export configuration
   output: 'export',
   distDir: 'out',
+  trailingSlash: true,
+  
+  // Image optimization for static export
   images: {
     unoptimized: true,
+    domains: ['firebasestorage.googleapis.com'],
+    minimumCacheTTL: 60 * 60 * 24 * 7, // 1 week
+    formats: ['image/webp', 'image/avif'],
   },
+  
+  // Performance optimizations
   poweredByHeader: false,
   generateEtags: true,
   httpAgentOptions: {
     keepAlive: true,
   },
-  // Ensure static export works with next/image
-  trailingSlash: true,
   
-  // Image optimization
-  images: {
-    domains: ['firebasestorage.googleapis.com'],
-    minimumCacheTTL: 60 * 60 * 24 * 7, // 1 week
-    formats: ['image/webp', 'image/avif'],
-  },
+  // Enable React Strict Mode
+  reactStrictMode: true,
+  swcMinify: true,
   
   // Security headers
   async headers() {
