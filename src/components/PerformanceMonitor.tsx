@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 
 // Type for the gtag function
-type Gtag = {
+type GtagFunction = {
   (command: 'config', targetId: string, config?: any): void;
   (command: 'event', eventName: string, eventParams?: any): void;
   (command: 'set', target: string, field: string | { [key: string]: any }, value?: any): void;
@@ -32,8 +32,9 @@ declare global {
       getLCP: (callback: (metric: WebVitalsMetric) => void) => void;
       getTTFB: (callback: (metric: WebVitalsMetric) => void) => void;
     };
-    gtag: Gtag;
   }
+  // Add gtag to the global scope with a type assertion
+  const gtag: GtagFunction;
 }
 
 const PerformanceMonitor = () => {
