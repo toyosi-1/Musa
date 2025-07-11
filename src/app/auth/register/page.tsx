@@ -1,33 +1,25 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import AuthForm from '@/components/auth/AuthForm';
 import Link from 'next/link';
 import { UserRole } from '@/types/user';
 
-// Generate static params for the roles we want to pre-render
-export function generateStaticParams() {
-  return [
-    { role: 'resident' },
-    { role: 'guard' },
-    { role: 'default' } // For the default case
-  ];
-}
-
-// Opt into dynamic params
-export const dynamicParams = true;
-
 // Type guard to check if a string is a valid UserRole
-function isUserRole(role: string | undefined): role is UserRole {
+function isUserRole(role: string | null | undefined): role is UserRole {
   return role === 'resident' || role === 'guard';
 }
 
-export default function RegisterPage({
-  searchParams,
-}: {
-  searchParams: { [key: string]: string | string[] | undefined };
-}) {
-  // Extract and validate role from searchParams
-  const roleParam = searchParams.role;
-  const roleValue = Array.isArray(roleParam) ? roleParam[0] : roleParam;
-  const defaultRole: UserRole = isUserRole(roleValue) ? roleValue : 'resident';
+export default function RegisterPage() {
+  const searchParams = useSearchParams();
+  const [role, setRole] = useState<UserRole>('resident');
+  
+  // Handle role from URL on client side
+  useEffect(() => {
+    const roleParam = searchParams?.get('role');
+    setRole(isUserRole(roleParam) ? roleParam : 'resident');
+  }, [searchParams]);
 
   return (
     <div className="min-h-screen flex flex-col bg-musa-bg dark:bg-gray-900">
@@ -59,18 +51,21 @@ export default function RegisterPage({
                 </svg>
               </div>
               
-              <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-3">
-                {defaultRole === 'guard' ? 'Join as a Security Guard' : 'Create Your Resident Account'}
-              </h1>
-              <p className="text-gray-600 dark:text-gray-400 max-w-md mx-auto">
-                {defaultRole === 'guard' 
-                  ? 'Register as a guard to help manage estate access and security.' 
-                  : 'Register as a resident to create and manage access codes for your household.'}
-              </p>
-            </div>
-            
-            <div className="card">
-              <AuthForm mode="register" defaultRole={defaultRole} />
+              <div className="max-w-md w-full mx-auto bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8">
+                <div className="text-center mb-8">
+                  <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Create an Account</h1>
+                  <p className="text-gray-600 dark:text-gray-300">
+                    {role === 'guard' 
+                      ? 'Sign up as a security guard' 
+                      : 'Join as a resident to manage your household access'}
+                  </p>
+                </div>
+
+                <AuthForm 
+                  mode="register"
+                  defaultRole={role}
+                />
+              </div>
             </div>
             
             <div className="text-center mt-6 text-sm text-gray-500 dark:text-gray-400">
