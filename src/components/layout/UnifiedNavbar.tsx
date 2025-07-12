@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import ThemeToggle from '../ui/ThemeToggle';
-import NotificationBell from '../ui/NotificationBell';
+
 import Logo from '../ui/Logo';
 
 
@@ -78,8 +78,7 @@ export default function UnifiedNavbar() {
               {/* Theme Toggle */}
               <ThemeToggle />
               
-              {/* Notification Bell - Add actual count from your notifications */}
-              <NotificationBell count={0} onClick={() => console.log('Notifications clicked')} />
+
               
               {currentUser && (
                 <div className="flex items-center animate-fade-in">
