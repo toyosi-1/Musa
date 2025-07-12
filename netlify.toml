@@ -2,6 +2,13 @@
   command = "npm run netlify-build"
   publish = ".next"
   functions = ".netlify/functions"
+  base = "/"
+  base_directory = "/"
+  node_version = "18.17.0"
+  node_bundler = "esbuild"
+  
+  # Use Docker image with Node.js 18.17.0
+  image = "node:18.17.0"
 
 [build.environment]
   NODE_VERSION = "18.17.0"
