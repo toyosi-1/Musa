@@ -41,12 +41,12 @@ export default function UnifiedNavbar() {
     <>
       {/* Primary navigation - blue header */}
       <nav className="bg-primary text-white shadow-md">
-        <div className="container mx-auto px-6 py-5">
-          {/* Top row: Logo, mode indicator, and user info */}
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 animate-slide-down">
+        <div className="container mx-auto px-4 py-3">
+          {/* Centered layout with logo and user info */}
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 animate-slide-down">
             <div className="flex items-center justify-between">
               {/* Logo/Brand */}
-              <div className="flex items-center">
+              <div className="flex flex-col items-center">
                 <Logo
                   variant="default"
                   size="md"
@@ -54,7 +54,7 @@ export default function UnifiedNavbar() {
                   className="animate-fade-in"
                 />
                 {currentUser && (
-                  <span className="bg-white text-primary px-3 py-1.5 rounded-md text-sm font-medium">
+                  <span className="bg-white text-primary px-3 py-1 rounded-md text-xs font-medium mt-1">
                     {currentUser.role === 'guard' ? 'Guard Mode' : 'Resident Mode'}
                   </span>
                 )}
@@ -94,32 +94,17 @@ export default function UnifiedNavbar() {
             </div>
           </div>
 
-          {/* Bottom row: Navigation links with improved spacing */}
-          {isApproved && (
-            <div className="flex flex-wrap mt-6 space-x-6 animate-slide-in-right">
+          {/* Admin link if user is admin */}
+          {isApproved && isAdmin && (
+            <div className="mt-2 md:mt-0 animate-slide-in-right">
               <Link 
-                href="/dashboard" 
-                className={`px-4 py-2.5 rounded-md text-sm font-medium transition ${
-                  pathname === '/dashboard' ? 'bg-white/20' : 'hover:bg-white/10'
+                href="/admin/dashboard" 
+                className={`px-3 py-1.5 rounded-md text-xs font-medium transition ${
+                  pathname === '/admin/dashboard' ? 'bg-white/20' : 'hover:bg-white/10'
                 }`}
               >
-                Dashboard
+                Admin
               </Link>
-              
-              {isAdmin && (
-                <Link 
-                  href="/admin/dashboard" 
-                  className={`px-4 py-2.5 rounded-md text-sm font-medium transition ${
-                    pathname === '/admin/dashboard' ? 'bg-white/20' : 'hover:bg-white/10'
-                  }`}
-                >
-                  Admin
-                </Link>
-              )}
-              
-
-              
-
             </div>
           )}
         </div>
