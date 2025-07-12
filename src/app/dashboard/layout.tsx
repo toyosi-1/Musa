@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
+import { Dialog } from '@/components/ui/Dialog';
 import Link from 'next/link';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 
@@ -15,6 +16,10 @@ export default function DashboardLayout({
   const router = useRouter();
   const pathname = usePathname();
 
+  // Mobile menu state
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  // Profile modal state
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -31,6 +36,11 @@ export default function DashboardLayout({
     } catch (error) {
       console.error('Error signing out:', error);
     }
+  };
+  
+  // Toggle profile dialog
+  const toggleProfileDialog = () => {
+    setIsProfileOpen(!isProfileOpen);
   };
 
   if (loading) {
@@ -112,31 +122,80 @@ export default function DashboardLayout({
             <span className="text-xs font-medium">History</span>
           </Link>
 
-          <div className="relative group">
-            <div className="flex flex-col items-center p-2 rounded-lg min-w-[60px]">
+          <div className="relative">
+            <button 
+              onClick={toggleProfileDialog} 
+              className="flex flex-col items-center p-2 rounded-lg min-w-[60px] focus:outline-none"
+            >
               <div className="w-8 h-8 rounded-full bg-musa-blue/10 dark:bg-blue-900/30 flex items-center justify-center text-musa-blue dark:text-blue-400">
                 {currentUser.displayName?.charAt(0).toUpperCase() || 'U'}
               </div>
-              <span className="text-xs font-medium text-gray-500 dark:text-gray-400 group-hover:text-musa-blue dark:group-hover:text-blue-400 transition-colors truncate max-w-[60px]">
+              <span className="text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-musa-blue dark:hover:text-blue-400 transition-colors truncate max-w-[60px]">
                 {currentUser.displayName?.split(' ')[0] || 'User'}
               </span>
-            </div>
-            
-            {/* Dropdown menu */}
-            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-xl py-1 z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
-              <button
-                onClick={handleSignOut}
-                className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                </svg>
-                Sign Out
-              </button>
-            </div>
+            </button>
           </div>
         </div>
       </nav>
+      
+      {/* User Profile Dialog */}
+      {currentUser && (
+        <Dialog 
+          isOpen={isProfileOpen} 
+          onClose={() => setIsProfileOpen(false)}
+          title="User Profile"
+        >
+          <div className="space-y-4">
+            {/* Profile Picture */}
+            <div className="flex justify-center">
+              <div className="bg-primary text-white w-20 h-20 rounded-full flex items-center justify-center text-2xl font-bold">
+                {currentUser?.displayName ? currentUser.displayName.charAt(0).toUpperCase() : '?'}
+              </div>
+            </div>
+            
+            {/* User Details */}
+            <div className="space-y-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-500 dark:text-gray-400">Full Name</label>
+                <p className="text-lg font-medium">{currentUser?.displayName || 'Not provided'}</p>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-500 dark:text-gray-400">Email</label>
+                <p className="text-lg">{currentUser?.email}</p>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-500 dark:text-gray-400">Role</label>
+                <p className="capitalize text-lg">
+                  {currentUser?.role || 'Not assigned'}
+                </p>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-500 dark:text-gray-400">Status</label>
+                <div className="flex items-center gap-2">
+                  <span className={`inline-block w-3 h-3 rounded-full ${currentUser?.status === 'approved' ? 'bg-green-500' : 'bg-yellow-500'}`}></span>
+                  <span className="capitalize">{currentUser?.status || 'Pending'}</span>
+                </div>
+              </div>
+              
+              {/* Sign Out Button */}
+              <div className="pt-4">
+                <button
+                  onClick={handleSignOut}
+                  className="w-full flex items-center justify-center gap-2 py-2 px-4 bg-red-100 hover:bg-red-200 text-red-700 rounded-md transition-colors"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                  </svg>
+                  Sign Out
+                </button>
+              </div>
+            </div>
+          </div>
+        </Dialog>
+      )}
     </div>
   );
 }

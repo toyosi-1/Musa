@@ -368,13 +368,14 @@ export default function ResidentDashboard({ user }: ResidentDashboardProps) {
                 )}
               </div>
             ) : (
-              <div className="grid gap-6 md:grid-cols-2">
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2 w-full overflow-hidden">
                 {accessCodes.map(code => (
-                  <AccessCodeCard 
-                    key={code.id} 
-                    accessCode={code}
-                    onDeactivate={() => handleDeactivateCode(code.id)}
-                  />
+                  <div key={code.id} className="w-full overflow-hidden">
+                    <AccessCodeCard 
+                      accessCode={code}
+                      onDeactivate={() => handleDeactivateCode(code.id)}
+                    />
+                  </div>
                 ))}
               </div>
             )}

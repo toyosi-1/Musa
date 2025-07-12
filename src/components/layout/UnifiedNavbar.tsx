@@ -82,18 +82,7 @@ export default function UnifiedNavbar() {
               <ThemeToggle />
               
               {currentUser && (
-                <div className="flex items-center animate-fade-in gap-4">
-                  {/* User Profile Button */}
-                  <button
-                    onClick={() => setIsProfileOpen(true)}
-                    className="flex items-center justify-center bg-white/10 hover:bg-white/20 rounded-full w-10 h-10 transition transform hover:scale-105"
-                    aria-label="Open profile"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                    </svg>
-                  </button>
-                  
+                <div className="flex items-center animate-fade-in">
                   <button
                     onClick={handleSignOut}
                     className="text-sm px-4 py-2 bg-white/10 hover:bg-white/20 rounded-md transition transform hover:scale-105"

@@ -67,7 +67,7 @@ export default function AccessCodeCard({ accessCode, onDeactivate }: AccessCodeC
   };
 
   return (
-    <div className={`w-full max-w-sm mx-auto bg-white dark:bg-gray-800/80 rounded-2xl shadow-lg border border-transparent dark:border-gray-700/50 animate-fade-in transition-all duration-300 ${!accessCode.isActive || isExpired ? 'opacity-80' : 'hover:shadow-card-hover'}`}>
+    <div className={`w-full box-border bg-white dark:bg-gray-800/80 rounded-2xl shadow-lg border border-transparent dark:border-gray-700/50 animate-fade-in transition-all duration-300 ${!accessCode.isActive || isExpired ? 'opacity-80' : 'hover:shadow-card-hover'}`}>
       {/* Status indicator */}
       <div className={`w-full h-1.5 rounded-t-2xl ${!accessCode.isActive ? 'bg-gray-300 dark:bg-gray-600' : isExpired ? 'bg-warning' : 'bg-success'}`}></div>
       
@@ -123,7 +123,7 @@ export default function AccessCodeCard({ accessCode, onDeactivate }: AccessCodeC
         {/* QR Code display */}
         <div className="mb-4">
           {showQR && accessCode.qrCode ? (
-            <div className="relative w-full max-w-sm mx-auto bg-white dark:bg-gray-800 p-4 rounded-xl shadow-card border border-gray-200 dark:border-gray-700 animate-fade-in">
+            <div className="relative w-full box-border bg-white dark:bg-gray-800 p-4 rounded-xl shadow-card border border-gray-200 dark:border-gray-700 animate-fade-in">
               <div className="absolute top-2 right-2">
                 <button 
                   onClick={() => setShowQR(false)}
@@ -135,13 +135,15 @@ export default function AccessCodeCard({ accessCode, onDeactivate }: AccessCodeC
                   </svg>
                 </button>
               </div>
-              <Image 
-                src={accessCode.qrCode} 
-                alt="QR Code" 
-                width={200} 
-                height={200}
-                className="mx-auto rounded-md"
-              />
+              <div className="flex justify-center w-full overflow-hidden">
+                <Image 
+                  src={accessCode.qrCode} 
+                  alt="QR Code" 
+                  width={200} 
+                  height={200}
+                  className="rounded-md max-w-full h-auto"
+                />
+              </div>
               <div className="mt-2 text-center text-xs text-gray-500 dark:text-gray-400">
                 Scan this code for entry
               </div>
@@ -149,7 +151,7 @@ export default function AccessCodeCard({ accessCode, onDeactivate }: AccessCodeC
           ) : (
             <button
               onClick={() => setShowQR(true)}
-              className="w-full py-3 px-4 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-xl text-center hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-300 shadow-sm hover:shadow group"
+              className="w-full py-3 px-4 box-border bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-xl text-center hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-300 shadow-sm hover:shadow group overflow-hidden"
             >
               <span className="flex items-center justify-center gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-500 group-hover:text-primary-500 transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
