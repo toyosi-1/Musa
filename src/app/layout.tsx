@@ -168,6 +168,19 @@ export default function RootLayout({
         
         {/* Preload critical resources */}
         <link rel="preload" href="/fonts/inter-var.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
+        
+        {/* Direct iOS icon links for better Add to Home Screen support */}
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/images/icon-180x180.png" />
+        <link rel="apple-touch-icon" sizes="152x152" href="/images/icon-152x152.png" />
+        <link rel="apple-touch-icon" sizes="144x144" href="/images/icon-144x144.png" />
+        <link rel="apple-touch-icon" sizes="128x128" href="/images/icon-128x128.png" />
+        
+        {/* Explicit iOS meta tags for home screen app behavior */}
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-title" content="Musa" />
+        <meta name="format-detection" content="telephone=no" />
       </head>
       <body className={`${inter.variable} font-sans antialiased bg-musa-bg dark:bg-gray-900 text-gray-800 dark:text-gray-200 min-h-screen overflow-x-hidden`}>
         <MobileInitializer />
