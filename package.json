@@ -16,6 +16,7 @@
     "npm": "9.x"
   },
   "dependencies": {
+    "@tailwindcss/nesting": "0.0.0-insiders.565cd3e",
     "@heroicons/react": "^2.2.0",
     "@hookform/resolvers": "^3.3.2",
     "@types/qrcode": "^1.5.5",
@@ -45,7 +46,7 @@
   },
   "devDependencies": {
     "@netlify/plugin-nextjs": "^5.11.4",
-    "@tailwindcss/nesting": "^0.0.0-insiders.565cd3e",
+    "@tailwindcss/nesting": "0.0.0-insiders.565cd3e",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
