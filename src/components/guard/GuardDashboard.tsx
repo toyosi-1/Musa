@@ -131,7 +131,7 @@ export default function GuardDashboard({ user }: GuardDashboardProps) {
   }, [user.uid]);
 
   return (
-    <div className="max-w-4xl mx-auto px-4 w-full h-full flex flex-col">
+    <div className="w-full h-full flex flex-col">
       <h1 className="text-2xl md:text-3xl font-bold mb-6 text-gray-800 dark:text-white">
         Guard Dashboard
       </h1>
