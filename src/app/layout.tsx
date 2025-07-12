@@ -169,7 +169,7 @@ export default function RootLayout({
         {/* Preload critical resources */}
         <link rel="preload" href="/fonts/inter-var.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
       </head>
-      <body className="min-h-screen bg-musa-bg dark:bg-gray-900 text-gray-900 dark:text-white overflow-x-hidden">
+      <body className={`${inter.variable} font-sans antialiased bg-musa-bg dark:bg-gray-900 text-gray-800 dark:text-gray-200 min-h-screen overflow-x-hidden`}>
         <MobileInitializer />
         <ThemeProvider>
           <AuthWrapper>

@@ -333,7 +333,7 @@ export default function ResidentDashboard({ user }: ResidentDashboardProps) {
             </div>
           </div>
           
-          <div className="card">
+          <div className="card px-2 sm:px-4">
             <div className="mb-6">
               <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-2 flex items-center">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
