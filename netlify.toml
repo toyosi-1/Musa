@@ -8,14 +8,6 @@
   NPM_VERSION = "9.0.0"
   NEXT_TELEMETRY_DISABLED = "1"
   NODE_OPTIONS = "--max_old_space_size=4096"
-
-[build.environment]
-  NODE_VERSION = "18.17.0"
-  NPM_VERSION = "9.0.0"
-  NEXT_TELEMETRY_DISABLED = "1"
-  NODE_OPTIONS = "--max_old_space_size=4096"
-  
-  # Build flags for Next.js
   NETLIFY_NEXT_PLUGIN_SKIP = "false"
   NETLIFY_NEXT_PLUGIN_FORCE_BUILD = "true"
   
