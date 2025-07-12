@@ -298,10 +298,12 @@ export default function GuardDashboard({ user }: GuardDashboardProps) {
                     {scanResult.household?.name && (
                       <p className="mt-2 text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-                          <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                          <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                          <circle cx="9" cy="7" r="4"></circle>
+                          <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+                          <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
                         </svg>
-                        <span>{scanResult.household.name}</span>
+                        Resident: {scanResult.household.name}
                       </p>
                     )}
                   </div>
@@ -310,68 +312,53 @@ export default function GuardDashboard({ user }: GuardDashboardProps) {
             )}
           </div>
         )}
-          </div>
         </div>
-        
-        {/* Right Column - Visit History */}
+      </div>
+
+        {/* Right Column - Verification History */}
         <div className="md:col-span-2 h-full flex flex-col">
-          <div className="card animate-fade-in border border-gray-200 dark:border-gray-700 overflow-hidden transition-all duration-300 hover:shadow-card-hover flex-grow flex flex-col">
-            <div className="p-6 md:p-6">
-              <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-white flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
-                </svg>
-                Recent Verification History
-              </h2>
-              
-              {isLoadingStats ? (
-                <div className="flex items-center justify-center h-64">
-                  <div className="animate-pulse-slow text-primary">Loading history...</div>
-                </div>
-              ) : verificationHistory.length > 0 ? (
-                <div className="space-y-3">
-                  {verificationHistory.map((record) => (
-                    <div 
-                      key={record.id} 
-                      className={`p-3 rounded-lg border ${record.isValid 
-                        ? 'border-success-200 dark:border-success-800 bg-success-50 dark:bg-success-900/10' 
-                        : 'border-danger-200 dark:border-danger-800 bg-danger-50 dark:bg-danger-900/10'
-                      } text-sm`}
-                    >
-                      <div className="flex justify-between items-start mb-1.5">
-                        <div className="font-medium">
-                          <span className={`${record.isValid 
-                            ? 'text-success-700 dark:text-success-500' 
-                            : 'text-danger-700 dark:text-danger-500'
-                          }`}>
+          <div className="card animate-fade-in-delay border border-gray-200 dark:border-gray-700 overflow-hidden transition-all duration-300 hover:shadow-card-hover flex-grow flex flex-col">
+            <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+              <h2 className="text-xl font-semibold text-gray-800 dark:text-white">Recent Activity</h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Last 10 verifications</p>
+            </div>
+            <div className="flex-grow overflow-y-auto p-2">
+              <ul className="divide-y divide-gray-100 dark:divide-gray-700/50">
+                {verificationHistory.length > 0 ? (
+                  verificationHistory.map((record: VerificationRecord) => (
+                    <li key={record.id} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-lg transition-colors duration-200">
+                      <div className="flex items-start gap-4">
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 mt-1 ${record.isValid ? 'bg-success-100 dark:bg-success-900/30' : 'bg-danger-100 dark:bg-danger-900/30'}`}>
+                          {record.isValid ? (
+                            <CheckCircleIcon className="h-6 w-6 text-success" />
+                          ) : (
+                            <XCircleIcon className="h-6 w-6 text-danger" />
+                          )}
+                        </div>
+                        <div className="flex-grow">
+                          <p className="font-semibold text-gray-800 dark:text-white">{record.code}</p>
+                          <p className={`text-sm font-medium ${record.isValid ? 'text-success-600 dark:text-success-400' : 'text-danger-600 dark:text-danger-400'}`}>
                             {record.isValid ? 'Granted' : 'Denied'}
-                          </span>
-                          <span className="mx-1.5 text-gray-400">•</span>
-                          <span className="font-mono text-gray-600 dark:text-gray-400">
-                            {record.code}
-                          </span>
-                        </div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                          {formatDistanceToNow(record.timestamp, { addSuffix: true })}
+                          </p>
+                          {record.destinationAddress && (
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 flex items-center gap-1.5">
+                              <MapPinIcon className="h-3 w-3" />
+                              {record.destinationAddress.split('\n')[0]}...
+                            </p>
+                          )}
+                          <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                            {formatDistanceToNow(new Date(record.timestamp), { addSuffix: true })}
+                          </p>
                         </div>
                       </div>
-                      {record.message && (
-                        <p className="text-gray-600 dark:text-gray-300 text-xs mt-1">{record.message}</p>
-                      )}
-                      <div className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                        {new Date(record.timestamp).toLocaleString()}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="bg-gray-50 dark:bg-gray-800/30 border border-gray-100 dark:border-gray-700 rounded-lg p-6 text-center">
-                  <p className="text-gray-500 dark:text-gray-400">No verification history yet.</p>
-                  <p className="text-sm mt-2 text-gray-400 dark:text-gray-500">
-                    Your recent access code verifications will appear here.
-                  </p>
-                </div>
-              )}
+                    </li>
+                  ))
+                ) : (
+                  <li className="p-6 text-center text-gray-500 dark:text-gray-400">
+                    {isLoadingStats ? 'Loading history...' : 'No recent activity.'}
+                  </li>
+                )}
+              </ul>
             </div>
           </div>
         </div>
