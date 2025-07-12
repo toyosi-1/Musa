@@ -187,7 +187,7 @@ export default function ResidentDashboard({ user }: ResidentDashboardProps) {
   }
 
   return (
-    <div className="max-w-5xl mx-auto p-4">
+    <div className="w-full">
       <h1 className="text-3xl font-bold mb-8 text-gray-800 dark:text-white">Resident Dashboard</h1>
       
       {error && (
