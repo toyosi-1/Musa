@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { User, Household } from '@/types/user';
 import { createHouseholdInvite, getHouseholdMembers, updateHouseholdAddress } from '@/services/householdService';
+import { getUserProfile } from '@/services/userService';
 
 interface HouseholdManagerProps {
   user: User;
@@ -17,7 +18,7 @@ export default function HouseholdManager({ user, household, onCreateHousehold, r
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [members, setMembers] = useState<string[]>([]);
+  const [members, setMembers] = useState<Array<{ id: string; displayName: string | null; email: string | null }>>([]);
   const [showMembers, setShowMembers] = useState(false);
   const [showAddressForm, setShowAddressForm] = useState(false);
   
@@ -95,7 +96,8 @@ export default function HouseholdManager({ user, household, onCreateHousehold, r
       const invite = await createHouseholdInvite(household.id, user.uid, inviteEmail);
       console.log('Invitation created successfully:', invite);
       
-      setSuccess(`Invitation sent to ${inviteEmail}`);
+      // Create a more descriptive success message
+      setSuccess(`Invitation sent to ${inviteEmail}. They will appear in your household after accepting.`);
       setInviteEmail('');
       
       // Reset after a few seconds
@@ -117,14 +119,31 @@ export default function HouseholdManager({ user, household, onCreateHousehold, r
 
   // Load household members
   const loadMembers = async () => {
-    if (!household) return;
+    if (!household) {
+      console.error('No household available');
+      setError('No household available');
+      return;
+    }
     
     setIsLoading(true);
-    setError('');
-    
     try {
       const memberIds = await getHouseholdMembers(household.id);
-      setMembers(memberIds);
+      const memberDetails = await Promise.all(
+        memberIds.map(async (id) => {
+          try {
+            const userProfile = await getUserProfile(id);
+            return {
+              id,
+              displayName: userProfile?.displayName || null,
+              email: userProfile?.email || null
+            };
+          } catch (error) {
+            console.error(`Error fetching details for user ${id}:`, error);
+            return { id, displayName: null, email: null };
+          }
+        })
+      );
+      setMembers(memberDetails);
       setShowMembers(true);
     } catch (err) {
       console.error('Error loading members:', err);
@@ -436,11 +455,19 @@ export default function HouseholdManager({ user, household, onCreateHousehold, r
             
             {showMembers && (
               <div className="mt-2 p-3 bg-gray-50 dark:bg-gray-700 rounded-md">
-                <p className="text-sm font-medium mb-1">Member IDs:</p>
+                <p className="text-sm font-medium mb-1">Household Members:</p>
                 <ul className="text-sm text-gray-600 dark:text-gray-300 space-y-1">
-                  {members.map(memberId => (
-                    <li key={memberId} className="truncate">
-                      {memberId === user.uid ? `${memberId} (You)` : memberId}
+                  {members.map(member => (
+                    <li key={member.id} className="truncate flex justify-between items-center py-1">
+                      <div>
+                        <span className="font-medium">
+                          {member.displayName || member.email || 'Unknown User'}
+                          {member.id === user.uid && ' (You)'}
+                        </span>
+                        {member.email && member.displayName && (
+                          <span className="text-xs text-gray-500 dark:text-gray-400 block">{member.email}</span>
+                        )}
+                      </div>
                     </li>
                   ))}
                 </ul>
