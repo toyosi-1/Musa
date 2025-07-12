@@ -169,6 +169,9 @@ export default function RootLayout({
         {/* Preload critical resources */}
         <link rel="preload" href="/fonts/inter-var.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
         
+        {/* PWA manifest for Android/Chrome support */}
+        <link rel="manifest" href="/manifest.json" />
+        
         {/* Direct iOS icon links for better Add to Home Screen support */}
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <link rel="apple-touch-icon" sizes="180x180" href="/images/icon-180x180.png" />
