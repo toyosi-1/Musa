@@ -126,15 +126,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html 
-      lang="en" 
-      className={`${inter.variable} font-sans`}
-      style={{
-        '--vh': '1vh', // CSS variable for viewport height
-        height: '100%',
-        overflow: 'hidden',
-      } as React.CSSProperties}
-    >
+    <html lang="en" className={`${inter.variable} font-sans`}>
       <head>
         {/* PWA and Mobile Web App Capabilities */}
         <meta name="mobile-web-app-capable" content="yes" />
@@ -177,19 +169,12 @@ export default function RootLayout({
         {/* Preload critical resources */}
         <link rel="preload" href="/fonts/inter-var.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
       </head>
-      <body className="min-h-screen bg-musa-bg dark:bg-gray-900 text-gray-900 dark:text-white relative overflow-x-hidden touch-manipulation" style={{
-        WebkitOverflowScrolling: 'touch',
-        overscrollBehaviorY: 'none',
-        height: '100%',
-        width: '100%',
-        position: 'fixed',
-        overflow: 'hidden',
-      }}>
+      <body className="min-h-screen bg-musa-bg dark:bg-gray-900 text-gray-900 dark:text-white overflow-x-hidden">
         <MobileInitializer />
         <ThemeProvider>
           <AuthWrapper>
             <Suspense fallback={<LoadingScreen />}>
-              <div className="min-h-[calc(var(--vh,1vh)*100)] flex flex-col">
+              <div className="min-h-screen flex flex-col">
                 {children}
               </div>
             </Suspense>
