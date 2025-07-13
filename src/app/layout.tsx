@@ -81,21 +81,21 @@ export const metadata: Metadata = {
     icon: [
       { url: '/favicon.ico', sizes: '32x32', type: 'image/x-icon' },
       { url: '/favicon.svg', sizes: 'any', type: 'image/svg+xml' },
-      { url: '/images/icon-72x72.png', sizes: '72x72', type: 'image/png' },
-      { url: '/images/icon-96x96.png', sizes: '96x96', type: 'image/png' },
-      { url: '/images/icon-128x128.png', sizes: '128x128', type: 'image/png' },
-      { url: '/images/icon-144x144.png', sizes: '144x144', type: 'image/png' },
-      { url: '/images/icon-152x152.png', sizes: '152x152', type: 'image/png' },
-      { url: '/images/icon-192x192.png', sizes: '192x192', type: 'image/png' },
-      { url: '/images/icon-384x384.png', sizes: '384x384', type: 'image/png' },
-      { url: '/images/icon-512x512.png', sizes: '512x512', type: 'image/png' },
+      { url: '/images/icon-72x72.png?version=v1752395417209', sizes: '72x72', type: 'image/png' },
+      { url: '/images/icon-96x96.png?version=v1752395417209', sizes: '96x96', type: 'image/png' },
+      { url: '/images/icon-128x128.png?version=v1752395417209', sizes: '128x128', type: 'image/png' },
+      { url: '/images/icon-144x144.png?version=v1752395417209', sizes: '144x144', type: 'image/png' },
+      { url: '/images/icon-152x152.png?version=v1752395417209', sizes: '152x152', type: 'image/png' },
+      { url: '/images/icon-192x192.png?version=v1752395417209', sizes: '192x192', type: 'image/png' },
+      { url: '/images/icon-384x384.png?version=v1752395417209', sizes: '384x384', type: 'image/png' },
+      { url: '/images/icon-512x512.png?version=v1752395417209', sizes: '512x512', type: 'image/png' },
     ],
     apple: [
       // Apple Touch Icons - using the available icon sizes
-      { url: '/images/icon-180x180.png', sizes: '180x180', type: 'image/png' }, // iPhone 6 Plus and up
-      { url: '/images/icon-152x152.png', sizes: '152x152', type: 'image/png' }, // iPad and iPad mini with @2x
-      { url: '/images/icon-144x144.png', sizes: '144x144', type: 'image/png' }, // Alternative for iPad
-      { url: '/images/icon-128x128.png', sizes: '128x128', type: 'image/png' }, // Fallback for older devices
+      { url: '/images/icon-180x180.png?version=v1752395417209', sizes: '180x180', type: 'image/png' }, // iPhone 6 Plus and up
+      { url: '/images/icon-152x152.png?version=v1752395417209', sizes: '152x152', type: 'image/png' }, // iPad and iPad mini with @2x
+      { url: '/images/icon-144x144.png?version=v1752395417209', sizes: '144x144', type: 'image/png' }, // Alternative for iPad
+      { url: '/images/icon-128x128.png?version=v1752395417209', sizes: '128x128', type: 'image/png' }, // Fallback for older devices
     ]
   },
   // Additional meta tags for better PWA support
@@ -103,10 +103,10 @@ export const metadata: Metadata = {
     // Safari pinned tab
     'mask-icon': '/safari-pinned-tab.svg',
     // Apple touch icon for older iOS versions
-    'apple-touch-icon': '/images/icon-180x180.png',
+    'apple-touch-icon': '/images/icon-180x180.png?version=v1752395417209',
     'apple-touch-icon-sizes': '180x180',
     // Windows 8/10 tile
-    'msapplication-TileImage': '/images/icon-144x144.png',
+    'msapplication-TileImage': '/images/icon-144x144.png?version=v1752395417209',
     // Windows 8/10 tile color and config
     'msapplication-TileColor': '#3b82f6',
     'msapplication-config': '/browserconfig.xml',
@@ -173,11 +173,11 @@ export default function RootLayout({
         <link rel="manifest" href="/manifest.json" />
         
         {/* Direct iOS icon links for better Add to Home Screen support */}
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-        <link rel="apple-touch-icon" sizes="180x180" href="/images/icon-180x180.png" />
-        <link rel="apple-touch-icon" sizes="152x152" href="/images/icon-152x152.png" />
-        <link rel="apple-touch-icon" sizes="144x144" href="/images/icon-144x144.png" />
-        <link rel="apple-touch-icon" sizes="128x128" href="/images/icon-128x128.png" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png?version=v1752395417209" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/images/icon-180x180.png?version=v1752395417209" />
+        <link rel="apple-touch-icon" sizes="152x152" href="/images/icon-152x152.png?version=v1752395417209" />
+        <link rel="apple-touch-icon" sizes="144x144" href="/images/icon-144x144.png?version=v1752395417209" />
+        <link rel="apple-touch-icon" sizes="128x128" href="/images/icon-128x128.png?version=v1752395417209" />
         
         {/* Explicit iOS meta tags for home screen app behavior */}
         <meta name="apple-mobile-web-app-capable" content="yes" />
