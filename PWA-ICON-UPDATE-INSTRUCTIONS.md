@@ -47,17 +47,15 @@ After deploying this update, users will need to follow these steps to see the ne
    - Visit the app URL followed by "/icon-refresh.html"
    - Follow the on-screen instructions
 
-## For Developers
+## Technical Details
 
-This update includes:
+This update has implemented:
 
-1. Updated root-level `apple-touch-icon.png`
-2. Added `apple-touch-icon-precomposed.png` and size-specific Apple touch icons
-3. Updated manifest.json with versioned icon paths
-4. Updated layout.tsx with enhanced iOS icon support
-5. Created helper pages for icon refresh
+1. New app icon (the character with yellow hat/cap)
+2. Updated root-level `apple-touch-icon.png`
+3. Added `apple-touch-icon-precomposed.png` and size-specific Apple touch icons
+4. Updated manifest.json with versioned icon paths
+5. Updated layout.tsx with enhanced iOS icon support
+6. Created helper pages for icon refresh
 
-To verify the update:
-- Inspect network requests in DevTools to ensure icons aren't served from cache
-- Check that Service Worker is updated with latest cache version
-- Verify that manifest.json and layout.tsx contain versioned icon references
+Icon version: v20250713_1752440394446

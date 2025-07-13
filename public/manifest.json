@@ -45,79 +45,91 @@
   ],
   "icons": [
     {
-      "src": "/apple-touch-icon.png?v=v20250713_1752434150600",
+      "src": "/apple-touch-icon.png?v=v20250713_1752440394446",
       "sizes": "180x180",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/new-musa-logo.png?v=v20250713_1752434150600",
+      "src": "/new-musa-logo.png?v=v20250713_1752440394446",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/apple-touch-icon.png?v=v20250713_1752434150600",
+      "src": "/apple-touch-icon.png?v=v20250713_1752440394446",
       "sizes": "180x180",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/new-musa-logo.png?v=v20250713_1752434150600",
+      "src": "/new-musa-logo.png?v=v20250713_1752440394446",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/images/icon-72x72.png?v=v20250713_1752434150600",
+      "src": "/apple-touch-icon.png?v=v20250713_1752440394446",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/new-musa-logo.png?v=v20250713_1752440394446",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/images/icon-72x72.png?v=v20250713_1752440394446",
       "sizes": "72x72",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/images/icon-96x96.png?v=v20250713_1752434150600",
+      "src": "/images/icon-96x96.png?v=v20250713_1752440394446",
       "sizes": "96x96",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/images/icon-128x128.png?v=v20250713_1752434150600",
+      "src": "/images/icon-128x128.png?v=v20250713_1752440394446",
       "sizes": "128x128",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/images/icon-144x144.png?v=v20250713_1752434150600",
+      "src": "/images/icon-144x144.png?v=v20250713_1752440394446",
       "sizes": "144x144",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/images/icon-152x152.png?v=v20250713_1752434150600",
+      "src": "/images/icon-152x152.png?v=v20250713_1752440394446",
       "sizes": "152x152",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/images/icon-180x180.png?v=v20250713_1752434150600",
+      "src": "/images/icon-180x180.png?v=v20250713_1752440394446",
       "sizes": "180x180",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/images/icon-192x192.png?v=v20250713_1752434150600",
+      "src": "/images/icon-192x192.png?v=v20250713_1752440394446",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/images/icon-384x384.png?v=v20250713_1752434150600",
+      "src": "/images/icon-384x384.png?v=v20250713_1752440394446",
       "sizes": "384x384",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/images/icon-512x512.png?v=v20250713_1752434150600",
+      "src": "/images/icon-512x512.png?v=v20250713_1752440394446",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
