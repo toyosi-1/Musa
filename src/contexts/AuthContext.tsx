@@ -7,10 +7,23 @@ import {
   signInWithEmailAndPassword,
   signOut as firebaseSignOut,
   onAuthStateChanged,
+  setPersistence,
+  browserLocalPersistence,
+  inMemoryPersistence,
+  indexedDBLocalPersistence,
   User as FirebaseUser
 } from 'firebase/auth';
 import { ref, get, set, update, onValue } from 'firebase/database';
 import { getFirebaseAuth, getFirebaseDatabase, waitForFirebase } from '@/lib/firebase';
+import { 
+  isPwaMode, 
+  backupSession, 
+  getSessionBackup, 
+  clearSessionBackup,
+  refreshSessionBackup,
+  registerPwaLifecycleEvents,
+  optimizePwaPageReload
+} from '@/utils/pwaUtils';
 
 interface AuthContextType {
   currentUser: User | null;
@@ -366,6 +379,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Non-critical error, continue
       }
       
+      // Create backup of the authentication session for PWA resilience
+      try {
+        backupSession(formattedUser.uid);
+        console.log('Created session backup for PWA persistence');
+      } catch (backupError) {
+        console.warn('Failed to create session backup:', backupError);
+        // Non-critical error, continue
+      }
+      
       console.log(`User sign-in completed successfully in ${performance.now() - startTime}ms.`);
       console.log(`User details - UID: ${formattedUser.uid}, Role: ${formattedUser.role}, Status: ${formattedUser.status}`);
       
@@ -405,6 +427,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const auth = await getFirebaseAuth();
       await firebaseSignOut(auth);
       setCurrentUser(null);
+      
+      // Clear all session backup data from all storage locations
+      clearSessionBackup();
+      
+      // Clear any IndexedDB data related to auth
+      if (typeof window !== 'undefined' && 'indexedDB' in window) {
+        try {
+          // Clear Firebase IndexedDB data
+          const deleteRequest = window.indexedDB.deleteDatabase('firebaseLocalStorageDb');
+          deleteRequest.onerror = () => console.error('Error deleting Firebase IndexedDB');
+          deleteRequest.onsuccess = () => console.log('Cleared Firebase IndexedDB');
+          
+          // Clear our custom IndexedDB data
+          const deleteMusaRequest = window.indexedDB.deleteDatabase('MusaAuthStorage');
+          deleteMusaRequest.onsuccess = () => console.log('Cleared Musa auth storage IndexedDB');
+        } catch (e) {
+          console.warn('Failed to clear IndexedDB:', e);
+        }
+      }
     } catch (error) {
       console.error('Error signing out:', error);
       throw error;
@@ -597,6 +638,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let connectedListener: () => void = () => {};
     let authTimeout: NodeJS.Timeout;
     let authStateTimeout: NodeJS.Timeout;
+    let sessionRefreshInterval: NodeJS.Timeout;
     
     // Set a shorter timeout to prevent getting stuck in loading state
     const initializeAuth = async () => {
@@ -628,6 +670,52 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Clear the timeout since we've successfully connected
         clearTimeout(authTimeout);
         
+        // Set persistence based on environment
+        try {
+          const isPwa = isPwaMode();
+          console.log(`🔒 Setting up auth persistence for ${isPwa ? 'PWA' : 'browser'} mode`);
+
+          // For iOS PWA, we use multiple persistence methods for maximum compatibility
+          if (isPwa) {
+            // First try IndexedDB (works on most Android and newer iOS)
+            try {
+              await setPersistence(auth, indexedDBLocalPersistence);
+              console.log('✅ Using IndexedDB persistence (most reliable for PWAs)');
+            } catch (e) {
+              console.warn('⚠️ IndexedDB persistence failed, falling back to localStorage:', e);
+              
+              // Fall back to localStorage (works on most browsers)
+              try {
+                await setPersistence(auth, browserLocalPersistence);
+                console.log('✅ Using localStorage persistence');
+              } catch (e2) {
+                console.warn('⚠️ localStorage persistence failed, falling back to in-memory:', e2);
+                
+                // Last resort: in-memory (session only, but at least it works)
+                await setPersistence(auth, inMemoryPersistence);
+                console.log('⚠️ Using in-memory persistence (session only)');
+              }
+            }
+            
+            // Register PWA-specific lifecycle events for better session handling
+            registerPwaLifecycleEvents();
+            optimizePwaPageReload();
+            
+            // Periodically refresh the session backup to keep it alive
+            sessionRefreshInterval = setInterval(() => {
+              if (currentUser) {
+                refreshSessionBackup();
+              }
+            }, 60000); // Every minute
+          } else {
+            // For regular browser mode, localStorage is sufficient
+            await setPersistence(auth, browserLocalPersistence);
+            console.log('✅ Using standard localStorage persistence');
+          }
+        } catch (e) {
+          console.warn('⚠️ Failed to set auth persistence:', e);
+        }
+        
         console.log('🔒 Setting up auth state listener...');
         let authStateResolved = false;
         
@@ -636,7 +724,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           authStateTimeout = setTimeout(() => {
             if (!authStateResolved) {
               console.warn('Auth state change listener timed out');
-              resolve();
+              
+              // Try to recover session from backup
+              const sessionBackup = getSessionBackup();
+              if (sessionBackup?.userId) {
+                console.log('🔄 Attempting to recover session from backup...');
+                
+                // Try to get user data from database directly
+                getUserProfile(sessionBackup.userId)
+                  .then(user => {
+                    if (user && user.uid) {
+                      console.log('✅ Session recovered from backup for:', user?.uid);
+                      setCurrentUser(user);
+                    } else {
+                      console.warn('Session recovery found invalid user data');
+                    }
+                  })
+                  .catch(e => console.error('Failed to recover session:', e))
+                  .finally(() => {
+                    setLoading(false);
+                    resolve();
+                  });
+              } else {
+                setLoading(false);
+                resolve();
+              }
             }
           }, 8000); // 8 seconds for auth state
 
@@ -646,8 +758,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               if (firebaseUser) {
                 const user = await formatUser(firebaseUser);
                 setCurrentUser(user);
+                
+                // Create a backup of the session for PWA resilience
+                backupSession(user.uid);
               } else {
                 setCurrentUser(null);
+                clearSessionBackup();
               }
               setInitError(null);
             } catch (error) {
@@ -685,6 +801,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       clearTimeout(authTimeout);
       clearTimeout(authStateTimeout);
+      clearInterval(sessionRefreshInterval);
       unsubscribe();
       connectedListener();
     };

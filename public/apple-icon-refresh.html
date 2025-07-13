@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Musa Icon Refresh</title>
+    
+    <!-- Apple Touch Icons with explicit sizes and no cache -->
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=20250713">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=20250713">
+    <link rel="apple-touch-icon" sizes="152x152" href="/images/icon-152x152.png?v=20250713">
+    <link rel="apple-touch-icon" sizes="144x144" href="/images/icon-144x144.png?v=20250713">
+    <link rel="apple-touch-icon" sizes="120x120" href="/images/icon-180x180.png?v=20250713">
+    <link rel="apple-touch-icon" sizes="114x114" href="/images/icon-144x144.png?v=20250713">
+    <link rel="apple-touch-icon" sizes="76x76" href="/images/icon-72x72.png?v=20250713">
+    <link rel="apple-touch-icon" sizes="72x72" href="/images/icon-72x72.png?v=20250713">
+    <link rel="apple-touch-icon" sizes="60x60" href="/images/icon-72x72.png?v=20250713">
+    <link rel="apple-touch-icon" sizes="57x57" href="/images/icon-72x72.png?v=20250713">
+
+    <!-- Force Safari to not use cached icon with special meta tag -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Musa">
+    
+    <!-- Add cache control headers -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            text-align: center;
+            background: #f5f5f7;
+            color: #1d1d1f;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        img {
+            width: 180px;
+            height: 180px;
+            margin: 20px auto;
+            display: block;
+            border-radius: 22%;
+        }
+        h1 {
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+        p {
+            font-size: 16px;
+            line-height: 1.5;
+            margin-bottom: 15px;
+        }
+        .steps {
+            text-align: left;
+            margin: 20px 0;
+        }
+        .steps li {
+            margin-bottom: 10px;
+        }
+        .button {
+            display: inline-block;
+            background: #0071e3;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            text-decoration: none;
+            font-weight: 500;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Musa Icon Update</h1>
+        <img src="/new-musa-logo.png?v=20250713" alt="New Musa Logo">
+        <p>To update the Musa app icon on your home screen, please follow these steps:</p>
+        
+        <div class="steps">
+            <ol>
+                <li>Remove the current Musa app from your home screen</li>
+                <li>Clear Safari cache by going to Settings > Safari > Clear History and Website Data</li>
+                <li>Visit the Musa app again in Safari</li>
+                <li>Add to Home Screen using the share button</li>
+            </ol>
+        </div>
+        
+        <p>You should now see the updated Musa icon on your home screen!</p>
+        
+        <a href="/" class="button">Return to Musa App</a>
+    </div>
+
+    <script>
+        // Force cache refresh for PWA assets
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                for(let registration of registrations) {
+                    registration.unregister();
+                }
+            });
+        }
+        
+        // Clear application cache
+        if (window.applicationCache) {
+            try {
+                window.applicationCache.update();
+                window.applicationCache.swapCache();
+            } catch (e) {
+                console.log('App cache update failed:', e);
+            }
+        }
+        
+        // Clear local storage cache 
+        localStorage.clear();
+        
+        // Force clear session storage
+        sessionStorage.clear();
+    </script>
+</body>
+</html>

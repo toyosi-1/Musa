@@ -6,6 +6,62 @@ const withPWA = require('next-pwa')({
   register: true,
   skipWaiting: true,
   runtimeCaching: [
+    // Authentication routes should never be cached for security
+    {
+      urlPattern: ({ url }) => {
+        const authPaths = [
+          '/api/auth',
+          '/login',
+          '/register',
+          '/reset-password',
+          '/sign-in',
+          '/sign-out',
+          '/__/auth',
+        ];
+        
+        return authPaths.some(path => 
+          url.pathname.startsWith(path) || 
+          url.pathname.includes('/auth/')
+        );
+      },
+      handler: 'NetworkOnly',
+      options: {
+        cacheName: 'auth-cache',
+      },
+    },
+    // Firebase API endpoints (always use network first to ensure fresh auth state)
+    {
+      urlPattern: ({ url }) => {
+        return (
+          url.hostname.includes('firebaseio.com') || 
+          url.hostname.includes('googleapis.com') ||
+          url.hostname.includes('firebase')
+        );
+      },
+      handler: 'NetworkFirst',
+      options: {
+        cacheName: 'firebase-api-cache',
+        expiration: {
+          maxEntries: 100,
+          maxAgeSeconds: 60 * 60, // 1 hour
+        },
+        networkTimeoutSeconds: 10,
+      },
+    },
+    // API routes (use network first with timeout fallback)
+    {
+      urlPattern: ({ url }) => url.pathname.startsWith('/api/'),
+      handler: 'NetworkFirst',
+      options: {
+        cacheName: 'api-cache',
+        expiration: {
+          maxEntries: 100,
+          maxAgeSeconds: 60 * 5, // 5 minutes
+        },
+        networkTimeoutSeconds: 10,
+      },
+    },
+    // Images can be cached aggressively
     {
       urlPattern: /^https?:\/\/.*\.(png|jpg|jpeg|svg|gif|webp|ico)$/i,
       handler: 'CacheFirst',
@@ -17,6 +73,7 @@ const withPWA = require('next-pwa')({
         },
       },
     },
+    // Google fonts can be cached for a long time
     {
       urlPattern: /^https?:\/\/fonts\.(?:googleapis|gstatic)\.com\/.*/i,
       handler: 'CacheFirst',
@@ -26,6 +83,19 @@ const withPWA = require('next-pwa')({
           maxEntries: 4,
           maxAgeSeconds: 365 * 24 * 60 * 60, // 1 year
         },
+      },
+    },
+    // Default handler for everything else
+    {
+      urlPattern: /.*/,
+      handler: 'NetworkFirst',
+      options: {
+        cacheName: 'default-cache',
+        expiration: {
+          maxEntries: 200,
+          maxAgeSeconds: 60 * 60 * 24, // 1 day
+        },
+        networkTimeoutSeconds: 10,
       },
     },
   ],

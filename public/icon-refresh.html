@@ -1,0 +1,210 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Musa Icon Refresh</title>
+    
+    <!-- Force no cache -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    
+    <!-- Apple Touch Icons with version parameter -->
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=v20250713_1752434150600">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=v20250713_1752434150600">
+    <link rel="apple-touch-icon" sizes="152x152" href="/images/icon-152x152.png?v=v20250713_1752434150600">
+    <link rel="apple-touch-icon" sizes="144x144" href="/images/icon-144x144.png?v=v20250713_1752434150600">
+    
+    <!-- Force Safari to not use cached icon with special meta tag -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Musa">
+    
+    <!-- PWA manifest link with version -->
+    <link rel="manifest" href="/manifest.json?v=v20250713_1752434150600">
+    
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            text-align: center;
+            background: #f5f5f7;
+            color: #1d1d1f;
+            line-height: 1.5;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        img {
+            width: 180px;
+            height: 180px;
+            margin: 20px auto;
+            display: block;
+            border-radius: 22%;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+        p {
+            font-size: 16px;
+            line-height: 1.5;
+            margin-bottom: 15px;
+        }
+        .steps {
+            text-align: left;
+            margin: 20px 0;
+        }
+        .steps li {
+            margin-bottom: 10px;
+        }
+        .button {
+            display: inline-block;
+            background: #0071e3;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            text-decoration: none;
+            font-weight: 500;
+            margin-top: 20px;
+        }
+        .device-tabs {
+            display: flex;
+            border-bottom: 1px solid #ddd;
+            margin-bottom: 20px;
+        }
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+        }
+        .tab.active {
+            border-bottom: 2px solid #0071e3;
+            color: #0071e3;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Musa App Icon Update</h1>
+        <img src="/apple-touch-icon.png?v=v20250713_1752434150600" alt="New Musa Logo">
+        
+        <div class="device-tabs">
+            <div class="tab active" onclick="showTab('ios')">iPhone/iPad</div>
+            <div class="tab" onclick="showTab('android')">Android</div>
+        </div>
+        
+        <div id="ios-instructions" class="tab-content active">
+            <p>To update the Musa app icon on your iPhone or iPad:</p>
+            <div class="steps">
+                <ol>
+                    <li><strong>Remove current app</strong> from your home screen (touch and hold, then "Remove App" > "Remove from Home Screen")</li>
+                    <li><strong>Clear Safari cache</strong> in Settings > Safari > Clear History and Website Data</li>
+                    <li>Reopen Safari and navigate to the Musa app</li>
+                    <li>Tap the <strong>Share icon</strong> at the bottom of your screen</li>
+                    <li>Select <strong>"Add to Home Screen"</strong></li>
+                </ol>
+            </div>
+        </div>
+        
+        <div id="android-instructions" class="tab-content">
+            <p>To update the Musa app icon on your Android device:</p>
+            <div class="steps">
+                <ol>
+                    <li>Remove the current Musa app shortcut from your home screen</li>
+                    <li>Open Chrome and tap the three dots menu in the upper right</li>
+                    <li>Select <strong>Settings</strong> > <strong>Privacy and security</strong> > <strong>Clear browsing data</strong></li>
+                    <li>Check "Cookies and site data" and "Cached images and files"</li>
+                    <li>Tap "Clear data"</li>
+                    <li>Navigate back to the Musa app</li>
+                    <li>Tap the three dots menu again and select <strong>"Install app"</strong> or <strong>"Add to Home screen"</strong></li>
+                </ol>
+            </div>
+        </div>
+        
+        <p>You should now see the updated Musa icon on your home screen!</p>
+        
+        <a href="/" class="button">Return to Musa App</a>
+    </div>
+
+    <script>
+        // Tab functionality
+        function showTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Deactivate all tab buttons
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Show selected tab
+            document.getElementById(tabName + '-instructions').classList.add('active');
+            
+            // Activate tab button
+            document.querySelectorAll('.tab').forEach(tab => {
+                if (tab.textContent.toLowerCase().includes(tabName)) {
+                    tab.classList.add('active');
+                }
+            });
+        }
+    
+        // Force clear caches
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                for(let registration of registrations) {
+                    registration.unregister();
+                }
+            });
+        }
+        
+        // Clear application cache
+        if (window.applicationCache) {
+            try {
+                window.applicationCache.update();
+                window.applicationCache.swapCache();
+            } catch (e) {
+                console.log('App cache update failed:', e);
+            }
+        }
+        
+        // Clear local and session storage
+        localStorage.clear();
+        sessionStorage.clear();
+        
+        // Clear IndexedDB for PWA data
+        if (window.indexedDB) {
+            indexedDB.databases().then(dbs => {
+                dbs.forEach(db => {
+                    indexedDB.deleteDatabase(db.name);
+                });
+            });
+        }
+        
+        // Try to clear caches API
+        if ('caches' in window) {
+            caches.keys().then(function(keyList) {
+                return Promise.all(keyList.map(function(key) {
+                    return caches.delete(key);
+                }));
+            });
+        }
+    </script>
+</body>
+</html>
