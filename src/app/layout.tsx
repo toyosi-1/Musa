@@ -64,14 +64,14 @@ export const metadata: Metadata = {
     siteName: 'Musa',
     locale: 'en_US',
     type: 'website',
-    images: [{ url: '/new-musa-logo.png' }],
+    images: [{ url: '/new-musa-logo.png?v=v1752598246973' }],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Musa - Estate Access Control',
     description: 'A seamless, fast, and user-friendly access control system for estates',
     creator: '@musa',
-    images: [{ url: '/new-musa-logo.png' }],
+    images: [{ url: '/new-musa-logo.png?v=v1752598246973' }],
   },
   appleWebApp: {
     capable: true,
@@ -79,15 +79,15 @@ export const metadata: Metadata = {
     title: 'Musa',
     startupImage: [
       // iPhone SE, iPod Touch
-      { url: '/images/icon-512x512.png?v=v20250714_1752530479006', media: '(device-width: 320px) and (device-height: 568px)' },
+      { url: '/images/icon-512x512.png?v=v1752598246973', media: '(device-width: 320px) and (device-height: 568px)' },
       // iPhone 8, 7, 6s, 6
-      { url: '/images/icon-512x512.png?v=v20250714_1752530479006', media: '(device-width: 375px) and (device-height: 667px)' },
+      { url: '/images/icon-512x512.png?v=v1752598246973', media: '(device-width: 375px) and (device-height: 667px)' },
       // iPhone 8 Plus, 7 Plus, 6s Plus, 6 Plus
-      { url: '/images/icon-512x512.png?v=v20250714_1752530479006', media: '(device-width: 414px) and (device-height: 736px)' },
+      { url: '/images/icon-512x512.png?v=v1752598246973', media: '(device-width: 414px) and (device-height: 736px)' },
       // iPhone X, XS
-      { url: '/images/icon-512x512.png?v=v20250714_1752530479006', media: '(device-width: 375px) and (device-height: 812px)' },
+      { url: '/images/icon-512x512.png?v=v1752598246973', media: '(device-width: 375px) and (device-height: 812px)' },
       // iPhone XR, XS Max
-      { url: '/images/icon-512x512.png?v=v20250714_1752530479006', media: '(device-width: 414px) and (device-height: 896px)' },
+      { url: '/images/icon-512x512.png?v=v1752598246973', media: '(device-width: 414px) and (device-height: 896px)' },
     ],
   },
   applicationName: 'Musa',
@@ -97,25 +97,25 @@ export const metadata: Metadata = {
       { url: '/favicon-16x16.png?v=v20250714_1752530479006', sizes: '16x16', type: 'image/png' },
       { url: '/favicon-32x32.png?v=v20250714_1752530479006', sizes: '32x32', type: 'image/png' },
       { url: '/favicon.svg', sizes: 'any', type: 'image/svg+xml' },
-      { url: '/images/icon-72x72.png?v=v20250714_1752530479006', sizes: '72x72', type: 'image/png' },
-      { url: '/images/icon-96x96.png?v=v20250714_1752530479006', sizes: '96x96', type: 'image/png' },
-      { url: '/images/icon-128x128.png?v=v20250714_1752530479006', sizes: '128x128', type: 'image/png' },
-      { url: '/images/icon-144x144.png?v=v20250714_1752530479006', sizes: '144x144', type: 'image/png' },
-      { url: '/images/icon-152x152.png?v=v20250714_1752530479006', sizes: '152x152', type: 'image/png' },
-      { url: '/images/icon-192x192.png?v=v20250714_1752530479006', sizes: '192x192', type: 'image/png' },
-      { url: '/images/icon-384x384.png?v=v20250714_1752530479006', sizes: '384x384', type: 'image/png' },
-      { url: '/images/icon-512x512.png?v=v20250714_1752530479006', sizes: '512x512', type: 'image/png' },
+      { url: '/images/icon-72x72.png?v=v1752598246973', sizes: '72x72', type: 'image/png' },
+      { url: '/images/icon-96x96.png?v=v1752598246973', sizes: '96x96', type: 'image/png' },
+      { url: '/images/icon-128x128.png?v=v1752598246973', sizes: '128x128', type: 'image/png' },
+      { url: '/images/icon-144x144.png?v=v1752598246973', sizes: '144x144', type: 'image/png' },
+      { url: '/images/icon-152x152.png?v=v1752598246973', sizes: '152x152', type: 'image/png' },
+      { url: '/images/icon-192x192.png?v=v1752598246973', sizes: '192x192', type: 'image/png' },
+      { url: '/images/icon-384x384.png?v=v1752598246973', sizes: '384x384', type: 'image/png' },
+      { url: '/images/icon-512x512.png?v=v1752598246973', sizes: '512x512', type: 'image/png' },
     ],
     shortcut: [
-      { url: '/new-musa-logo.png', sizes: '192x192' }
+      { url: '/new-musa-logo.png?v=v1752598246973', sizes: '192x192' }
     ],
     apple: [
       // Primary Apple touch icon at root (most important for iOS)
       { url: '/apple-touch-icon.png?v=v20250714_1752530479006', sizes: '180x180', type: 'image/png' }, // Primary Apple touch icon
-      { url: '/images/icon-180x180.png?v=v20250714_1752530479006', sizes: '180x180', type: 'image/png' }, // iPhone 6 Plus and up
-      { url: '/images/icon-152x152.png?v=v20250714_1752530479006', sizes: '152x152', type: 'image/png' }, // iPad and iPad mini with @2x
-      { url: '/images/icon-144x144.png?v=v20250714_1752530479006', sizes: '144x144', type: 'image/png' }, // Alternative for iPad
-      { url: '/images/icon-128x128.png?v=v20250714_1752530479006', sizes: '128x128', type: 'image/png' } // Fallback for older devices
+      { url: '/images/icon-180x180.png?v=v1752598246973', sizes: '180x180', type: 'image/png' }, // iPhone 6 Plus and up
+      { url: '/images/icon-152x152.png?v=v1752598246973', sizes: '152x152', type: 'image/png' }, // iPad and iPad mini with @2x
+      { url: '/images/icon-144x144.png?v=v1752598246973', sizes: '144x144', type: 'image/png' }, // Alternative for iPad
+      { url: '/images/icon-128x128.png?v=v1752598246973', sizes: '128x128', type: 'image/png' } // Fallback for older devices
     ]
   },
   // Additional meta tags for better PWA support
@@ -126,7 +126,7 @@ export const metadata: Metadata = {
     'apple-touch-icon': '/apple-touch-icon.png?v=v20250714_1752530479006',
     'apple-touch-icon-sizes': '180x180',
     // Windows 8/10 tile
-    'msapplication-TileImage': '/images/icon-144x144.png?v=v20250714_1752530479006',
+    'msapplication-TileImage': '/images/icon-144x144.png?v=v1752598246973',
     // Windows 8/10 tile color and config
     'msapplication-TileColor': '#3b82f6',
     'msapplication-config': '/browserconfig.xml',
@@ -194,10 +194,10 @@ export default function RootLayout({
         
         {/* Direct iOS icon links for better Add to Home Screen support */}
         <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=v20250714_1752529900432" />
-        <link rel="apple-touch-icon" sizes="180x180" href="/images/icon-180x180.png?v=v20250714_1752529900432?v=v20250713_1752440394446?v=v20250713_1752434150600" />
-        <link rel="apple-touch-icon" sizes="152x152" href="/images/icon-152x152.png?v=v20250714_1752529900432?v=v20250713_1752440394446?v=v20250713_1752434150600" />
-        <link rel="apple-touch-icon" sizes="144x144" href="/images/icon-144x144.png?v=v20250714_1752529900432?v=v20250713_1752440394446?v=v20250713_1752434150600" />
-        <link rel="apple-touch-icon" sizes="128x128" href="/images/icon-128x128.png?v=v20250714_1752529900432?v=v20250713_1752440394446?v=v20250713_1752434150600" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/images/icon-180x180.png?v=v1752598246973" />
+        <link rel="apple-touch-icon" sizes="152x152" href="/images/icon-152x152.png?v=v1752598246973" />
+        <link rel="apple-touch-icon" sizes="144x144" href="/images/icon-144x144.png?v=v1752598246973" />
+        <link rel="apple-touch-icon" sizes="128x128" href="/images/icon-128x128.png?v=v1752598246973" />
         
         {/* Explicit iOS meta tags for home screen app behavior */}
         <meta name="apple-mobile-web-app-capable" content="yes" />

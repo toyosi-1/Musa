@@ -45,67 +45,67 @@
   ],
   "icons": [
     {
-      "src": "/apple-touch-icon.png?v=v20250714_1752530479006",
+      "src": "/apple-touch-icon.png?v=v1752598246973",
       "sizes": "180x180",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/new-musa-logo.png?v=v20250714_1752530479006",
+      "src": "/new-musa-logo.png?v=v1752598246973",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/images/icon-72x72.png?v=v20250714_1752530479006",
+      "src": "/images/icon-72x72.png?v=v1752598246973",
       "sizes": "72x72",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/images/icon-96x96.png?v=v20250714_1752530479006",
+      "src": "/images/icon-96x96.png?v=v1752598246973",
       "sizes": "96x96",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/images/icon-128x128.png?v=v20250714_1752530479006",
+      "src": "/images/icon-128x128.png?v=v1752598246973",
       "sizes": "128x128",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/images/icon-144x144.png?v=v20250714_1752530479006",
+      "src": "/images/icon-144x144.png?v=v1752598246973",
       "sizes": "144x144",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/images/icon-152x152.png?v=v20250714_1752530479006",
+      "src": "/images/icon-152x152.png?v=v1752598246973",
       "sizes": "152x152",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/images/icon-192x192.png?v=v20250714_1752530479006",
+      "src": "/images/icon-192x192.png?v=v1752598246973",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/images/icon-384x384.png?v=v20250714_1752530479006",
+      "src": "/images/icon-384x384.png?v=v1752598246973",
       "sizes": "384x384",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/favicon-16x16.png?v=v20250714_1752530479006",
+      "src": "/favicon-16x16.png?v=v1752598246973",
       "sizes": "16x16",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/favicon-32x32.png?v=v20250714_1752530479006",
+      "src": "/favicon-32x32.png?v=v1752598246973",
       "sizes": "32x32",
       "type": "image/png",
       "purpose": "any"
