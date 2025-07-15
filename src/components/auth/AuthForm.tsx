@@ -38,9 +38,28 @@ export default function AuthForm({ mode, defaultRole }: AuthFormProps) {
   useEffect(() => {
     let isMounted = true;
     let timeoutId: NodeJS.Timeout;
+    let showLoadingTimeoutId: NodeJS.Timeout;
+    
+    // Start with no visible loading state
+    setFirebaseStatus('ready');
     
     const initializeFirebase = async () => {
       try {
+        // Check if Firebase is already initialized
+        if (isFirebaseReady()) {
+          if (isMounted) {
+            setFirebaseStatus('ready');
+          }
+          return;
+        }
+        
+        // Only show loading state after a short delay (if still initializing)
+        showLoadingTimeoutId = setTimeout(() => {
+          if (isMounted && !isFirebaseReady()) {
+            setFirebaseStatus('checking');
+          }
+        }, 300); // Only show loading after 300ms delay
+        
         const isReady = await waitForFirebase();
         if (isMounted) {
           if (isReady) {
@@ -62,7 +81,7 @@ export default function AuthForm({ mode, defaultRole }: AuthFormProps) {
     
     // Set a timeout to show error if Firebase takes too long
     timeoutId = setTimeout(() => {
-      if (isMounted && firebaseStatus !== 'ready') {
+      if (isMounted && !isFirebaseReady()) {
         console.warn('Firebase initialization timed out');
         setFirebaseStatus('error');
         setError('Connection to authentication service is taking longer than expected. Please refresh the page.');
@@ -75,8 +94,9 @@ export default function AuthForm({ mode, defaultRole }: AuthFormProps) {
     return () => {
       isMounted = false;
       clearTimeout(timeoutId);
+      clearTimeout(showLoadingTimeoutId);
     };
-  }, [firebaseStatus]);
+  }, []);
 
   const {
     register,
@@ -258,12 +278,12 @@ export default function AuthForm({ mode, defaultRole }: AuthFormProps) {
   return (
     <div>
       {firebaseStatus === 'checking' && (
-        <div className="bg-yellow-50 dark:bg-yellow-900/30 border-l-4 border-yellow-500 text-yellow-700 dark:text-yellow-400 p-4 rounded-xl mb-6 flex items-start">
+        <div className="bg-yellow-50 dark:bg-yellow-900/30 border-l-4 border-yellow-500 text-yellow-700 dark:text-yellow-400 p-4 rounded-xl mb-6 flex items-start opacity-80 transition-opacity">
           <svg xmlns="http://www.w3.org/2000/svg" className="animate-spin h-5 w-5 mr-3 mt-0.5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor">
             <circle cx="12" cy="12" r="10" strokeWidth="4" stroke="none"></circle>
             <path d="M12 2a10 10 0 0 1 10 10" strokeWidth="4"></path>
           </svg>
-          <span>Connecting to authentication service...</span>
+          <span>Loading...</span>
         </div>
       )}
       
