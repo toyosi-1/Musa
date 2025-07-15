@@ -199,7 +199,17 @@ export default function AuthForm({ mode, defaultRole }: AuthFormProps) {
           console.log(`[${new Date().toISOString()}] Total login process completed in ${totalDuration.toFixed(2)}ms`);
           
           setTimeout(() => {
-            router.push('/dashboard');
+            // Redirect to role-specific dashboard based on user role
+            if (user.role === 'guard') {
+              console.log('Redirecting to guard dashboard...');
+              router.push('/dashboard/guard');
+            } else if (user.role === 'admin') {
+              console.log('Redirecting to admin dashboard...');
+              router.push('/admin/dashboard');
+            } else {
+              console.log('Redirecting to resident dashboard...');
+              router.push('/dashboard/resident');
+            }
           }, 500); // Reduced from 800ms to 500ms for faster experience
         } catch (loginError) {
           console.error('Login attempt failed:', loginError);
@@ -410,13 +420,15 @@ export default function AuthForm({ mode, defaultRole }: AuthFormProps) {
 
         {mode === 'register' && (
           <div className="flex items-start">
-            <input 
-              type="checkbox" 
-              id="terms" 
-              checked={agreedToTerms} 
-              onChange={(e) => setAgreedToTerms(e.target.checked)}
-              className="mt-1 h-4 w-4 text-primary focus:ring-primary border-gray-300 dark:border-gray-600 rounded"
-            />
+            <div className="flex h-5 items-center">
+              <input 
+                type="checkbox" 
+                id="terms" 
+                checked={agreedToTerms} 
+                onChange={(e) => setAgreedToTerms(e.target.checked)}
+                className="h-4 w-4 rounded border-gray-300 dark:border-gray-600 text-primary focus:ring-primary bg-white dark:bg-gray-800 outline-1 outline-offset-0 outline"
+              />
+            </div>
             <label htmlFor="terms" className="ml-3 text-sm text-gray-600 dark:text-gray-400 cursor-pointer">
               I agree to the Terms and Privacy Policy
             </label>

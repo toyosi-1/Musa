@@ -9,6 +9,7 @@ interface StatusGuardProps {
   children: ReactNode;
   requireStatus?: 'approved' | 'pending' | 'rejected' | 'any';
   requireAdmin?: boolean;
+  requireRole?: 'admin' | 'guard' | 'resident' | 'any';
   redirectUrl?: string;
 }
 
@@ -16,6 +17,7 @@ export default function StatusGuard({
   children,
   requireStatus = 'approved',
   requireAdmin = false,
+  requireRole = 'any',
   redirectUrl = '/auth/pending',
 }: StatusGuardProps) {
   const { currentUser, loading } = useAuth();
@@ -34,6 +36,26 @@ export default function StatusGuard({
       // Check admin requirement if needed
       if (requireAdmin && currentUser.role !== 'admin') {
         router.push('/dashboard');
+        return;
+      }
+      
+      // Check role requirement if a specific role is required
+      if (requireRole !== 'any' && currentUser.role !== requireRole) {
+        console.log(`Role mismatch: required ${requireRole}, found ${currentUser.role}`);
+        // Redirect based on actual role
+        switch (currentUser.role) {
+          case 'admin':
+            router.push('/admin/dashboard');
+            break;
+          case 'guard':
+            router.push('/dashboard/guard');
+            break;
+          case 'resident':
+            router.push('/dashboard/resident');
+            break;
+          default:
+            router.push('/dashboard');
+        }
         return;
       }
 
@@ -62,7 +84,7 @@ export default function StatusGuard({
       // User meets all requirements
       setAuthorized(true);
     }
-  }, [currentUser, loading, requireAdmin, requireStatus, redirectUrl, router]);
+  }, [currentUser, loading, requireAdmin, requireStatus, requireRole, redirectUrl, router]);
 
   // Show loading while checking authorization
   if (loading || !authorized) {

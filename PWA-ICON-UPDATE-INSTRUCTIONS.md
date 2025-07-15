@@ -58,4 +58,4 @@ This update has implemented:
 5. Updated layout.tsx with enhanced iOS icon support
 6. Created helper pages for icon refresh
 
-Icon version: v20250713_1752440394446
+Icon version: v20250714_1752529900432

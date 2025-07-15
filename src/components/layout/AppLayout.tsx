@@ -11,13 +11,15 @@ interface AppLayoutProps {
   requireAuth?: boolean;
   requireStatus?: 'approved' | 'pending' | 'rejected' | 'any';
   requireAdmin?: boolean;
+  requireRole?: 'admin' | 'guard' | 'resident' | 'any';
 }
 
 export default function AppLayout({
   children,
   requireAuth = true,
   requireStatus = 'approved',
-  requireAdmin = false
+  requireAdmin = false,
+  requireRole = 'any'
 }: AppLayoutProps) {
   const { currentUser, loading } = useAuth();
   
@@ -38,6 +40,7 @@ export default function AppLayout({
               <StatusGuard 
                 requireStatus={requireStatus} 
                 requireAdmin={requireAdmin}
+                requireRole={requireRole}
               >
                 {children}
               </StatusGuard>
