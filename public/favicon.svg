@@ -1,3 +1,58 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
-  <image width="32" height="32" href="data:image/x-icon;base64,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"/>
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle -->
+  <circle cx="256" cy="256" r="256" fill="#3b82f6"/>
+  
+  <!-- Character body -->
+  <g transform="translate(256,256)">
+    <!-- Head -->
+    <circle cx="0" cy="-80" r="45" fill="#D4A574" stroke="#B8860B" stroke-width="2"/>
+    
+    <!-- Cap -->
+    <ellipse cx="0" cy="-105" rx="50" ry="25" fill="#DAA520"/>
+    <ellipse cx="0" cy="-100" rx="45" ry="20" fill="#FFD700"/>
+    
+    <!-- Eyes -->
+    <circle cx="-12" cy="-85" r="4" fill="#FFFFFF"/>
+    <circle cx="12" cy="-85" r="4" fill="#FFFFFF"/>
+    <circle cx="-12" cy="-83" r="2" fill="#000000"/>
+    <circle cx="12" cy="-83" r="2" fill="#000000"/>
+    
+    <!-- Nose -->
+    <ellipse cx="0" cy="-75" rx="2" ry="4" fill="#8B4513"/>
+    
+    <!-- Mouth -->
+    <ellipse cx="0" cy="-65" rx="8" ry="3" fill="#8B4513"/>
+    
+    <!-- Beard -->
+    <ellipse cx="0" cy="-50" rx="25" ry="15" fill="#4A4A4A"/>
+    
+    <!-- Body/Kurta -->
+    <ellipse cx="0" cy="20" rx="60" ry="80" fill="#B8860B"/>
+    <ellipse cx="0" cy="15" rx="55" ry="75" fill="#DAA520"/>
+    
+    <!-- Kurta buttons -->
+    <circle cx="0" cy="-10" r="3" fill="#FFD700"/>
+    <circle cx="0" cy="10" r="3" fill="#FFD700"/>
+    <circle cx="0" cy="30" r="3" fill="#FFD700"/>
+    
+    <!-- Arms -->
+    <ellipse cx="-40" cy="0" rx="15" ry="50" fill="#DAA520"/>
+    <ellipse cx="40" cy="0" rx="15" ry="50" fill="#DAA520"/>
+    
+    <!-- Hands -->
+    <circle cx="-40" cy="35" r="12" fill="#D4A574"/>
+    <circle cx="40" cy="35" r="12" fill="#D4A574"/>
+    
+    <!-- Pants -->
+    <ellipse cx="0" cy="120" rx="50" ry="40" fill="#8B6F47"/>
+    
+    <!-- Legs -->
+    <ellipse cx="-20" cy="160" rx="12" ry="30" fill="#8B6F47"/>
+    <ellipse cx="20" cy="160" rx="12" ry="30" fill="#8B6F47"/>
+    
+    <!-- Feet -->
+    <ellipse cx="-20" cy="185" rx="15" ry="8" fill="#A0522D"/>
+    <ellipse cx="20" cy="185" rx="15" ry="8" fill="#A0522D"/>
+  </g>
 </svg>
