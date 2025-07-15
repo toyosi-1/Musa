@@ -652,20 +652,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setLoading(false);
             setInitError('Authentication service is taking longer than expected. Please check your connection and refresh the page.');
           }
-        }, 10000); // 10 seconds for initial auth
+        }, 5000); // Reduced to 5 seconds for faster feedback
 
-        // Wait for Firebase to be ready
-        console.log('⏳ Waiting for Firebase to be ready...');
-        const isReady = await waitForFirebase();
-        if (!isReady) {
-          throw new Error('Firebase initialization failed');
+        // Optimized Firebase initialization - start auth immediately
+        console.log('⚡ Starting optimized Firebase initialization...');
+        
+        // Get auth instance first (fastest)
+        const auth = await getFirebaseAuth();
+        console.log('✅ Auth ready, initializing database in background...');
+        
+        // Initialize database in parallel without blocking
+        const dbPromise = getFirebaseDatabase();
+        
+        // Don't wait for database if it's slow
+        let db;
+        try {
+          db = await Promise.race([
+            dbPromise,
+            new Promise((_, reject) => 
+              setTimeout(() => reject(new Error('DB timeout')), 2000)
+            )
+          ]);
+          console.log('✅ Database ready');
+        } catch (e) {
+          console.warn('⚠️ Database initialization slow, continuing with auth only');
+          // Continue without database for now, it will be available later
+          dbPromise.then(() => console.log('✅ Database eventually ready'));
         }
-
-        console.log('✅ Firebase ready, getting auth and database...');
-        const [auth, db] = await Promise.all([
-          getFirebaseAuth(),
-          getFirebaseDatabase()
-        ]);
 
         // Clear the timeout since we've successfully connected
         clearTimeout(authTimeout);

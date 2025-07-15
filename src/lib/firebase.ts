@@ -1,5 +1,12 @@
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
-import { getAuth, connectAuthEmulator, Auth } from 'firebase/auth';
+import { 
+  getAuth, 
+  connectAuthEmulator, 
+  Auth, 
+  setPersistence, 
+  browserLocalPersistence, 
+  indexedDBLocalPersistence 
+} from 'firebase/auth';
 import { 
   getDatabase, 
   connectDatabaseEmulator, 
@@ -38,8 +45,8 @@ type FirebaseAppType = FirebaseApp;
 type AuthType = Auth;
 type DatabaseType = Database;
 
-// Connection test timeout (in ms)
-const CONNECTION_TIMEOUT = 10000; // 10 seconds
+// Connection test timeout (in ms) - reduced for faster response
+const CONNECTION_TIMEOUT = 3000; // 3 seconds for faster feedback
 
 // Validate Firebase configuration
 const validateFirebaseConfig = () => {
@@ -86,10 +93,24 @@ const validateFirebaseConfig = () => {
   return true;
 };
 
-// Performance monitoring helper
+// Performance monitoring helpers
 const timeStart = (label: string) => {
+  if (typeof window !== 'undefined' && window.performance) {
+    window.performance.mark(`${label}-start`);
+  }
   console.time(`⏱️ ${label}`);
-  return () => console.timeEnd(`⏱️ ${label}`);
+};
+
+const timeEnd = (label: string) => {
+  if (typeof window !== 'undefined' && window.performance) {
+    window.performance.mark(`${label}-end`);
+    try {
+      window.performance.measure(label, `${label}-start`, `${label}-end`);
+    } catch (e) {
+      // Ignore measurement errors
+    }
+  }
+  console.timeEnd(`⏱️ ${label}`);
 };
 
 // Lazy initialization variables with proper typing
@@ -135,44 +156,49 @@ export async function getFirebaseApp(): Promise<FirebaseApp> {
  * Gets the Firebase Auth instance, initializing app if necessary
  */
 export async function getFirebaseAuth(): Promise<Auth> {
-  // Return empty stub in server context
-  if (typeof window === 'undefined') {
-    console.log('Server context detected, returning empty Auth stub');
-    return {} as Auth;
+  timeStart('getFirebaseAuth');
+  
+  // If already initialized, return it immediately
+  if (auth) {
+    timeEnd('getFirebaseAuth');
+    return auth;
   }
   
-  if (!firebaseAuth) {
-    try {
-      // Dynamically import Firebase Auth modules
-      const { getAuth, setPersistence, browserLocalPersistence, connectAuthEmulator } = await import('firebase/auth');
-      const app = await getFirebaseApp();
-      
-      firebaseAuth = getAuth(app);
-      
-      // Set persistence - wrapped in try/catch to avoid blocking errors
+  // Ensure the app is initialized first
+  const app = await getFirebaseApp();
+  
+  // Initialize Auth with aggressive optimization
+  try {
+    auth = getAuth(app);
+    
+    // Enable offline persistence asynchronously for speed
+    // Don't wait for this to complete
+    setPersistence(auth!, indexedDBLocalPersistence)
+      .then(() => console.log('✅ Auth persistence set to IndexedDB'))
+      .catch(() => 
+        setPersistence(auth!, browserLocalPersistence)
+          .then(() => console.log('✅ Auth persistence set to localStorage'))
+          .catch((e: any) => console.warn('⚠️ Auth persistence not available:', e))
+      );
+    
+    // Connect to emulator in development (async)
+    if (process.env.NODE_ENV === 'development' && 
+        process.env.NEXT_PUBLIC_USE_FIREBASE_EMULATOR === 'true') {
       try {
-        await setPersistence(firebaseAuth, browserLocalPersistence);
-      } catch (error: any) {
-        console.warn('Failed to set persistence:', error);
+        connectAuthEmulator(auth!, 'http://localhost:9099', { disableWarnings: true });
+        console.log('🔧 Connected to Auth emulator');
+      } catch (error) {
+        console.warn('⚠️ Failed to connect to Auth emulator:', error);
       }
-      
-      // Connect to emulators in development
-      if (process.env.NODE_ENV === 'development' && 
-          process.env.NEXT_PUBLIC_USE_FIREBASE_EMULATORS === 'true') {
-        try {
-          connectAuthEmulator(firebaseAuth, 'http://localhost:9099', { disableWarnings: true });
-          console.log('Connected to Auth emulator');
-        } catch (err) {
-          console.warn('Failed to connect to Auth emulator:', err);
-        }
-      }
-    } catch (error) {
-      console.error('Error initializing Firebase Auth:', error);
-      throw new Error('Failed to initialize Firebase Auth');
     }
+    
+    timeEnd('getFirebaseAuth');
+    return auth;
+  } catch (error) {
+    console.error('❌ Failed to initialize Firebase Auth:', error);
+    timeEnd('getFirebaseAuth');
+    throw error;
   }
-  
-  return firebaseAuth as Auth;
 }
 
 /**
@@ -347,68 +373,9 @@ export async function initializeFirebase(): Promise<boolean> {
         console.log('🔐 Auth state:', auth.currentUser ? 'User signed in' : 'No user signed in');
       }
       
-      // Test database connection with timeout
-      if (typeof window !== 'undefined') {
-        try {
-          // Dynamic import for database operations
-          const { ref, onValue, get, set } = await import('firebase/database');
-          
-          // First, try to connect to the database
-          const connectionPromise = new Promise<void>(async (connResolve, connReject) => {
-            try {
-              // Test connection to the database
-              const testRef = ref(database, 'connection_test');
-              
-              // Try to write and read a test value
-              await set(testRef, { timestamp: Date.now() });
-              const snapshot = await get(testRef);
-              
-              if (snapshot.exists()) {
-                console.log('✅ Successfully connected to Firebase Realtime Database');
-                await set(testRef, null); // Clean up
-                isInitialized = true;
-                connResolve();
-              } else {
-                console.warn('Database connection test failed: No data returned');
-                connResolve(); // Still resolve to not block initialization
-              }
-            } catch (e) {
-              console.error('❌ Database connection test failed:', e);
-              connResolve(); // Still resolve to not block initialization
-            }
-          });
-          
-          // Also set up the connection state listener for real-time updates
-          const connectedRef = ref(database, '.info/connected');
-          const connectionStateUnsubscribe = onValue(connectedRef, (snapshot) => {
-            console.log(snapshot.val() ? '📡 Connected to database' : '❌ Disconnected from database');
-          });
-          
-          // Race against timeout
-          const timeoutPromise = new Promise<void>((connResolve) => {
-            setTimeout(() => {
-              console.warn('⚠️ Database connection check timed out after 5 seconds');
-              connResolve();
-            }, 5000);
-          });
-          
-          // Wait for either connection or timeout
-          await Promise.race([connectionPromise, timeoutPromise]);
-          
-          // Clean up the connection state listener after a delay
-          setTimeout(() => {
-            try {
-              connectionStateUnsubscribe();
-            } catch (e) {
-              console.warn('Error cleaning up connection listener:', e);
-            }
-          }, 10000);
-          
-        } catch (error) {
-          console.error('❌ Database connection check failed:', error);
-          // Continue initialization anyway
-        }
-      }
+      // Skip database connection test for faster initialization
+      // The auth will work even if DB test fails
+      console.log('✅ Database initialized, skipping connection test for speed');
       
       isInitialized = true;
       console.log('Firebase initialization completed');
@@ -420,7 +387,7 @@ export async function initializeFirebase(): Promise<boolean> {
   });
   
   return connectionPromise;
-};
+}
 
 /**
  * Test database connection
@@ -479,10 +446,20 @@ export const waitForFirebase = async (): Promise<boolean> => {
   return initializeFirebase();
 };
 
-// Initialize Firebase on the client side
+// Preload and optimize Firebase initialization
 if (typeof window !== 'undefined' && !isInitialized) {
-  // Start initialization in the background
+  // Aggressively start initialization as early as possible
   connectionPromise = initializeFirebase()
+    .then((result) => {
+      // Pre-warm the auth state listener for faster subsequent loads
+      if (result && auth) {
+        // Set up auth state listener early
+        const unsubscribe = auth.onAuthStateChanged(() => {});
+        // Clean up after a brief moment to avoid memory leaks
+        setTimeout(() => unsubscribe(), 100);
+      }
+      return result;
+    })
     .then(success => {
       isInitialized = success;
       if (success) {
