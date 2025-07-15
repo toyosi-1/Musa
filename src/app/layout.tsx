@@ -93,9 +93,9 @@ export const metadata: Metadata = {
   applicationName: 'Musa',
   icons: {
     icon: [
-      { url: '/favicon.ico', sizes: '32x32', type: 'image/x-icon' },
-      { url: '/favicon-16x16.png?v=v20250714_1752530479006', sizes: '16x16', type: 'image/png' },
-      { url: '/favicon-32x32.png?v=v20250714_1752530479006', sizes: '32x32', type: 'image/png' },
+      { url: '/favicon.ico?version=v1752609781768', sizes: '32x32', type: 'image/x-icon' },
+      { url: '/favicon-16x16.png?version=v1752609781768?v=v20250714_1752530479006', sizes: '16x16', type: 'image/png' },
+      { url: '/favicon-32x32.png?version=v1752609781768?v=v20250714_1752530479006', sizes: '32x32', type: 'image/png' },
       { url: '/favicon.svg', sizes: 'any', type: 'image/svg+xml' },
       { url: '/images/icon-72x72.png?v=v1752600799783', sizes: '72x72', type: 'image/png' },
       { url: '/images/icon-96x96.png?v=v1752600799783', sizes: '96x96', type: 'image/png' },
@@ -111,7 +111,7 @@ export const metadata: Metadata = {
     ],
     apple: [
       // Primary Apple touch icon at root (most important for iOS)
-      { url: '/apple-touch-icon.png?v=v20250714_1752530479006', sizes: '180x180', type: 'image/png' }, // Primary Apple touch icon
+      { url: '/apple-touch-icon.png?version=v1752609781768?v=v20250714_1752530479006', sizes: '180x180', type: 'image/png' }, // Primary Apple touch icon
       { url: '/images/icon-180x180.png?v=v1752600799783', sizes: '180x180', type: 'image/png' }, // iPhone 6 Plus and up
       { url: '/images/icon-152x152.png?v=v1752600799783', sizes: '152x152', type: 'image/png' }, // iPad and iPad mini with @2x
       { url: '/images/icon-144x144.png?v=v1752600799783', sizes: '144x144', type: 'image/png' }, // Alternative for iPad
@@ -123,7 +123,7 @@ export const metadata: Metadata = {
     // Safari pinned tab
     'mask-icon': '/safari-pinned-tab.svg',
     // Apple touch icon for older iOS versions
-    'apple-touch-icon': '/apple-touch-icon.png?v=v20250714_1752530479006',
+    'apple-touch-icon': '/apple-touch-icon.png?version=v1752609781768?v=v20250714_1752530479006',
     'apple-touch-icon-sizes': '180x180',
     // Windows 8/10 tile
     'msapplication-TileImage': '/images/icon-144x144.png?v=v1752600799783',
@@ -193,7 +193,7 @@ export default function RootLayout({
         <link rel="manifest" href="/manifest.json" />
         
         {/* Direct iOS icon links for better Add to Home Screen support */}
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=v20250714_1752529900432" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png?version=v1752609781768?v=v20250714_1752529900432" />
         <link rel="apple-touch-icon" sizes="180x180" href="/images/icon-180x180.png?v=v1752600799783" />
         <link rel="apple-touch-icon" sizes="152x152" href="/images/icon-152x152.png?v=v1752600799783" />
         <link rel="apple-touch-icon" sizes="144x144" href="/images/icon-144x144.png?v=v1752600799783" />
