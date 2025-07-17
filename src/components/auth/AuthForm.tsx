@@ -264,8 +264,8 @@ export default function AuthForm({ mode, defaultRole }: AuthFormProps) {
         }
 
         await signUp(data.email, data.password, data.displayName, data.role);
-        console.log('Registration successful');
-        router.push('/dashboard');
+        console.log('Registration successful - user needs approval');
+        router.push('/auth/pending');
       }
     } catch (err) {
       console.error('Authentication error:', err);
@@ -450,7 +450,11 @@ export default function AuthForm({ mode, defaultRole }: AuthFormProps) {
               />
             </div>
             <label htmlFor="terms" className="ml-3 text-sm text-gray-600 dark:text-gray-400 cursor-pointer">
-              I agree to the Terms and Privacy Policy
+              I agree to the{' '}
+              <Link href="/terms" target="_blank" className="text-primary hover:underline">
+                Terms and Conditions
+              </Link>
+              {' '}and Privacy Policy
             </label>
           </div>
         )}

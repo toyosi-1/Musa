@@ -33,6 +33,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<User>;
   signOut: () => Promise<void>;
   getUserProfile: (uid: string) => Promise<User | null>;
+  refreshCurrentUser: () => Promise<void>;
   approveUser: (uid: string, adminUid: string) => Promise<void>;
   rejectUser: (uid: string, adminUid: string, reason: string) => Promise<void>;
   getPendingUsers: () => Promise<User[]>;
@@ -341,31 +342,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch (dbError) {
         logError('Error fetching user profile', dbError);
         
-        // Always fallback to basic user info on database errors
-        formattedUser = {
-          uid: result.user.uid,
-          email: result.user.email || '',
-          displayName: result.user.displayName || 'User',
-          role: 'resident' as UserRole, // Default role with type assertion
-          status: 'approved' as UserStatus, // Default status with type assertion
-          isEmailVerified: result.user.emailVerified,
-          createdAt: Date.now()
-        };
+        // On database errors, we cannot safely assume a role
+        // This should rarely happen, but if it does, we need to handle it gracefully
+        console.error('Database error during authentication - cannot determine user role safely');
+        throw new Error('Unable to verify user account details. Please try again or contact support.');
+        
+        // Note: Removed the fallback to 'resident' role as it was causing guards to be misrouted
       }
       
       if (!formattedUser) {
         console.error('User authenticated but failed to retrieve profile from database');
         
-        // Fallback to basic user info to let them in anyway
-        formattedUser = {
-          uid: result.user.uid,
-          email: result.user.email || '',
-          displayName: result.user.displayName || 'User',
-          role: 'resident' as UserRole, // Default role with type assertion
-          status: 'approved' as UserStatus, // Default status with type assertion
-          isEmailVerified: result.user.emailVerified,
-          createdAt: Date.now()
-        };
+        // Cannot safely determine user role - this is a critical error
+        throw new Error('Unable to retrieve user profile from database. Please try again or contact support.');
+        
+        // Note: Removed the fallback to 'resident' role as it was causing guards to be misrouted
       }
       
       // Update cache with the latest user data
@@ -455,6 +446,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Get a user profile by UID with timeout and caching
   const getUserProfile = async (uid: string): Promise<User | null> => {
     return getCachedUserProfile(uid);
+  };
+
+  // Refresh current user's profile from database
+  const refreshCurrentUser = async (): Promise<void> => {
+    try {
+      const auth = await getFirebaseAuth();
+      const firebaseUser = auth.currentUser;
+      
+      if (firebaseUser) {
+        // Clear cache for this user to force fresh fetch
+        userProfileCache.delete(firebaseUser.uid);
+        
+        // Fetch fresh user profile from database
+        const updatedUser = await getCachedUserProfile(firebaseUser.uid);
+        if (updatedUser) {
+          setCurrentUser(updatedUser);
+        }
+      }
+    } catch (error) {
+      console.error('Error refreshing current user:', error);
+    }
   };
 
   // Approve a pending user
@@ -828,6 +840,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signIn,
     signOut,
     getUserProfile,
+    refreshCurrentUser,
     approveUser,
     rejectUser,
     getPendingUsers,

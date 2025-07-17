@@ -1,14 +1,15 @@
 "use client";
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 
 export default function PendingPage() {
-  const { currentUser, loading, signOut } = useAuth();
+  const { currentUser, loading, signOut, refreshCurrentUser } = useAuth();
   const router = useRouter();
+  const [isPolling, setIsPolling] = useState(false);
 
   useEffect(() => {
     // If user is not logged in or is already approved, redirect appropriately
@@ -22,6 +23,36 @@ export default function PendingPage() {
       }
     }
   }, [currentUser, loading, router]);
+
+  // Auto-refresh polling effect for pending users
+  useEffect(() => {
+    let pollingInterval: NodeJS.Timeout;
+    
+    // Only start polling if user is pending and not already polling
+    if (currentUser && currentUser.status === 'pending' && !loading && !isPolling) {
+      setIsPolling(true);
+      
+      console.log('Starting approval status polling...');
+      
+      pollingInterval = setInterval(async () => {
+        try {
+          console.log('Checking approval status...');
+          await refreshCurrentUser();
+        } catch (error) {
+          console.error('Error during approval status check:', error);
+        }
+      }, 15000); // Check every 15 seconds
+    }
+    
+    // Cleanup function
+    return () => {
+      if (pollingInterval) {
+        clearInterval(pollingInterval);
+        setIsPolling(false);
+        console.log('Stopped approval status polling');
+      }
+    };
+  }, [currentUser, loading, isPolling, refreshCurrentUser]);
 
   const handleSignOut = async () => {
     try {
@@ -111,6 +142,14 @@ export default function PendingPage() {
                     ? "Please allow up to 24 hours for your account to be approved." 
                     : "Your approval is taking longer than expected. Please contact support if this continues."}
                 </p>
+                
+                {/* Auto-refresh status indicator */}
+                {isPolling && (
+                  <div className="flex items-center justify-center mt-3 text-xs text-blue-600 dark:text-blue-400">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse mr-2"></div>
+                    Auto-checking for approval every 15 seconds...
+                  </div>
+                )}
               </div>
             </div>
 

@@ -45,26 +45,37 @@ export default function Dashboard() {
           const confirmedRole = freshUserData?.role || currentUser.role;
           console.log('Confirmed user role:', confirmedRole);
 
-          // Redirect based on confirmed role
+          // Redirect based on confirmed role - strict role checking
           if (confirmedRole === 'admin') {
             console.log('Redirecting to admin dashboard');
             router.push('/admin/dashboard');
           } else if (confirmedRole === 'guard') {
             console.log('Redirecting to guard dashboard');
             router.push('/dashboard/guard');
-          } else {
-            // Default to resident dashboard
+          } else if (confirmedRole === 'resident') {
             console.log('Redirecting to resident dashboard');
+            router.push('/dashboard/resident');
+          } else {
+            // Log unexpected role and redirect to appropriate fallback
+            console.error('Unexpected user role:', confirmedRole);
+            console.log('Redirecting to resident dashboard as fallback');
             router.push('/dashboard/resident');
           }
         } catch (error) {
           console.error('Error verifying user role from database:', error);
-          // In case of error, use the role from context
+          // In case of error, use the role from context with strict checking
           if (currentUser.role === 'admin') {
+            console.log('Error fallback: Redirecting to admin dashboard');
             router.push('/admin/dashboard');
           } else if (currentUser.role === 'guard') {
+            console.log('Error fallback: Redirecting to guard dashboard');
             router.push('/dashboard/guard');
+          } else if (currentUser.role === 'resident') {
+            console.log('Error fallback: Redirecting to resident dashboard');
+            router.push('/dashboard/resident');
           } else {
+            console.error('Error fallback: Unexpected user role:', currentUser.role);
+            console.log('Error fallback: Redirecting to resident dashboard as last resort');
             router.push('/dashboard/resident');
           }
         }
