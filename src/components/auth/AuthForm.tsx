@@ -439,19 +439,27 @@ export default function AuthForm({ mode, defaultRole }: AuthFormProps) {
         )}
 
         {mode === 'register' && (
-          <div className="flex items-start">
-            <div className="flex h-5 items-center">
-              <input 
-                type="checkbox" 
-                id="terms" 
-                checked={agreedToTerms} 
-                onChange={(e) => setAgreedToTerms(e.target.checked)}
-                className="h-4 w-4 rounded border-gray-300 dark:border-gray-600 text-primary focus:ring-primary bg-white dark:bg-gray-800 outline-1 outline-offset-0 outline"
-              />
+          <div className="flex items-start space-x-2">
+            <div 
+              className={`w-4 h-4 mt-0.5 border-2 rounded cursor-pointer flex items-center justify-center transition-colors ${
+                agreedToTerms 
+                  ? 'bg-primary border-primary' 
+                  : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 hover:border-primary'
+              }`}
+              onClick={() => setAgreedToTerms(!agreedToTerms)}
+            >
+              {agreedToTerms && (
+                <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+              )}
             </div>
-            <label htmlFor="terms" className="ml-3 text-sm text-gray-600 dark:text-gray-400 cursor-pointer">
+            <label 
+              className="text-sm text-gray-600 dark:text-gray-400 cursor-pointer select-none flex-1"
+              onClick={() => setAgreedToTerms(!agreedToTerms)}
+            >
               I agree to the{' '}
-              <Link href="/terms" target="_blank" className="text-primary hover:underline">
+              <Link href="/terms" target="_blank" className="text-primary hover:underline" onClick={(e) => e.stopPropagation()}>
                 Terms and Conditions
               </Link>
               {' '}and Privacy Policy
