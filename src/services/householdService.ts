@@ -1,6 +1,7 @@
 import { getFirebaseDatabase } from '@/lib/firebase';
-import { ref, push, set, get, update, remove, query, orderByChild, equalTo } from 'firebase/database';
 import { Household, HouseholdInvite } from '@/types/user';
+import { ref, get, set, push, update, query, orderByChild, equalTo, remove } from 'firebase/database';
+import { sendHouseholdInvitationFallback } from './emailService';
 
 // Create a new household with the current user as head
 export const createHousehold = async (
@@ -178,6 +179,23 @@ export const createHouseholdInvite = async (
     // Create an index entry for quick lookups by email
     const emailKey = email.replace(/\./g, ',').toLowerCase();
     await set(ref(db, `invitesByEmail/${emailKey}/${invite.id}`), true);
+    
+    // Send invitation email
+    try {
+      // Get inviter's name for the email
+      const inviterRef = ref(db, `users/${invitedBy}`);
+      const inviterSnapshot = await get(inviterRef);
+      const inviterName = inviterSnapshot.exists() ? 
+        inviterSnapshot.val().displayName || 'Someone' : 'Someone';
+      
+      console.log('Sending household invitation email to:', email);
+      await sendHouseholdInvitationFallback(invite, household, inviterName);
+      console.log('Household invitation email sent successfully');
+    } catch (emailError) {
+      console.error('Failed to send invitation email:', emailError);
+      // Don't throw error - invitation was created successfully, email is just a notification
+      // The user can still accept the invitation through the app
+    }
     
     return invite;
   } catch (error) {
