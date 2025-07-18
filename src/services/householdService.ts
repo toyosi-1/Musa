@@ -167,7 +167,7 @@ export const createHouseholdInvite = async (
       id: inviteRef.key,
       householdId,
       invitedBy,
-      email,
+      email: email.toLowerCase(), // Store email in lowercase for consistent querying
       status: 'pending',
       createdAt: now,
       expiresAt
@@ -313,28 +313,59 @@ export const removeHouseholdMember = async (
 // Get pending invitations for a user's email
 export const getPendingInvitationsByEmail = async (email: string): Promise<HouseholdInvite[]> => {
   try {
-    // Query invitations by email
+    console.log(`🔍 Searching for invitations for email: ${email}`);
     const db = await getFirebaseDatabase();
-    const invitesQuery = query(
-      ref(db, 'householdInvites'),
-      orderByChild('email'),
-      equalTo(email.toLowerCase())
-    );
+    const userEmail = email.toLowerCase();
+    console.log(`🔍 Normalized email: ${userEmail}`);
     
-    const snapshot = await get(invitesQuery);
+    // Get all invitations and filter client-side to handle case mismatches
+    // This is necessary because existing invitations might have been stored with different casing
+    const invitesRef = ref(db, 'householdInvites');
+    const snapshot = await get(invitesRef);
     
     if (!snapshot.exists()) {
+      console.log('❌ No invitations found in database');
       return [];
     }
     
     const invites: HouseholdInvite[] = [];
+    let totalInvites = 0;
+    let matchingEmails = 0;
+    let pendingInvites = 0;
+    let nonExpiredInvites = 0;
     
     // Convert the snapshot to an array of invites
     snapshot.forEach((childSnapshot) => {
       const invite = childSnapshot.val() as HouseholdInvite;
+      totalInvites++;
       
-      // Only include pending invitations that haven't expired
-      if (invite.status === 'pending' && invite.expiresAt > Date.now()) {
+      console.log(`📧 Checking invitation ${childSnapshot.key}: email=${invite.email}, status=${invite.status}, expires=${new Date(invite.expiresAt).toISOString()}`);
+      
+      // Check email match
+      const emailMatches = invite.email && invite.email.toLowerCase() === userEmail;
+      if (emailMatches) {
+        matchingEmails++;
+        console.log(`✅ Email matches for invitation ${childSnapshot.key}`);
+      }
+      
+      // Check status
+      if (invite.status === 'pending') {
+        pendingInvites++;
+      }
+      
+      // Check expiration
+      if (invite.expiresAt > Date.now()) {
+        nonExpiredInvites++;
+      }
+      
+      // Check if email matches (case-insensitive) and invitation is valid
+      if (
+        invite.email && 
+        invite.email.toLowerCase() === userEmail &&
+        invite.status === 'pending' && 
+        invite.expiresAt > Date.now()
+      ) {
+        console.log(`🎯 Found valid invitation ${childSnapshot.key}`);
         invites.push({
           ...invite,
           id: childSnapshot.key as string
@@ -342,6 +373,8 @@ export const getPendingInvitationsByEmail = async (email: string): Promise<House
       }
     });
     
+    console.log(`📊 Summary: Total=${totalInvites}, EmailMatches=${matchingEmails}, Pending=${pendingInvites}, NonExpired=${nonExpiredInvites}, Valid=${invites.length}`);
+    console.log(`Found ${invites.length} pending invitations for email: ${email}`);
     return invites;
   } catch (error) {
     console.error('Error getting pending invitations:', error);
