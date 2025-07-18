@@ -25,7 +25,13 @@ export default function GuardDashboard({ user }: GuardDashboardProps) {
     totalVerifications: 0,
     validAccess: 0,
     deniedAccess: 0,
-    todayVerifications: 0
+    todayVerifications: 0,
+    successRate: 0,
+    expiredCodes: 0,
+    invalidCodes: 0,
+    thisWeekVerifications: 0,
+    thisMonthVerifications: 0,
+    averagePerDay: 0
   });
   const [isLoadingStats, setIsLoadingStats] = useState(true);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -136,61 +142,175 @@ export default function GuardDashboard({ user }: GuardDashboardProps) {
         Guard Dashboard
       </h1>
       
-      {/* Status Indicators */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 animate-fade-in">
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-4 md:p-5">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-primary-100 dark:bg-primary-900/30 rounded-lg flex items-center justify-center">
-              <ClockIcon className="h-6 w-6 text-primary" />
+      {/* Comprehensive Security Statistics */}
+      <div className="mb-6 animate-fade-in">
+        <h2 className="text-lg font-semibold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 3v18h18" />
+            <path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3" />
+          </svg>
+          Security Statistics
+        </h2>
+        
+        {/* Primary Stats Row */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-4">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-3 md:p-4">
+            <div className="flex items-center gap-2 md:gap-3">
+              <div className="w-8 h-8 md:w-10 md:h-10 bg-primary-100 dark:bg-primary-900/30 rounded-lg flex items-center justify-center">
+                <ClockIcon className="h-4 w-4 md:h-5 md:w-5 text-primary" />
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Today</p>
+                <p className="text-lg md:text-xl font-bold text-gray-800 dark:text-white">
+                  {isLoadingStats ? '...' : activityStats.todayVerifications}
+                </p>
+              </div>
             </div>
-            <div>
-              <p className="text-xs text-gray-500 dark:text-gray-400">Today</p>
-              <p className="text-xl font-bold text-gray-800 dark:text-white">
-                {isLoadingStats ? '...' : activityStats.todayVerifications}
-              </p>
+          </div>
+          
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-3 md:p-4">
+            <div className="flex items-center gap-2 md:gap-3">
+              <div className="w-8 h-8 md:w-10 md:h-10 bg-info-100 dark:bg-info-900/30 rounded-lg flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 md:h-5 md:w-5 text-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+                </svg>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Total</p>
+                <p className="text-lg md:text-xl font-bold text-gray-800 dark:text-white">
+                  {isLoadingStats ? '...' : activityStats.totalVerifications}
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-3 md:p-4">
+            <div className="flex items-center gap-2 md:gap-3">
+              <div className="w-8 h-8 md:w-10 md:h-10 bg-success-100 dark:bg-success-900/30 rounded-lg flex items-center justify-center">
+                <CheckCircleIcon className="h-4 w-4 md:h-5 md:w-5 text-success" />
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Granted</p>
+                <p className="text-lg md:text-xl font-bold text-gray-800 dark:text-white">
+                  {isLoadingStats ? '...' : activityStats.validAccess}
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-3 md:p-4">
+            <div className="flex items-center gap-2 md:gap-3">
+              <div className="w-8 h-8 md:w-10 md:h-10 bg-danger-100 dark:bg-danger-900/30 rounded-lg flex items-center justify-center">
+                <XCircleIcon className="h-4 w-4 md:h-5 md:w-5 text-danger" />
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Denied</p>
+                <p className="text-lg md:text-xl font-bold text-gray-800 dark:text-white">
+                  {isLoadingStats ? '...' : activityStats.deniedAccess}
+                </p>
+              </div>
             </div>
           </div>
         </div>
         
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-4 md:p-5">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-info-100 dark:bg-info-900/30 rounded-lg flex items-center justify-center">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
-              </svg>
-            </div>
-            <div>
-              <p className="text-xs text-gray-500 dark:text-gray-400">Total</p>
-              <p className="text-xl font-bold text-gray-800 dark:text-white">
-                {isLoadingStats ? '...' : activityStats.totalVerifications}
+        {/* Secondary Stats Row */}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4">
+          <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl border border-green-200 dark:border-green-700 p-3 md:p-4">
+            <div className="text-center">
+              <div className="w-8 h-8 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-2">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-green-600 dark:text-green-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9 12l2 2 4-4" />
+                  <path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9c2.12 0 4.07.74 5.61 1.97" />
+                </svg>
+              </div>
+              <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Success Rate</p>
+              <p className="text-lg font-bold text-green-600 dark:text-green-400">
+                {isLoadingStats ? '...' : `${activityStats.successRate}%`}
               </p>
             </div>
           </div>
-        </div>
-        
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-4 md:p-5">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-success-100 dark:bg-success-900/30 rounded-lg flex items-center justify-center">
-              <CheckCircleIcon className="h-6 w-6 text-success" />
-            </div>
-            <div>
-              <p className="text-xs text-gray-500 dark:text-gray-400">Granted</p>
-              <p className="text-xl font-bold text-gray-800 dark:text-white">
-                {isLoadingStats ? '...' : activityStats.validAccess}
+          
+          <div className="bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20 rounded-xl border border-orange-200 dark:border-orange-700 p-3 md:p-4">
+            <div className="text-center">
+              <div className="w-8 h-8 bg-orange-100 dark:bg-orange-900/30 rounded-full flex items-center justify-center mx-auto mb-2">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-orange-600 dark:text-orange-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10" />
+                  <polyline points="12,6 12,12 16,14" />
+                </svg>
+              </div>
+              <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Expired</p>
+              <p className="text-lg font-bold text-orange-600 dark:text-orange-400">
+                {isLoadingStats ? '...' : activityStats.expiredCodes}
               </p>
             </div>
           </div>
-        </div>
-        
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-4 md:p-5">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-danger-100 dark:bg-danger-900/30 rounded-lg flex items-center justify-center">
-              <XCircleIcon className="h-6 w-6 text-danger" />
+          
+          <div className="bg-gradient-to-r from-red-50 to-rose-50 dark:from-red-900/20 dark:to-rose-900/20 rounded-xl border border-red-200 dark:border-red-700 p-3 md:p-4">
+            <div className="text-center">
+              <div className="w-8 h-8 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-2">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-red-600 dark:text-red-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="15" y1="9" x2="9" y2="15" />
+                  <line x1="9" y1="9" x2="15" y2="15" />
+                </svg>
+              </div>
+              <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Invalid</p>
+              <p className="text-lg font-bold text-red-600 dark:text-red-400">
+                {isLoadingStats ? '...' : activityStats.invalidCodes}
+              </p>
             </div>
-            <div>
-              <p className="text-xs text-gray-500 dark:text-gray-400">Denied</p>
-              <p className="text-xl font-bold text-gray-800 dark:text-white">
-                {isLoadingStats ? '...' : activityStats.deniedAccess}
+          </div>
+          
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl border border-blue-200 dark:border-blue-700 p-3 md:p-4">
+            <div className="text-center">
+              <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mx-auto mb-2">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-blue-600 dark:text-blue-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M8 2v4" />
+                  <path d="M16 2v4" />
+                  <rect width="18" height="18" x="3" y="4" rx="2" />
+                  <path d="M3 10h18" />
+                </svg>
+              </div>
+              <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">This Week</p>
+              <p className="text-lg font-bold text-blue-600 dark:text-blue-400">
+                {isLoadingStats ? '...' : activityStats.thisWeekVerifications}
+              </p>
+            </div>
+          </div>
+          
+          <div className="bg-gradient-to-r from-purple-50 to-violet-50 dark:from-purple-900/20 dark:to-violet-900/20 rounded-xl border border-purple-200 dark:border-purple-700 p-3 md:p-4">
+            <div className="text-center">
+              <div className="w-8 h-8 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center mx-auto mb-2">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-purple-600 dark:text-purple-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M8 2v4" />
+                  <path d="M16 2v4" />
+                  <rect width="18" height="18" x="3" y="4" rx="2" />
+                  <path d="M3 10h18" />
+                  <path d="M8 14h.01" />
+                  <path d="M12 14h.01" />
+                  <path d="M16 14h.01" />
+                </svg>
+              </div>
+              <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">This Month</p>
+              <p className="text-lg font-bold text-purple-600 dark:text-purple-400">
+                {isLoadingStats ? '...' : activityStats.thisMonthVerifications}
+              </p>
+            </div>
+          </div>
+          
+          <div className="bg-gradient-to-r from-teal-50 to-cyan-50 dark:from-teal-900/20 dark:to-cyan-900/20 rounded-xl border border-teal-200 dark:border-teal-700 p-3 md:p-4">
+            <div className="text-center">
+              <div className="w-8 h-8 bg-teal-100 dark:bg-teal-900/30 rounded-full flex items-center justify-center mx-auto mb-2">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-teal-600 dark:text-teal-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 3v18h18" />
+                  <path d="M7 12h10" />
+                  <path d="M7 8h7" />
+                  <path d="M7 16h6" />
+                </svg>
+              </div>
+              <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Avg/Day</p>
+              <p className="text-lg font-bold text-teal-600 dark:text-teal-400">
+                {isLoadingStats ? '...' : activityStats.averagePerDay}
               </p>
             </div>
           </div>
@@ -315,50 +435,144 @@ export default function GuardDashboard({ user }: GuardDashboardProps) {
         </div>
       </div>
 
-        {/* Right Column - Verification History */}
+        {/* Right Column - Enhanced Verification History */}
         <div className="md:col-span-2 h-full flex flex-col">
           <div className="card animate-fade-in-delay border border-gray-200 dark:border-gray-700 overflow-hidden transition-all duration-300 hover:shadow-card-hover flex-grow flex flex-col">
-            <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-              <h2 className="text-xl font-semibold text-gray-800 dark:text-white">Recent Activity</h2>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Last 10 verifications</p>
+            <div className="p-4 md:p-6 border-b border-gray-200 dark:border-gray-700">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-lg md:text-xl font-semibold text-gray-800 dark:text-white flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M3 3v18h18" />
+                      <path d="M7 8h10" />
+                      <path d="M7 12h10" />
+                      <path d="M7 16h10" />
+                    </svg>
+                    Security Log
+                  </h2>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Recent access verifications</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm font-medium text-gray-800 dark:text-white">
+                    {verificationHistory.length} Records
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    Last 10 entries
+                  </p>
+                </div>
+              </div>
             </div>
-            <div className="flex-grow overflow-y-auto p-2">
-              <ul className="divide-y divide-gray-100 dark:divide-gray-700/50">
-                {verificationHistory.length > 0 ? (
-                  verificationHistory.map((record: VerificationRecord) => (
-                    <li key={record.id} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-lg transition-colors duration-200">
-                      <div className="flex items-start gap-4">
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 mt-1 ${record.isValid ? 'bg-success-100 dark:bg-success-900/30' : 'bg-danger-100 dark:bg-danger-900/30'}`}>
+            <div className="flex-grow overflow-y-auto">
+              {verificationHistory.length > 0 ? (
+                <div className="divide-y divide-gray-100 dark:divide-gray-700/50">
+                  {verificationHistory.map((record: VerificationRecord, index) => (
+                    <div key={record.id} className="p-3 md:p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors duration-200">
+                      <div className="flex items-start gap-3 md:gap-4">
+                        {/* Status Icon */}
+                        <div className={`w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center flex-shrink-0 mt-1 ${
+                          record.isValid 
+                            ? 'bg-success-100 dark:bg-success-900/30' 
+                            : record.message?.toLowerCase().includes('expired')
+                              ? 'bg-orange-100 dark:bg-orange-900/30'
+                              : 'bg-danger-100 dark:bg-danger-900/30'
+                        }`}>
                           {record.isValid ? (
-                            <CheckCircleIcon className="h-6 w-6 text-success" />
+                            <CheckCircleIcon className="h-4 w-4 md:h-5 md:w-5 text-success" />
+                          ) : record.message?.toLowerCase().includes('expired') ? (
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 md:h-5 md:w-5 text-orange-600 dark:text-orange-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <circle cx="12" cy="12" r="10" />
+                              <polyline points="12,6 12,12 16,14" />
+                            </svg>
                           ) : (
-                            <XCircleIcon className="h-6 w-6 text-danger" />
+                            <XCircleIcon className="h-4 w-4 md:h-5 md:w-5 text-danger" />
                           )}
                         </div>
-                        <div className="flex-grow">
-                          <p className="font-semibold text-gray-800 dark:text-white">{record.code}</p>
-                          <p className={`text-sm font-medium ${record.isValid ? 'text-success-600 dark:text-success-400' : 'text-danger-600 dark:text-danger-400'}`}>
-                            {record.isValid ? 'Granted' : 'Denied'}
-                          </p>
-                          {record.destinationAddress && (
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 flex items-center gap-1.5">
-                              <MapPinIcon className="h-3 w-3" />
-                              {record.destinationAddress.split('\n')[0]}...
-                            </p>
-                          )}
-                          <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                            {formatDistanceToNow(new Date(record.timestamp), { addSuffix: true })}
-                          </p>
+                        
+                        {/* Record Details */}
+                        <div className="flex-grow min-w-0">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-grow min-w-0">
+                              {/* Code and Status */}
+                              <div className="flex items-center gap-2 mb-1">
+                                <p className="font-mono text-sm md:text-base font-semibold text-gray-800 dark:text-white truncate">
+                                  {record.code.length > 8 ? `${record.code.substring(0, 8)}...` : record.code}
+                                </p>
+                                <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                                  record.isValid 
+                                    ? 'bg-success-100 text-success-800 dark:bg-success-900/30 dark:text-success-400'
+                                    : record.message?.toLowerCase().includes('expired')
+                                      ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400'
+                                      : 'bg-danger-100 text-danger-800 dark:bg-danger-900/30 dark:text-danger-400'
+                                }`}>
+                                  {record.isValid ? 'GRANTED' : record.message?.toLowerCase().includes('expired') ? 'EXPIRED' : 'DENIED'}
+                                </span>
+                              </div>
+                              
+                              {/* Message */}
+                              {record.message && (
+                                <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400 mb-2 line-clamp-2">
+                                  {record.message}
+                                </p>
+                              )}
+                              
+                              {/* Destination Address */}
+                              {record.destinationAddress && (
+                                <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-2 mb-2">
+                                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1 flex items-center gap-1">
+                                    <MapPinIcon className="h-3 w-3" />
+                                    Destination:
+                                  </p>
+                                  <p className="text-xs md:text-sm text-gray-700 dark:text-gray-300 font-medium">
+                                    {record.destinationAddress.split('\n')[0]}
+                                    {record.destinationAddress.includes('\n') && (
+                                      <span className="text-gray-500 dark:text-gray-400"> (+more)</span>
+                                    )}
+                                  </p>
+                                </div>
+                              )}
+                              
+                              {/* Timestamp */}
+                              <div className="flex items-center gap-4 text-xs text-gray-400 dark:text-gray-500">
+                                <span className="flex items-center gap-1">
+                                  <ClockIcon className="h-3 w-3" />
+                                  {formatDistanceToNow(new Date(record.timestamp), { addSuffix: true })}
+                                </span>
+                                <span className="hidden sm:inline">
+                                  {format(new Date(record.timestamp), 'MMM d, HH:mm')}
+                                </span>
+                              </div>
+                            </div>
+                            
+                            {/* Entry Number */}
+                            <div className="text-right flex-shrink-0">
+                              <span className="inline-flex items-center justify-center w-6 h-6 bg-gray-100 dark:bg-gray-700 rounded-full text-xs font-medium text-gray-600 dark:text-gray-400">
+                                {index + 1}
+                              </span>
+                            </div>
+                          </div>
                         </div>
                       </div>
-                    </li>
-                  ))
-                ) : (
-                  <li className="p-6 text-center text-gray-500 dark:text-gray-400">
-                    {isLoadingStats ? 'Loading history...' : 'No recent activity.'}
-                  </li>
-                )}
-              </ul>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center h-full p-8 text-center">
+                  <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M3 3v18h18" />
+                      <path d="M7 8h10" />
+                      <path d="M7 12h10" />
+                      <path d="M7 16h10" />
+                    </svg>
+                  </div>
+                  <p className="text-gray-500 dark:text-gray-400 mb-2">
+                    {isLoadingStats ? 'Loading security log...' : 'No recent activity'}
+                  </p>
+                  <p className="text-sm text-gray-400 dark:text-gray-500">
+                    {isLoadingStats ? 'Please wait...' : 'Verification records will appear here'}
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         </div>
