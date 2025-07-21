@@ -1,15 +1,29 @@
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
-import * as sgMail from '@sendgrid/mail';
+import * as nodemailer from 'nodemailer';
 import * as handlebars from 'handlebars';
 import * as fs from 'fs';
 import * as path from 'path';
 
+// Type definitions
+type HandlebarsTemplateDelegate = handlebars.TemplateDelegate;
+
 // Initialize Firebase Admin
 admin.initializeApp();
 
-// Initialize SendGrid with API key from environment
-const SENDGRID_API_KEY = functions.config().sendgrid?.key;
+// SMTP Configuration for mail.hspace.cloud
+const SMTP_CONFIG = {
+  host: 'mail.hspace.cloud',
+  port: 465, // SSL
+  secure: true, // true for 465, false for other ports
+  auth: {
+    user: functions.config().smtp?.user || 'toyosiajibola@musa-security.com',
+    pass: functions.config().smtp?.password || 'Olatoyosi1'
+  }
+};
+
+// Create nodemailer transporter
+const transporter = nodemailer.createTransport(SMTP_CONFIG);
 
 // Email templates
 const EMAIL_TEMPLATES = {
@@ -41,9 +55,9 @@ function getTemplate(templateName: string): HandlebarsTemplateDelegate {
 }
 
 /**
- * Send an email using SendGrid
+ * Send an email using SMTP (mail.hspace.cloud)
  */
-export const sendEmail = functions.https.onCall(async (data, context) => {
+export const sendEmail = functions.https.onCall(async (data: any, context: any) => {
   // Verify authentication
   if (!context.auth) {
     throw new functions.https.HttpsError(
@@ -53,12 +67,6 @@ export const sendEmail = functions.https.onCall(async (data, context) => {
   }
 
   try {
-    // Set SendGrid API key
-    if (!SENDGRID_API_KEY) {
-      throw new Error('SendGrid API key is not configured');
-    }
-    sgMail.setApiKey(SENDGRID_API_KEY);
-
     const { template, recipient, data: templateData } = data;
     
     // Validate inputs
@@ -82,6 +90,10 @@ export const sendEmail = functions.https.onCall(async (data, context) => {
         templateFn = getTemplate('account_rejected');
         subject = 'Regarding Your Musa Account Application';
         break;
+      case 'household_invitation':
+        templateFn = getTemplate('household_invitation');
+        subject = 'You\'ve been invited to join a household on Musa';
+        break;
       default:
         throw new functions.https.HttpsError(
           'invalid-argument',
@@ -92,17 +104,18 @@ export const sendEmail = functions.https.onCall(async (data, context) => {
     // Create email content
     const html = templateFn(templateData);
     
-    // Set up email message
-    const msg = {
+    // Set up email message for SMTP
+    const mailOptions = {
+      from: `"Musa Security" <${SMTP_CONFIG.auth.user}>`,
       to: recipient,
-      from: 'noreply@yourestate.com', // Replace with your verified sender
       subject: subject,
       html: html,
     };
     
-    // Send email
-    await sgMail.send(msg);
+    // Send email using SMTP
+    await transporter.sendMail(mailOptions);
     
+    console.log(`Email sent successfully to ${recipient}`);
     return { success: true };
   } catch (error) {
     console.error('Error sending email:', error);
@@ -120,7 +133,7 @@ export const sendEmail = functions.https.onCall(async (data, context) => {
  */
 export const onUserStatusChange = functions.database
   .ref('/users/{userId}/status')
-  .onUpdate(async (change, context) => {
+  .onUpdate(async (change: any, context: any) => {
     const userId = context.params.userId;
     const newStatus = change.after.val();
     const previousStatus = change.before.val();
@@ -141,12 +154,7 @@ export const onUserStatusChange = functions.database
         return null;
       }
       
-      // Set SendGrid API key
-      if (!SENDGRID_API_KEY) {
-        console.error('SendGrid API key is not configured');
-        return null;
-      }
-      sgMail.setApiKey(SENDGRID_API_KEY);
+      // SMTP is already configured globally
       
       let subject: string;
       let templateName: string;
@@ -178,16 +186,16 @@ export const onUserStatusChange = functions.database
       // Create email content
       const html = templateFn(templateData);
       
-      // Set up email message
-      const msg = {
+      // Set up email message for SMTP
+      const mailOptions = {
+        from: `"Musa Security" <${SMTP_CONFIG.auth.user}>`,
         to: userData.email,
-        from: 'noreply@yourestate.com', // Replace with your verified sender
         subject: subject,
         html: html,
       };
       
-      // Send email
-      await sgMail.send(msg);
+      // Send email using SMTP
+      await transporter.sendMail(mailOptions);
       console.log(`Status change email sent to ${userData.email}`);
       
       return { success: true };

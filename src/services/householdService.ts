@@ -1,7 +1,7 @@
 import { getFirebaseDatabase } from '@/lib/firebase';
 import { Household, HouseholdInvite } from '@/types/user';
 import { ref, get, set, push, update, query, orderByChild, equalTo, remove } from 'firebase/database';
-import { sendHouseholdInvitationFallback } from './emailService';
+import { sendHouseholdInvitationEmail } from './smtpEmailService';
 
 // Create a new household with the current user as head
 export const createHousehold = async (
@@ -189,8 +189,18 @@ export const createHouseholdInvite = async (
         inviterSnapshot.val().displayName || 'Someone' : 'Someone';
       
       console.log('Sending household invitation email to:', email);
-      await sendHouseholdInvitationFallback(invite, household, inviterName);
-      console.log('Household invitation email sent successfully');
+      const emailSuccess = await sendHouseholdInvitationEmail({
+        householdName: household.name,
+        inviterName: inviterName,
+        acceptUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'https://musa-security-app.windsurf.build'}/invite/${invite.id}`,
+        recipientEmail: email
+      });
+      
+      if (emailSuccess) {
+        console.log('Household invitation email sent successfully');
+      } else {
+        console.warn('Failed to send invitation email, but invitation was created');
+      }
     } catch (emailError) {
       console.error('Failed to send invitation email:', emailError);
       // Don't throw error - invitation was created successfully, email is just a notification
