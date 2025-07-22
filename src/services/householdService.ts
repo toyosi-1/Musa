@@ -3,6 +3,119 @@ import { Household, HouseholdInvite } from '@/types/user';
 import { ref, get, set, push, update, query, orderByChild, equalTo, remove } from 'firebase/database';
 import { sendHouseholdInvitationEmail } from './smtpEmailService';
 
+// Reject a household invitation
+export const rejectHouseholdInvite = async (
+  inviteId: string,
+  userId: string,
+  userEmail: string
+): Promise<void> => {
+  try {
+    const db = await getFirebaseDatabase();
+    
+    // Get the invitation
+    const inviteRef = ref(db, `householdInvites/${inviteId}`);
+    const inviteSnapshot = await get(inviteRef);
+    
+    if (!inviteSnapshot.exists()) {
+      throw new Error('Invitation not found');
+    }
+    
+    const invite = inviteSnapshot.val() as HouseholdInvite;
+    
+    // Verify the invitation is for this user
+    if (invite.email.toLowerCase() !== userEmail.toLowerCase()) {
+      throw new Error('This invitation is not for your email address');
+    }
+    
+    // Check if invitation is still pending
+    if (invite.status !== 'pending') {
+      throw new Error(`This invitation has already been ${invite.status}`);
+    }
+    
+    // Check if invitation has expired
+    if (invite.expiresAt < Date.now()) {
+      throw new Error('This invitation has expired');
+    }
+    
+    // Update invitation status to rejected
+    await update(inviteRef, {
+      status: 'rejected',
+      rejectedAt: Date.now(),
+      rejectedBy: userId
+    });
+    
+  } catch (error) {
+    console.error('Error rejecting household invitation:', error);
+    throw error;
+  }
+};
+
+// Leave a household
+export const leaveHousehold = async (
+  userId: string,
+  householdId: string
+): Promise<void> => {
+  try {
+    const db = await getFirebaseDatabase();
+    
+    // Get the household
+    const householdRef = ref(db, `households/${householdId}`);
+    const householdSnapshot = await get(householdRef);
+    
+    if (!householdSnapshot.exists()) {
+      throw new Error('Household not found');
+    }
+    
+    const household = householdSnapshot.val() as Household;
+    
+    // Check if user is a member of this household
+    if (!household.members || !household.members[userId]) {
+      throw new Error('You are not a member of this household');
+    }
+    
+    // Check if user is the head of household
+    if (household.headId === userId) {
+      // Count remaining members
+      const memberCount = Object.keys(household.members).length;
+      
+      if (memberCount > 1) {
+        throw new Error('As the household head, you cannot leave while there are other members. Please transfer ownership or remove other members first.');
+      }
+      
+      // If head is the only member, delete the entire household
+      await remove(householdRef);
+      
+      // Also remove user's household reference
+      const userRef = ref(db, `users/${userId}`);
+      await update(userRef, {
+        householdId: null,
+        updatedAt: Date.now()
+      });
+      
+    } else {
+      // Remove user from household members
+      const memberRef = ref(db, `households/${householdId}/members/${userId}`);
+      await remove(memberRef);
+      
+      // Update household's updatedAt timestamp
+      await update(householdRef, {
+        updatedAt: Date.now()
+      });
+      
+      // Remove household reference from user
+      const userRef = ref(db, `users/${userId}`);
+      await update(userRef, {
+        householdId: null,
+        updatedAt: Date.now()
+      });
+    }
+    
+  } catch (error) {
+    console.error('Error leaving household:', error);
+    throw error;
+  }
+};
+
 // Create a new household with the current user as head
 export const createHousehold = async (
   userId: string,

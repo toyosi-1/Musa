@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import { acceptHouseholdInvite } from '@/services/householdService';
+import { acceptHouseholdInvite, rejectHouseholdInvite } from '@/services/householdService';
 import { HouseholdInvite, Household } from '@/types/user';
 import { ref, get } from 'firebase/database';
 import { getFirebaseDatabase } from '@/lib/firebase';
@@ -19,8 +19,10 @@ export default function InvitePage() {
   const [inviterName, setInviterName] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [accepting, setAccepting] = useState(false);
+  const [rejecting, setRejecting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [rejected, setRejected] = useState(false);
 
   const inviteId = params.inviteId as string;
 
@@ -113,6 +115,34 @@ export default function InvitePage() {
     }
   };
 
+  const handleRejectInvitation = async () => {
+    if (!currentUser || !invite) return;
+
+    // Check if user's email matches the invitation
+    if (currentUser.email.toLowerCase() !== invite.email.toLowerCase()) {
+      setError('This invitation is not for your email address. Please sign in with the correct account.');
+      return;
+    }
+
+    setRejecting(true);
+    setError('');
+
+    try {
+      await rejectHouseholdInvite(invite.id, currentUser.uid, currentUser.email);
+      setRejected(true);
+      
+      // Redirect to dashboard after a short delay
+      setTimeout(() => {
+        router.push('/dashboard');
+      }, 2000);
+    } catch (error) {
+      console.error('Error rejecting invitation:', error);
+      setError(error instanceof Error ? error.message : 'Failed to reject invitation');
+    } finally {
+      setRejecting(false);
+    }
+  };
+
   if (loading || authLoading) {
     return (
       <div className="flex justify-center items-center min-h-screen bg-musa-bg dark:bg-gray-900">
@@ -164,6 +194,32 @@ export default function InvitePage() {
             </h1>
             <p className="text-gray-600 dark:text-gray-300 mb-6">
               You have successfully joined <strong>{household?.name}</strong>. 
+              Redirecting you to your dashboard...
+            </p>
+            <div className="flex justify-center">
+              <LoadingSpinner size="sm" color="primary" />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (rejected) {
+    return (
+      <div className="min-h-screen bg-musa-bg dark:bg-gray-900 flex items-center justify-center p-4">
+        <div className="max-w-md w-full">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8 text-center">
+            <div className="w-16 h-16 bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-red-600 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </div>
+            <h1 className="text-2xl font-bold text-gray-800 dark:text-white mb-4">
+              Invitation Declined
+            </h1>
+            <p className="text-gray-600 dark:text-gray-300 mb-6">
+              You have declined the invitation to join <strong>{household?.name}</strong>. 
               Redirecting you to your dashboard...
             </p>
             <div className="flex justify-center">
@@ -265,7 +321,7 @@ export default function InvitePage() {
               <div className="flex space-x-3">
                 <button
                   onClick={handleAcceptInvitation}
-                  disabled={accepting}
+                  disabled={accepting || rejecting}
                   className="flex-1 btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {accepting ? (
@@ -277,12 +333,20 @@ export default function InvitePage() {
                     'Accept Invitation'
                   )}
                 </button>
-                <Link
-                  href="/dashboard"
-                  className="flex-1 btn-outline text-center"
+                <button
+                  onClick={handleRejectInvitation}
+                  disabled={accepting || rejecting}
+                  className="flex-1 btn-outline disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Decline
-                </Link>
+                  {rejecting ? (
+                    <div className="flex items-center justify-center">
+                      <LoadingSpinner size="sm" color="primary" />
+                      <span className="ml-2">Declining...</span>
+                    </div>
+                  ) : (
+                    'Decline Invitation'
+                  )}
+                </button>
               </div>
             </div>
           )}
