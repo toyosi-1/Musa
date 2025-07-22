@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import nodemailer from 'nodemailer';
 
 // This API route handles email sending using SMTP
 // It's a server-side route that can safely use SMTP credentials
@@ -32,27 +33,46 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // In a production environment, you would use a proper email service here
-    // For now, we'll simulate the email sending and log the details
-    
-    console.log('📧 Email would be sent with the following details:');
+    // Create nodemailer transporter with SMTP configuration
+    const transporter = nodemailer.createTransport({
+      host: smtpConfig.host,
+      port: smtpConfig.port,
+      secure: smtpConfig.secure,
+      auth: {
+        user: smtpConfig.auth.user,
+        pass: smtpConfig.auth.pass
+      },
+      // Additional options for better deliverability
+      tls: {
+        rejectUnauthorized: false // Allow self-signed certificates
+      }
+    });
+
+    console.log('📧 Sending email via SMTP:');
     console.log('To:', emailData.to);
     console.log('From:', emailData.from);
     console.log('Subject:', emailData.subject);
     console.log('SMTP Host:', smtpConfig.host);
     console.log('SMTP Port:', smtpConfig.port);
     console.log('SMTP User:', smtpConfig.auth.user);
-    
-    // For production, you would implement actual SMTP sending here
-    // using nodemailer or similar library in a server environment
-    
-    // Simulate successful email sending
-    const emailResult = {
-      success: true,
-      messageId: `msg_${Date.now()}`,
+
+    // Send the email
+    const info = await transporter.sendMail({
+      from: emailData.from || `"Musa Security" <${smtpConfig.auth.user}>`,
       to: emailData.to,
       subject: emailData.subject,
-      timestamp: new Date().toISOString()
+      html: emailData.html
+    });
+
+    console.log('✅ Email sent successfully:', info.messageId);
+    
+    const emailResult = {
+      success: true,
+      messageId: info.messageId,
+      to: emailData.to,
+      subject: emailData.subject,
+      timestamp: new Date().toISOString(),
+      response: info.response
     };
 
     return NextResponse.json(emailResult);
