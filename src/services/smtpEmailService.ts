@@ -231,7 +231,7 @@ export const testEmailConfiguration = async (): Promise<boolean> => {
     const testData: HouseholdInviteData = {
       householdName: "Test Household",
       inviterName: "Test User",
-      acceptUrl: "https://musa-security-app.windsurf.build/invite/test",
+      acceptUrl: "https://musa-security.com/invite/test",
       recipientEmail: "toyosiajibola@musa-security.com" // Send to yourself for testing
     };
 

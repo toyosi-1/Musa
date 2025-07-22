@@ -89,7 +89,7 @@ export const sendHouseholdInvitationEmail = async (
     const sendEmail = httpsCallable(functions, 'sendEmail');
     
     // Create invitation link
-    const invitationLink = `${process.env.NEXT_PUBLIC_APP_URL || 'https://musa-security-app.windsurf.build'}/invite/${invite.id}`;
+    const invitationLink = `${process.env.NEXT_PUBLIC_APP_URL || 'https://musa-security.com'}/invite/${invite.id}`;
     
     await sendEmail({
       template: EMAIL_TEMPLATES.HOUSEHOLD_INVITATION,
@@ -172,7 +172,7 @@ export const sendHouseholdInvitationFallback = async (
   household: Household,
   inviterName: string
 ): Promise<void> => {
-  const invitationLink = `${process.env.NEXT_PUBLIC_APP_URL || 'https://musa-security-app.windsurf.build'}/invite/${invite.id}`;
+  const invitationLink = `${process.env.NEXT_PUBLIC_APP_URL || 'https://musa-security.com'}/invite/${invite.id}`;
   
   const subject = `You're invited to join ${household.name} on Musa Security App`;
   

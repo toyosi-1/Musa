@@ -53,14 +53,14 @@ export const metadata: Metadata = {
     address: false,
     telephone: false,
   },
-  metadataBase: new URL('https://musa-security-app.windsurf.build'),
+  metadataBase: new URL('https://musa-security.com'),
   alternates: {
     canonical: '/',
   },
   openGraph: {
     title: 'Musa - Estate Access Control',
     description: 'A seamless, fast, and user-friendly access control system for estates',
-    url: 'https://musa-security-app.windsurf.build',
+    url: 'https://musa-security.com',
     siteName: 'Musa',
     locale: 'en_US',
     type: 'website',

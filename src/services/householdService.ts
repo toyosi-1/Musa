@@ -192,7 +192,7 @@ export const createHouseholdInvite = async (
       const emailSuccess = await sendHouseholdInvitationEmail({
         householdName: household.name,
         inviterName: inviterName,
-        acceptUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'https://musa-security-app.windsurf.build'}/invite/${invite.id}`,
+        acceptUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'https://musa-security.com'}/invite/${invite.id}`,
         recipientEmail: email
       });
       
