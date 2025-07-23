@@ -53,7 +53,8 @@ export default function GuardDashboard({ user }: GuardDashboardProps) {
       setScanResult(result);
       
       // Log this verification attempt to the database
-      await logVerificationAttempt(user.uid, {
+      console.log('Logging verification attempt:', {
+        guardId: user.uid,
         code: manualCode,
         isValid: result.isValid,
         message: result.message,
@@ -61,14 +62,35 @@ export default function GuardDashboard({ user }: GuardDashboardProps) {
         destinationAddress: result.destinationAddress
       });
       
-      // Update local stats and history without reloading everything
-      setActivityStats(prev => ({
-        ...prev,
-        totalVerifications: prev.totalVerifications + 1,
-        validAccess: prev.validAccess + (result.isValid ? 1 : 0),
-        deniedAccess: prev.deniedAccess + (result.isValid ? 0 : 1),
-        todayVerifications: prev.todayVerifications + 1
-      }));
+      try {
+        await logVerificationAttempt(user.uid, {
+          code: manualCode,
+          isValid: result.isValid,
+          message: result.message,
+          householdId: result.household?.id,
+          destinationAddress: result.destinationAddress
+        });
+        console.log('Verification attempt logged successfully');
+      } catch (logError) {
+        console.error('Failed to log verification attempt:', logError);
+      }
+      
+      // Refresh statistics from database to ensure accuracy
+      try {
+        const updatedStats = await getGuardActivityStats(user.uid);
+        console.log('Refreshed stats after verification:', updatedStats);
+        setActivityStats(updatedStats);
+      } catch (statsError) {
+        console.error('Failed to refresh stats:', statsError);
+        // Fallback to local update if database refresh fails
+        setActivityStats(prev => ({
+          ...prev,
+          totalVerifications: prev.totalVerifications + 1,
+          validAccess: prev.validAccess + (result.isValid ? 1 : 0),
+          deniedAccess: prev.deniedAccess + (result.isValid ? 0 : 1),
+          todayVerifications: prev.todayVerifications + 1
+        }));
+      }
       
       // Add to verification history
       const newRecord: VerificationRecord = {
@@ -119,13 +141,26 @@ export default function GuardDashboard({ user }: GuardDashboardProps) {
     const loadGuardData = async () => {
       setIsLoadingStats(true);
       try {
+        console.log('Loading guard data for user:', user.uid);
+        
         // Fetch guard activity stats
         const stats = await getGuardActivityStats(user.uid);
+        console.log('Loaded guard stats:', stats);
         setActivityStats(stats);
         
         // Fetch verification history
         const history = await getGuardVerificationHistory(user.uid, 10);
+        console.log('Loaded verification history:', history.length, 'records');
         setVerificationHistory(history);
+        
+        // Log current statistics for debugging
+        console.log('Current activity stats:', {
+          total: stats.totalVerifications,
+          valid: stats.validAccess,
+          denied: stats.deniedAccess,
+          today: stats.todayVerifications,
+          successRate: stats.successRate
+        });
       } catch (error) {
         console.error('Error loading guard data:', error);
       } finally {
@@ -213,104 +248,19 @@ export default function GuardDashboard({ user }: GuardDashboardProps) {
           </div>
         </div>
         
-        {/* Secondary Stats Row */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4">
-          <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl border border-green-200 dark:border-green-700 p-3 md:p-4">
+        {/* Simplified Success Rate Card */}
+        <div className="flex justify-center">
+          <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl border border-green-200 dark:border-green-700 p-4 w-48">
             <div className="text-center">
-              <div className="w-8 h-8 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-2">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-green-600 dark:text-green-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-2">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-600 dark:text-green-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M9 12l2 2 4-4" />
                   <path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9c2.12 0 4.07.74 5.61 1.97" />
                 </svg>
               </div>
-              <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Success Rate</p>
-              <p className="text-lg font-bold text-green-600 dark:text-green-400">
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Success Rate</p>
+              <p className="text-2xl font-bold text-green-600 dark:text-green-400">
                 {isLoadingStats ? '...' : `${activityStats.successRate}%`}
-              </p>
-            </div>
-          </div>
-          
-          <div className="bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20 rounded-xl border border-orange-200 dark:border-orange-700 p-3 md:p-4">
-            <div className="text-center">
-              <div className="w-8 h-8 bg-orange-100 dark:bg-orange-900/30 rounded-full flex items-center justify-center mx-auto mb-2">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-orange-600 dark:text-orange-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="10" />
-                  <polyline points="12,6 12,12 16,14" />
-                </svg>
-              </div>
-              <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Expired</p>
-              <p className="text-lg font-bold text-orange-600 dark:text-orange-400">
-                {isLoadingStats ? '...' : activityStats.expiredCodes}
-              </p>
-            </div>
-          </div>
-          
-          <div className="bg-gradient-to-r from-red-50 to-rose-50 dark:from-red-900/20 dark:to-rose-900/20 rounded-xl border border-red-200 dark:border-red-700 p-3 md:p-4">
-            <div className="text-center">
-              <div className="w-8 h-8 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-2">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-red-600 dark:text-red-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="10" />
-                  <line x1="15" y1="9" x2="9" y2="15" />
-                  <line x1="9" y1="9" x2="15" y2="15" />
-                </svg>
-              </div>
-              <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Invalid</p>
-              <p className="text-lg font-bold text-red-600 dark:text-red-400">
-                {isLoadingStats ? '...' : activityStats.invalidCodes}
-              </p>
-            </div>
-          </div>
-          
-          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl border border-blue-200 dark:border-blue-700 p-3 md:p-4">
-            <div className="text-center">
-              <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mx-auto mb-2">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-blue-600 dark:text-blue-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M8 2v4" />
-                  <path d="M16 2v4" />
-                  <rect width="18" height="18" x="3" y="4" rx="2" />
-                  <path d="M3 10h18" />
-                </svg>
-              </div>
-              <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">This Week</p>
-              <p className="text-lg font-bold text-blue-600 dark:text-blue-400">
-                {isLoadingStats ? '...' : activityStats.thisWeekVerifications}
-              </p>
-            </div>
-          </div>
-          
-          <div className="bg-gradient-to-r from-purple-50 to-violet-50 dark:from-purple-900/20 dark:to-violet-900/20 rounded-xl border border-purple-200 dark:border-purple-700 p-3 md:p-4">
-            <div className="text-center">
-              <div className="w-8 h-8 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center mx-auto mb-2">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-purple-600 dark:text-purple-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M8 2v4" />
-                  <path d="M16 2v4" />
-                  <rect width="18" height="18" x="3" y="4" rx="2" />
-                  <path d="M3 10h18" />
-                  <path d="M8 14h.01" />
-                  <path d="M12 14h.01" />
-                  <path d="M16 14h.01" />
-                </svg>
-              </div>
-              <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">This Month</p>
-              <p className="text-lg font-bold text-purple-600 dark:text-purple-400">
-                {isLoadingStats ? '...' : activityStats.thisMonthVerifications}
-              </p>
-            </div>
-          </div>
-          
-          <div className="bg-gradient-to-r from-teal-50 to-cyan-50 dark:from-teal-900/20 dark:to-cyan-900/20 rounded-xl border border-teal-200 dark:border-teal-700 p-3 md:p-4">
-            <div className="text-center">
-              <div className="w-8 h-8 bg-teal-100 dark:bg-teal-900/30 rounded-full flex items-center justify-center mx-auto mb-2">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-teal-600 dark:text-teal-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M3 3v18h18" />
-                  <path d="M7 12h10" />
-                  <path d="M7 8h7" />
-                  <path d="M7 16h6" />
-                </svg>
-              </div>
-              <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Avg/Day</p>
-              <p className="text-lg font-bold text-teal-600 dark:text-teal-400">
-                {isLoadingStats ? '...' : activityStats.averagePerDay}
               </p>
             </div>
           </div>

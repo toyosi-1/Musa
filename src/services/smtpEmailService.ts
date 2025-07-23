@@ -98,17 +98,36 @@ function generateHouseholdInvitationHTML(data: HouseholdInviteData): string {
             margin-bottom: 30px;
         }
         .logo {
-            width: 60px;
-            height: 60px;
+            width: 80px;
+            height: 80px;
             background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-            border-radius: 12px;
+            border-radius: 16px;
             margin: 0 auto 20px;
             display: flex;
             align-items: center;
             justify-content: center;
             color: white;
-            font-size: 24px;
+            font-size: 32px;
             font-weight: bold;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+            position: relative;
+        }
+        .logo::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 40px;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+        }
+        .logo-text {
+            position: relative;
+            z-index: 1;
+            font-family: 'Arial Black', Arial, sans-serif;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
         }
         .title {
             color: #1f2937;
@@ -178,7 +197,9 @@ function generateHouseholdInvitationHTML(data: HouseholdInviteData): string {
 <body>
     <div class="container">
         <div class="header">
-            <div class="logo">M</div>
+            <div class="logo">
+                <span class="logo-text">MUSA</span>
+            </div>
             <h1 class="title">You're Invited!</h1>
             <p class="subtitle">Join a household on Musa Security</p>
         </div>
