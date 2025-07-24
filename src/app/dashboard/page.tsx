@@ -45,7 +45,7 @@ export default function Dashboard() {
           const confirmedRole = freshUserData?.role || currentUser.role;
           console.log('Confirmed user role:', confirmedRole);
 
-          // Redirect based on confirmed role - strict role checking
+          // Redirect based on confirmed role - STRICT role checking with NO dangerous fallbacks
           if (confirmedRole === 'admin') {
             console.log('Redirecting to admin dashboard');
             router.push('/admin/dashboard');
@@ -56,14 +56,14 @@ export default function Dashboard() {
             console.log('Redirecting to resident dashboard');
             router.push('/dashboard/resident');
           } else {
-            // Log unexpected role and redirect to appropriate fallback
-            console.error('Unexpected user role:', confirmedRole);
-            console.log('Redirecting to resident dashboard as fallback');
-            router.push('/dashboard/resident');
+            // SECURITY: Never redirect unknown roles to any dashboard
+            console.error('SECURITY ERROR: Unknown user role detected:', confirmedRole);
+            console.log('Redirecting to login for security');
+            router.push('/auth/login');
           }
         } catch (error) {
           console.error('Error verifying user role from database:', error);
-          // In case of error, use the role from context with strict checking
+          // SECURITY: In case of error, use strict role checking with NO dangerous fallbacks
           if (currentUser.role === 'admin') {
             console.log('Error fallback: Redirecting to admin dashboard');
             router.push('/admin/dashboard');
@@ -74,9 +74,10 @@ export default function Dashboard() {
             console.log('Error fallback: Redirecting to resident dashboard');
             router.push('/dashboard/resident');
           } else {
-            console.error('Error fallback: Unexpected user role:', currentUser.role);
-            console.log('Error fallback: Redirecting to resident dashboard as last resort');
-            router.push('/dashboard/resident');
+            // SECURITY: Never redirect unknown roles to any dashboard - force re-authentication
+            console.error('SECURITY ERROR: Unknown user role in error fallback:', currentUser.role);
+            console.log('Forcing re-authentication for security');
+            router.push('/auth/login');
           }
         }
       }
