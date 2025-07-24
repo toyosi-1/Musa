@@ -6,11 +6,8 @@ import { User } from '@/types/user';
 interface CreateHouseholdFormProps {
   onCreateHousehold: (name: string, addressData?: {
     address?: string;
-    addressLine2?: string;
     city?: string;
     state?: string;
-    postalCode?: string;
-    country?: string;
   }) => Promise<any>;
   disabled?: boolean;
 }
@@ -18,11 +15,8 @@ interface CreateHouseholdFormProps {
 export default function CreateHouseholdForm({ onCreateHousehold, disabled = false }: CreateHouseholdFormProps) {
   const [householdName, setHouseholdName] = useState('');
   const [address, setAddress] = useState('');
-  const [addressLine2, setAddressLine2] = useState('');
   const [city, setCity] = useState('');
   const [state, setState] = useState('');
-  const [postalCode, setPostalCode] = useState('');
-  const [country, setCountry] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -44,11 +38,8 @@ export default function CreateHouseholdForm({ onCreateHousehold, disabled = fals
       // Prepare address data if address fields are filled
       const addressData = showAddressFields && address ? {
         address,
-        addressLine2: addressLine2 || undefined,
         city: city || undefined,
-        state: state || undefined,
-        postalCode: postalCode || undefined,
-        country: country || undefined
+        state: state || undefined
       } : undefined;
       
       // Call parent component's onCreateHousehold function
@@ -59,11 +50,8 @@ export default function CreateHouseholdForm({ onCreateHousehold, disabled = fals
         // Reset form
         setHouseholdName('');
         setAddress('');
-        setAddressLine2('');
         setCity('');
         setState('');
-        setPostalCode('');
-        setCountry('');
         
         // Reset after a few seconds
         setTimeout(() => {
@@ -136,7 +124,7 @@ export default function CreateHouseholdForm({ onCreateHousehold, disabled = fals
                   type="text"
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
-                  placeholder="123 Main St"
+                  placeholder="12 Alabi Johnson street"
                   className="input w-full"
                   disabled={isLoading || disabled}
                 />
@@ -145,22 +133,7 @@ export default function CreateHouseholdForm({ onCreateHousehold, disabled = fals
                 </p>
               </div>
               
-              <div>
-                <label htmlFor="createAddressLine2" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Address Line 2
-                </label>
-                <input
-                  id="createAddressLine2"
-                  type="text"
-                  value={addressLine2}
-                  onChange={(e) => setAddressLine2(e.target.value)}
-                  placeholder="Apt, Suite, Unit, etc."
-                  className="input w-full"
-                  disabled={isLoading || disabled}
-                />
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-4">
                 <div>
                   <label htmlFor="createCity" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     City
@@ -170,7 +143,7 @@ export default function CreateHouseholdForm({ onCreateHousehold, disabled = fals
                     type="text"
                     value={city}
                     onChange={(e) => setCity(e.target.value)}
-                    placeholder="City"
+                    placeholder="mende"
                     className="input w-full"
                     disabled={isLoading || disabled}
                   />
@@ -185,39 +158,7 @@ export default function CreateHouseholdForm({ onCreateHousehold, disabled = fals
                     type="text"
                     value={state}
                     onChange={(e) => setState(e.target.value)}
-                    placeholder="State/Province"
-                    className="input w-full"
-                    disabled={isLoading || disabled}
-                  />
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label htmlFor="createPostalCode" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Postal Code
-                  </label>
-                  <input
-                    id="createPostalCode"
-                    type="text"
-                    value={postalCode}
-                    onChange={(e) => setPostalCode(e.target.value)}
-                    placeholder="Postal/Zip Code"
-                    className="input w-full"
-                    disabled={isLoading || disabled}
-                  />
-                </div>
-                
-                <div>
-                  <label htmlFor="createCountry" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Country
-                  </label>
-                  <input
-                    id="createCountry"
-                    type="text"
-                    value={country}
-                    onChange={(e) => setCountry(e.target.value)}
-                    placeholder="Country"
+                    placeholder="Lagos"
                     className="input w-full"
                     disabled={isLoading || disabled}
                   />
