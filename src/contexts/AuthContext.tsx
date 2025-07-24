@@ -490,7 +490,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Remove from pending list
       await set(pendingUserRef, null);
       
-      // Email notification removed - will be added later
+      // Send approval notification email
+      try {
+        // Get admin user data for the "approved by" field
+        const adminRef = ref(db, `users/${adminUid}`);
+        const adminSnapshot = await get(adminRef);
+        const adminData = adminSnapshot.val() as User;
+        
+        // Import the email service dynamically to avoid circular dependencies
+        const { sendApprovalNotificationEmail } = await import('@/services/smtpEmailService');
+        
+        const emailSent = await sendApprovalNotificationEmail({
+          userName: userData.displayName || userData.email,
+          userEmail: userData.email,
+          userRole: userData.role,
+          approvedBy: adminData?.displayName || adminData?.email || 'Administrator',
+          loginUrl: `${window.location.origin}/auth/login`
+        });
+        
+        if (emailSent) {
+          console.log(`✅ Approval email sent to ${userData.email}`);
+        } else {
+          console.warn(`⚠️ Failed to send approval email to ${userData.email}`);
+        }
+      } catch (emailError) {
+        console.error('❌ Error sending approval email:', emailError);
+        // Don't throw - approval should succeed even if email fails
+      }
+      
       console.log(`User ${uid} approved by admin ${adminUid}`);
     } catch (error) {
       console.error('Error approving user:', error);

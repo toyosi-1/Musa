@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -9,10 +9,12 @@ import LoadingSpinner from '@/components/ui/LoadingSpinner';
 export default function PendingPage() {
   const { currentUser, loading, signOut, refreshCurrentUser } = useAuth();
   const router = useRouter();
-  const [isPolling, setIsPolling] = useState(false);
   const [lastChecked, setLastChecked] = useState<Date | null>(null);
-  const [nextCheckIn, setNextCheckIn] = useState(30);
-  const [isChecking, setIsChecking] = useState(false);
+  const [nextCheckIn, setNextCheckIn] = useState(45);
+  const [isBackgroundChecking, setIsBackgroundChecking] = useState(false);
+  const [hasInitialized, setHasInitialized] = useState(false);
+  const pollingRef = useRef<NodeJS.Timeout | null>(null);
+  const countdownRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     // If user is not logged in or is already approved, redirect appropriately
@@ -27,56 +29,61 @@ export default function PendingPage() {
     }
   }, [currentUser, loading, router]);
 
-  // Auto-refresh polling effect for pending users with smooth countdown
+  // Smooth background polling without visual flicker
   useEffect(() => {
-    let pollingInterval: NodeJS.Timeout;
-    let countdownInterval: NodeJS.Timeout;
-    
-    // Only start polling if user is pending and not already polling
-    if (currentUser && currentUser.status === 'pending' && !loading && !isPolling) {
-      setIsPolling(true);
+    // Initialize polling only once for pending users
+    if (currentUser && currentUser.status === 'pending' && !loading && !hasInitialized) {
+      setHasInitialized(true);
       setLastChecked(new Date());
       
-      console.log('Starting approval status polling...');
+      console.log('🔄 Starting smooth approval status polling...');
       
       // Countdown timer (updates every second)
-      countdownInterval = setInterval(() => {
+      countdownRef.current = setInterval(() => {
         setNextCheckIn(prev => {
           if (prev <= 1) {
-            return 30; // Reset to 30 seconds
+            return 45; // Reset to 45 seconds for less aggressive polling
           }
           return prev - 1;
         });
       }, 1000);
       
-      // Status check (every 30 seconds instead of 15)
-      pollingInterval = setInterval(async () => {
+      // Background status check (every 45 seconds)
+      pollingRef.current = setInterval(async () => {
         try {
-          setIsChecking(true);
-          console.log('Checking approval status...');
+          setIsBackgroundChecking(true);
+          console.log('🔍 Silently checking approval status...');
+          
+          // Use a silent refresh that doesn't trigger re-renders
           await refreshCurrentUser();
           setLastChecked(new Date());
-          setNextCheckIn(30); // Reset countdown
+          setNextCheckIn(45); // Reset countdown
+          
+          console.log('✅ Background check completed');
         } catch (error) {
-          console.error('Error during approval status check:', error);
+          console.error('❌ Error during background approval check:', error);
         } finally {
-          setIsChecking(false);
+          // Small delay to prevent any visual flicker
+          setTimeout(() => {
+            setIsBackgroundChecking(false);
+          }, 100);
         }
-      }, 30000); // Check every 30 seconds (less aggressive)
+      }, 45000); // Check every 45 seconds (more professional interval)
     }
     
     // Cleanup function
     return () => {
-      if (pollingInterval) {
-        clearInterval(pollingInterval);
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current);
+        pollingRef.current = null;
       }
-      if (countdownInterval) {
-        clearInterval(countdownInterval);
+      if (countdownRef.current) {
+        clearInterval(countdownRef.current);
+        countdownRef.current = null;
       }
-      setIsPolling(false);
-      console.log('Stopped approval status polling');
+      console.log('🛑 Stopped approval status polling');
     };
-  }, [currentUser, loading, isPolling, refreshCurrentUser]);
+  }, [currentUser, loading, hasInitialized, refreshCurrentUser]);
 
   const handleSignOut = async () => {
     try {
@@ -167,19 +174,19 @@ export default function PendingPage() {
                     : "Your approval is taking longer than expected. Please contact support if this continues."}
                 </p>
                 
-                {/* Enhanced status indicator with countdown */}
-                {isPolling && (
+                {/* Subtle status indicator - no flicker */}
+                {hasInitialized && (
                   <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
                     <div className="flex items-center justify-center text-xs text-blue-600 dark:text-blue-400">
-                      {isChecking ? (
+                      {isBackgroundChecking ? (
                         <>
-                          <div className="w-3 h-3 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mr-2"></div>
-                          Checking status now...
+                          <div className="w-2 h-2 bg-blue-500 rounded-full mr-2 opacity-75"></div>
+                          Checking for updates...
                         </>
                       ) : (
                         <>
-                          <div className="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
-                          Next check in {nextCheckIn} seconds
+                          <div className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></div>
+                          Auto-checking every {nextCheckIn}s
                         </>
                       )}
                     </div>
