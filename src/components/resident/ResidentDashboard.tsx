@@ -11,6 +11,7 @@ import HouseholdManager from '@/components/resident/HouseholdManager';
 import CreateAccessCodeForm from '@/components/resident/CreateAccessCodeForm';
 import CreateHouseholdForm from '@/components/resident/CreateHouseholdForm';
 import PendingInvitations from '@/components/resident/PendingInvitations';
+import { DashboardSkeleton, AccessCodeSkeleton } from '@/components/ui/SkeletonLoader';
 
 
 interface ResidentDashboardProps {
@@ -169,19 +170,9 @@ export default function ResidentDashboard({ user }: ResidentDashboardProps) {
 
   if (loading && !accessCodes.length && !household) {
     return (
-      <div className="max-w-4xl mx-auto p-4">
-        <h1 className="text-2xl font-bold mb-8 text-gray-800 dark:text-white">Resident Dashboard</h1>
-        <div className="animate-pulse space-y-6">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-card p-8">
-            <div className="h-7 bg-gray-100 dark:bg-gray-700 rounded-full w-1/4 mb-6"></div>
-            <div className="space-y-4">
-              <div className="h-5 bg-gray-100 dark:bg-gray-700 rounded-full w-3/4"></div>
-              <div className="h-5 bg-gray-100 dark:bg-gray-700 rounded-full w-1/2"></div>
-              <div className="h-5 bg-gray-100 dark:bg-gray-700 rounded-full w-2/3"></div>
-            </div>
-            <div className="mt-8 h-10 bg-gray-100 dark:bg-gray-700 rounded-xl w-1/3"></div>
-          </div>
-        </div>
+      <div className="w-full">
+        <h1 className="text-3xl font-bold mb-8 text-gray-800 dark:text-white">Resident Dashboard</h1>
+        <DashboardSkeleton />
       </div>
     );
   }

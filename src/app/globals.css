@@ -307,68 +307,168 @@ select {
 }
 
 @layer components {
-  /* Buttons - ensure minimum touch target size */
+  /* Enhanced Buttons - Perfect consistency and accessibility */
   .btn-primary {
-    min-height: 44px;
-    min-width: 44px;
+    min-height: 48px;
+    min-width: 48px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    @apply bg-primary text-white font-semibold py-3 px-6 rounded-xl shadow-button hover:bg-primary-600 hover:shadow-button-hover transition-all duration-300 focus:ring-2 focus:ring-primary-300 focus:ring-offset-1;
+    @apply bg-primary text-white font-medium py-3 px-6 rounded-xl shadow-lg hover:bg-primary-600 hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 focus:ring-2 focus:ring-primary-300 focus:ring-offset-2 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none;
   }
   
   .btn-secondary {
-    @apply bg-secondary text-white font-semibold py-3 px-6 rounded-xl shadow-button hover:bg-secondary-600 hover:shadow-button-hover transition-all duration-300 focus:ring-2 focus:ring-secondary-200 focus:ring-offset-1;
+    min-height: 48px;
+    min-width: 48px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    @apply bg-secondary text-white font-medium py-3 px-6 rounded-xl shadow-lg hover:bg-secondary-600 hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 focus:ring-2 focus:ring-secondary-300 focus:ring-offset-2 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none;
   }
   
   .btn-danger {
-    @apply bg-danger text-white font-semibold py-3 px-6 rounded-xl shadow-md hover:bg-danger-600 hover:shadow-lg transition-all duration-300 focus:ring-2 focus:ring-red-200 focus:ring-offset-1;
+    min-height: 48px;
+    min-width: 48px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    @apply bg-red-500 text-white font-medium py-3 px-6 rounded-xl shadow-lg hover:bg-red-600 hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 focus:ring-2 focus:ring-red-300 focus:ring-offset-2 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none;
   }
   
   .btn-outline {
-    @apply border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-white font-semibold py-3 px-6 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-300 focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-600 focus:ring-offset-1;
+    min-height: 48px;
+    min-width: 48px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    @apply border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-white font-medium py-3 px-6 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-400 dark:hover:border-gray-500 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600 focus:ring-offset-2 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none;
   }
   
   .btn-success {
-    @apply bg-success text-white font-semibold py-3 px-6 rounded-xl shadow-button hover:bg-success-600 hover:shadow-button-hover transition-all duration-300;
+    min-height: 48px;
+    min-width: 48px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    @apply bg-green-500 text-white font-medium py-3 px-6 rounded-xl shadow-lg hover:bg-green-600 hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 focus:ring-2 focus:ring-green-300 focus:ring-offset-2 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none;
   }
   
   .btn-warning {
-    @apply bg-warning text-white font-semibold py-3 px-6 rounded-xl shadow-button hover:bg-warning-600 hover:shadow-button-hover transition-all duration-300;
+    min-height: 48px;
+    min-width: 48px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    @apply bg-yellow-500 text-white font-medium py-3 px-6 rounded-xl shadow-lg hover:bg-yellow-600 hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 focus:ring-2 focus:ring-yellow-300 focus:ring-offset-2 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none;
   }
   
   .btn-info {
-    @apply bg-info text-white font-semibold py-3 px-6 rounded-xl shadow-button hover:bg-info-600 hover:shadow-button-hover transition-all duration-300;
+    min-height: 48px;
+    min-width: 48px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    @apply bg-blue-500 text-white font-medium py-3 px-6 rounded-xl shadow-lg hover:bg-blue-600 hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 focus:ring-2 focus:ring-blue-300 focus:ring-offset-2 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none;
   }
   
+  /* Button size variants */
   .btn-sm {
+    min-height: 40px;
     @apply py-2 px-4 text-sm;
   }
   
   .btn-lg {
+    min-height: 56px;
     @apply py-4 px-8 text-lg;
   }
   
-  /* Cards */
+  /* Icon buttons */
+  .btn-icon {
+    min-height: 44px;
+    min-width: 44px;
+    @apply p-2 rounded-full;
+  }
+  
+  /* Link-style buttons */
+  .btn-link {
+    min-height: auto;
+    min-width: auto;
+    @apply bg-transparent text-primary hover:text-primary-600 underline hover:no-underline font-medium py-1 px-2 rounded transition-all duration-200 focus:ring-2 focus:ring-primary-300 focus:ring-offset-1 focus:outline-none;
+  }
+  
+  /* Enhanced Cards with Perfect Polish */
   .card {
-    @apply bg-white dark:bg-gray-800 rounded-2xl shadow-card p-6 animate-fade-in border border-gray-100 dark:border-gray-700;
+    @apply bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 border border-gray-100 dark:border-gray-700 transition-all duration-300 hover:shadow-xl;
   }
   
   .card-interactive {
-    @apply bg-white dark:bg-gray-800 rounded-2xl shadow-card p-6 hover:shadow-card-hover transition-all duration-300 cursor-pointer border border-gray-100 dark:border-gray-700 hover:border-primary-200 dark:hover:border-primary-700;
+    @apply bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 hover:shadow-xl hover:scale-[1.01] transition-all duration-300 cursor-pointer border border-gray-100 dark:border-gray-700 hover:border-primary-200 dark:hover:border-primary-700;
   }
   
   .card-highlighted {
-    @apply bg-white dark:bg-gray-800 rounded-2xl shadow-card p-6 border-l-4 border-primary;
+    @apply bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 border-l-4 border-primary transition-all duration-300 hover:shadow-xl;
+  }
+  
+  .card-success {
+    @apply bg-green-50 dark:bg-green-900/20 rounded-2xl shadow-lg p-6 border border-green-200 dark:border-green-700 transition-all duration-300;
+  }
+  
+  .card-warning {
+    @apply bg-yellow-50 dark:bg-yellow-900/20 rounded-2xl shadow-lg p-6 border border-yellow-200 dark:border-yellow-700 transition-all duration-300;
+  }
+  
+  .card-error {
+    @apply bg-red-50 dark:bg-red-900/20 rounded-2xl shadow-lg p-6 border border-red-200 dark:border-red-700 transition-all duration-300;
   }
   
   .panel {
-    @apply bg-white dark:bg-gray-800 rounded-2xl shadow-panel p-6 border border-gray-100 dark:border-gray-700;
+    @apply bg-white dark:bg-gray-800 rounded-2xl shadow-md p-6 border border-gray-100 dark:border-gray-700 transition-all duration-300;
   }
   
-  /* Form elements */
+  /* Skeleton Loading Animations */
+  .skeleton {
+    @apply bg-gray-200 dark:bg-gray-700 rounded animate-pulse;
+  }
+  
+  .skeleton-text {
+    @apply skeleton h-4 w-full mb-2;
+  }
+  
+  .skeleton-text-sm {
+    @apply skeleton h-3 w-3/4 mb-2;
+  }
+  
+  .skeleton-title {
+    @apply skeleton h-6 w-1/2 mb-4;
+  }
+  
+  .skeleton-button {
+    @apply skeleton h-12 w-32 rounded-xl;
+  }
+  
+  .skeleton-avatar {
+    @apply skeleton h-12 w-12 rounded-full;
+  }
+  
+  .skeleton-card {
+    @apply card space-y-4;
+  }
+  
+  /* Enhanced Form Elements with Perfect Polish */
   .input {
-    @apply border border-gray-300 dark:border-gray-600 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary text-gray-900 dark:text-white bg-white dark:bg-gray-700 transition-all duration-200 shadow-sm placeholder:text-gray-400 dark:placeholder:text-gray-500;
+    @apply border border-gray-300 dark:border-gray-600 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary-300 focus:border-primary text-gray-900 dark:text-white bg-white dark:bg-gray-700 transition-all duration-200 shadow-sm hover:shadow-md hover:border-gray-400 dark:hover:border-gray-500 placeholder:text-gray-400 dark:placeholder:text-gray-500;
+  }
+  
+  .input:focus {
+    @apply transform scale-[1.01] shadow-lg;
+  }
+  
+  .input-error {
+    @apply border-red-300 dark:border-red-600 focus:ring-red-300 focus:border-red-500 bg-red-50 dark:bg-red-900/20;
+  }
+  
+  .input-success {
+    @apply border-green-300 dark:border-green-600 focus:ring-green-300 focus:border-green-500 bg-green-50 dark:bg-green-900/20;
   }
   
   .input-with-icon {
@@ -376,17 +476,300 @@ select {
   }
   
   .select {
-    @apply border border-gray-300 dark:border-gray-600 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary text-gray-900 dark:text-white bg-white dark:bg-gray-700 transition-all duration-200 shadow-sm appearance-none pr-10;
+    @apply border border-gray-300 dark:border-gray-600 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary-300 focus:border-primary text-gray-900 dark:text-white bg-white dark:bg-gray-700 transition-all duration-200 shadow-sm hover:shadow-md hover:border-gray-400 dark:hover:border-gray-500 appearance-none pr-10;
+  }
+  
+  .select:focus {
+    @apply transform scale-[1.01] shadow-lg;
   }
   
   .form-label {
-    @apply block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1;
+    @apply block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 transition-colors duration-200;
+  }
+  
+  .form-label-required::after {
+    content: ' *';
+    @apply text-red-500;
   }
   
   .form-helper {
-    @apply mt-1 text-sm text-gray-500 dark:text-gray-400;
+    @apply mt-2 text-sm text-gray-500 dark:text-gray-400 transition-colors duration-200;
   }
   
+  .form-error {
+    @apply mt-2 text-sm text-red-600 dark:text-red-400 flex items-center;
+  }
+  
+  .form-success {
+    @apply mt-2 text-sm text-green-600 dark:text-green-400 flex items-center;
+  }
+  
+  /* Perfect Typography Hierarchy */
+  .heading-1 {
+    @apply text-4xl font-bold text-gray-900 dark:text-white mb-6 leading-tight;
+  }
+  
+  .heading-2 {
+    @apply text-3xl font-bold text-gray-900 dark:text-white mb-5 leading-tight;
+  }
+  
+  .heading-3 {
+    @apply text-2xl font-semibold text-gray-900 dark:text-white mb-4 leading-snug;
+  }
+  
+  .heading-4 {
+    @apply text-xl font-semibold text-gray-800 dark:text-gray-100 mb-3 leading-snug;
+  }
+  
+  .heading-5 {
+    @apply text-lg font-medium text-gray-800 dark:text-gray-100 mb-2 leading-normal;
+  }
+  
+  .body-large {
+    @apply text-lg text-gray-700 dark:text-gray-300 leading-relaxed;
+  }
+  
+  .body-normal {
+    @apply text-base text-gray-600 dark:text-gray-400 leading-relaxed;
+  }
+  
+  .body-small {
+    @apply text-sm text-gray-500 dark:text-gray-500 leading-normal;
+  }
+  
+  .text-muted {
+    @apply text-gray-500 dark:text-gray-400;
+  }
+  
+  .text-emphasis {
+    @apply text-gray-900 dark:text-white font-medium;
+  }
+  
+  /* Perfect Spacing System */
+  .section-spacing {
+    @apply mb-8;
+  }
+  
+  .card-spacing {
+    @apply mb-6;
+  }
+  
+  .element-spacing {
+    @apply mb-4;
+  }
+  
+  .tight-spacing {
+    @apply mb-2;
+  }
+  
+  /* Enhanced Accessibility & Focus States */
+  .focus-visible {
+    @apply focus:outline-none focus:ring-2 focus:ring-primary-300 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-800;
+  }
+  
+  .sr-only {
+    @apply absolute w-px h-px p-0 -m-px overflow-hidden whitespace-nowrap border-0;
+  }
+  
+  .skip-link {
+    @apply sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 bg-primary text-white px-4 py-2 rounded-lg z-50 focus-visible;
+  }
+  
+  /* High contrast mode support */
+  @media (prefers-contrast: high) {
+    .card {
+      @apply border-2 border-gray-900 dark:border-white;
+    }
+    
+    .btn-primary {
+      @apply border-2 border-gray-900 dark:border-white;
+    }
+    
+    .input {
+      @apply border-2 border-gray-900 dark:border-white;
+    }
+  }
+  
+  /* Reduced motion support */
+  @media (prefers-reduced-motion: reduce) {
+    * {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+  
+  /* Professional Animation System */
+  .animate-fade-in {
+    animation: fadeIn 0.5s ease-out;
+  }
+  
+  .animate-slide-up {
+    animation: slideUp 0.4s ease-out;
+  }
+  
+  .animate-slide-down {
+    animation: slideDown 0.4s ease-out;
+  }
+  
+  .animate-scale-in {
+    animation: scaleIn 0.3s ease-out;
+  }
+  
+  .animate-bounce-subtle {
+    animation: bounceSubtle 0.6s ease-out;
+  }
+  
+  .animate-pulse-soft {
+    animation: pulseSoft 2s ease-in-out infinite;
+  }
+  
+  .animate-shimmer {
+    animation: shimmer 2s ease-in-out infinite;
+  }
+  
+  /* Hover animations */
+  .hover-lift {
+    @apply transition-transform duration-200 hover:scale-[1.02] hover:-translate-y-1;
+  }
+  
+  .hover-glow {
+    @apply transition-shadow duration-300 hover:shadow-xl hover:shadow-primary/20;
+  }
+  
+  .hover-rotate {
+    @apply transition-transform duration-300 hover:rotate-3;
+  }
+  
+  /* Loading states */
+  .loading-dots::after {
+    content: '';
+    animation: loadingDots 1.5s ease-in-out infinite;
+  }
+  
+  /* Success animations */
+  .success-checkmark {
+    animation: successCheckmark 0.6s ease-out;
+  }
+  
+  /* Error shake animation */
+  .error-shake {
+    animation: errorShake 0.5s ease-in-out;
+  }
+}
+
+/* Keyframe Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes bounceSubtle {
+  0%, 20%, 50%, 80%, 100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-4px);
+  }
+  60% {
+    transform: translateY(-2px);
+  }
+}
+
+@keyframes pulseSoft {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200px 0;
+  }
+  100% {
+    background-position: calc(200px + 100%) 0;
+  }
+}
+
+@keyframes loadingDots {
+  0%, 80%, 100% {
+    opacity: 0;
+  }
+  40% {
+    opacity: 1;
+  }
+}
+
+@keyframes successCheckmark {
+  0% {
+    opacity: 0;
+    transform: scale(0.8) rotate(-45deg);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.1) rotate(-45deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(-45deg);
+  }
+}
+
+@keyframes errorShake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  10%, 30%, 50%, 70%, 90% {
+    transform: translateX(-2px);
+  }
+  20%, 40%, 60%, 80% {
+    transform: translateX(2px);
+  }
+}
+
+@layer components {
   /* Location selector (like in reference image) */
   .location-selector {
     @apply flex items-center rounded-xl bg-white dark:bg-gray-700 px-4 py-3 text-gray-700 dark:text-white shadow-sm;
