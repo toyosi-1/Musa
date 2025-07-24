@@ -146,36 +146,15 @@ function generateHouseholdInvitationHTML(data: HouseholdInviteData): string {
             margin-bottom: 30px;
         }
         .logo {
-            width: 80px;
-            height: 80px;
-            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-            border-radius: 16px;
+            width: 100px;
+            height: 100px;
             margin: 0 auto 20px;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: white;
-            font-size: 32px;
-            font-weight: bold;
-            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-            position: relative;
-        }
-        .logo::before {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 40px;
-            height: 40px;
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 8px;
-        }
-        .logo-text {
-            position: relative;
-            z-index: 1;
-            font-family: 'Arial Black', Arial, sans-serif;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+            background: linear-gradient(135deg, #fef3c7, #fbbf24);
+            border-radius: 50%;
+            box-shadow: 0 4px 12px rgba(251, 191, 36, 0.3);
         }
         .title {
             color: #1f2937;
@@ -246,7 +225,11 @@ function generateHouseholdInvitationHTML(data: HouseholdInviteData): string {
     <div class="container">
         <div class="header">
             <div class="logo">
-                <span class="logo-text">MUSA</span>
+                <!-- Musa Character - Email Compatible Version -->
+                <div style="width: 80px; height: 80px; background: linear-gradient(135deg, #DAA520, #B8860B); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: Arial, sans-serif; font-size: 32px; font-weight: bold; color: #FFF; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); border: 4px solid #FFD700; position: relative;">
+                    🏠
+                    <div style="position: absolute; top: -8px; left: 50%; transform: translateX(-50%); width: 60px; height: 15px; background: linear-gradient(135deg, #FFD700, #DAA520); border-radius: 50%; border: 2px solid #B8860B;"></div>
+                </div>
             </div>
             <h1 class="title">You're Invited!</h1>
             <p class="subtitle">Join a household on Musa Security</p>
@@ -324,32 +307,15 @@ function generateApprovalNotificationHTML(data: ApprovalNotificationData): strin
             margin-bottom: 30px;
         }
         .logo {
-            width: 80px;
-            height: 80px;
-            background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
-            border-radius: 50%;
+            width: 100px;
+            height: 100px;
             margin: 0 auto 20px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-weight: 900;
-            font-size: 32px;
-            color: white;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-            box-shadow: 0 8px 16px rgba(59, 130, 246, 0.3);
-            position: relative;
-        }
-        .logo::before {
-            content: '';
-            position: absolute;
-            top: -2px;
-            left: -2px;
-            right: -2px;
-            bottom: -2px;
-            background: linear-gradient(135deg, #3b82f6, #1e40af);
+            background: linear-gradient(135deg, #fef3c7, #fbbf24);
             border-radius: 50%;
-            z-index: -1;
-            opacity: 0.3;
+            box-shadow: 0 4px 12px rgba(251, 191, 36, 0.3);
         }
         .title {
             font-size: 28px;
@@ -444,7 +410,11 @@ function generateApprovalNotificationHTML(data: ApprovalNotificationData): strin
     <div class="container">
         <div class="header">
             <div class="logo">
-                MUSA
+                <!-- Musa Character - Email Compatible Version -->
+                <div style="width: 80px; height: 80px; background: linear-gradient(135deg, #DAA520, #B8860B); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: Arial, sans-serif; font-size: 32px; font-weight: bold; color: #FFF; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); border: 4px solid #FFD700; position: relative;">
+                    🏠
+                    <div style="position: absolute; top: -8px; left: 50%; transform: translateX(-50%); width: 60px; height: 15px; background: linear-gradient(135deg, #FFD700, #DAA520); border-radius: 50%; border: 2px solid #B8860B;"></div>
+                </div>
             </div>
             <h1 class="title">🎉 Account Approved!</h1>
             <p class="subtitle">Welcome to Musa Security</p>
