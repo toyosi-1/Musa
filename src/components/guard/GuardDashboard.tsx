@@ -195,7 +195,7 @@ export default function GuardDashboard({ user }: GuardDashboardProps) {
                 <ClockIcon className="h-4 w-4 md:h-5 md:w-5 text-primary" />
               </div>
               <div>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Today</p>
+                <p className="text-xs text-gray-500 dark:text-gray-300">Today</p>
                 <p className="text-lg md:text-xl font-bold text-gray-800 dark:text-white">
                   {isLoadingStats ? '...' : activityStats.todayVerifications}
                 </p>
@@ -211,7 +211,7 @@ export default function GuardDashboard({ user }: GuardDashboardProps) {
                 </svg>
               </div>
               <div>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Total</p>
+                <p className="text-xs text-gray-500 dark:text-gray-300">Total</p>
                 <p className="text-lg md:text-xl font-bold text-gray-800 dark:text-white">
                   {isLoadingStats ? '...' : activityStats.totalVerifications}
                 </p>
@@ -225,7 +225,7 @@ export default function GuardDashboard({ user }: GuardDashboardProps) {
                 <CheckCircleIcon className="h-4 w-4 md:h-5 md:w-5 text-success" />
               </div>
               <div>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Granted</p>
+                <p className="text-xs text-gray-500 dark:text-gray-300">Granted</p>
                 <p className="text-lg md:text-xl font-bold text-gray-800 dark:text-white">
                   {isLoadingStats ? '...' : activityStats.validAccess}
                 </p>
@@ -239,7 +239,7 @@ export default function GuardDashboard({ user }: GuardDashboardProps) {
                 <XCircleIcon className="h-4 w-4 md:h-5 md:w-5 text-danger" />
               </div>
               <div>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Denied</p>
+                <p className="text-xs text-gray-500 dark:text-gray-300">Denied</p>
                 <p className="text-lg md:text-xl font-bold text-gray-800 dark:text-white">
                   {isLoadingStats ? '...' : activityStats.deniedAccess}
                 </p>
@@ -258,7 +258,7 @@ export default function GuardDashboard({ user }: GuardDashboardProps) {
                   <path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9c2.12 0 4.07.74 5.61 1.97" />
                 </svg>
               </div>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Success Rate</p>
+              <p className="text-sm text-gray-600 dark:text-gray-300 mb-1">Success Rate</p>
               <p className="text-2xl font-bold text-green-600 dark:text-green-400">
                 {isLoadingStats ? '...' : `${activityStats.successRate}%`}
               </p>
@@ -366,7 +366,7 @@ export default function GuardDashboard({ user }: GuardDashboardProps) {
                     <p className="font-medium mb-1 text-gray-800 dark:text-white">Going to:</p>
                     <p className="text-gray-700 dark:text-gray-300 whitespace-pre-line">{scanResult.destinationAddress}</p>
                     {scanResult.household?.name && (
-                      <p className="mt-2 text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
+                      <p className="mt-2 text-sm text-gray-500 dark:text-gray-300 flex items-center gap-1.5">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
                           <circle cx="9" cy="7" r="4"></circle>
@@ -400,13 +400,13 @@ export default function GuardDashboard({ user }: GuardDashboardProps) {
                     </svg>
                     Security Log
                   </h2>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Recent access verifications</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-300">Recent access verifications</p>
                 </div>
                 <div className="text-right">
                   <p className="text-sm font-medium text-gray-800 dark:text-white">
                     {verificationHistory.length} Records
                   </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                  <p className="text-xs text-gray-500 dark:text-gray-300">
                     Last 10 entries
                   </p>
                 </div>
@@ -460,7 +460,7 @@ export default function GuardDashboard({ user }: GuardDashboardProps) {
                               
                               {/* Message */}
                               {record.message && (
-                                <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400 mb-2 line-clamp-2">
+                                <p className="text-xs md:text-sm text-gray-600 dark:text-gray-300 mb-2 line-clamp-2">
                                   {record.message}
                                 </p>
                               )}
@@ -468,21 +468,21 @@ export default function GuardDashboard({ user }: GuardDashboardProps) {
                               {/* Destination Address */}
                               {record.destinationAddress && (
                                 <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-2 mb-2">
-                                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1 flex items-center gap-1">
+                                  <p className="text-xs text-gray-500 dark:text-gray-300 mb-1 flex items-center gap-1">
                                     <MapPinIcon className="h-3 w-3" />
                                     Destination:
                                   </p>
                                   <p className="text-xs md:text-sm text-gray-700 dark:text-gray-300 font-medium">
                                     {record.destinationAddress.split('\n')[0]}
                                     {record.destinationAddress.includes('\n') && (
-                                      <span className="text-gray-500 dark:text-gray-400"> (+more)</span>
+                                      <span className="text-gray-500 dark:text-gray-300"> (+more)</span>
                                     )}
                                   </p>
                                 </div>
                               )}
                               
                               {/* Timestamp */}
-                              <div className="flex items-center gap-4 text-xs text-gray-400 dark:text-gray-500">
+                              <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-300">
                                 <span className="flex items-center gap-1">
                                   <ClockIcon className="h-3 w-3" />
                                   {formatDistanceToNow(new Date(record.timestamp), { addSuffix: true })}
@@ -495,7 +495,7 @@ export default function GuardDashboard({ user }: GuardDashboardProps) {
                             
                             {/* Entry Number */}
                             <div className="text-right flex-shrink-0">
-                              <span className="inline-flex items-center justify-center w-6 h-6 bg-gray-100 dark:bg-gray-700 rounded-full text-xs font-medium text-gray-600 dark:text-gray-400">
+                              <span className="inline-flex items-center justify-center w-6 h-6 bg-gray-100 dark:bg-gray-700 rounded-full text-xs font-medium text-gray-600 dark:text-gray-300">
                                 {index + 1}
                               </span>
                             </div>
@@ -515,10 +515,10 @@ export default function GuardDashboard({ user }: GuardDashboardProps) {
                       <path d="M7 16h10" />
                     </svg>
                   </div>
-                  <p className="text-gray-500 dark:text-gray-400 mb-2">
+                  <p className="text-gray-500 dark:text-gray-300 mb-2">
                     {isLoadingStats ? 'Loading security log...' : 'No recent activity'}
                   </p>
-                  <p className="text-sm text-gray-400 dark:text-gray-500">
+                  <p className="text-sm text-gray-500 dark:text-gray-300">
                     {isLoadingStats ? 'Please wait...' : 'Verification records will appear here'}
                   </p>
                 </div>

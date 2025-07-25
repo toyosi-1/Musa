@@ -6,12 +6,16 @@ import { useAuth } from '@/contexts/AuthContext';
 import PendingUsersManager from '@/components/admin/PendingUsersManager';
 import StatusGuard from '@/components/auth/StatusGuard';
 import Link from 'next/link';
+import { getAdminStats, AdminStats } from '@/services/adminStatsService';
 
 export default function AdminDashboardPage() {
   const { currentUser, loading, signOut } = useAuth();
   const router = useRouter();
   // Add a local state for component mounting to avoid rendering issues
   const [mounted, setMounted] = useState(false);
+  const [adminStats, setAdminStats] = useState<AdminStats | null>(null);
+  const [isLoadingStats, setIsLoadingStats] = useState(true);
+  const [statsError, setStatsError] = useState<string | null>(null);
   
   // Handle logout
   const handleLogout = async () => {
@@ -23,11 +27,33 @@ export default function AdminDashboardPage() {
     }
   };
   
+  // Load admin statistics
+  const loadAdminStats = async () => {
+    try {
+      setIsLoadingStats(true);
+      setStatsError(null);
+      const stats = await getAdminStats();
+      setAdminStats(stats);
+    } catch (error) {
+      console.error('Error loading admin stats:', error);
+      setStatsError('Failed to load statistics');
+    } finally {
+      setIsLoadingStats(false);
+    }
+  };
+
   // Handle mounting to ensure hooks are called consistently
   useEffect(() => {
     setMounted(true);
     return () => setMounted(false);
   }, []);
+
+  // Load stats when component mounts and user is authenticated
+  useEffect(() => {
+    if (mounted && currentUser && currentUser.role === 'admin' && !loading) {
+      loadAdminStats();
+    }
+  }, [mounted, currentUser, loading]);
 
   useEffect(() => {
     // Only allow admins to access this page
@@ -99,10 +125,12 @@ export default function AdminDashboardPage() {
                   <h3 className="text-lg font-semibold text-gray-800 dark:text-white">Total Users</h3>
                 </div>
                 <div className="flex items-end">
-                  <p className="text-3xl font-bold text-blue-600 dark:text-blue-400">--</p>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 ml-2 mb-1">accounts</p>
+                  <p className="text-3xl font-bold text-blue-600 dark:text-blue-400">
+                    {isLoadingStats ? '...' : (adminStats?.totalUsers || '0')}
+                  </p>
+                  <p className="text-sm text-gray-500 dark:text-gray-300 ml-2 mb-1">accounts</p>
                 </div>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">All registered users on the platform</p>
+                <p className="text-sm text-gray-500 dark:text-gray-300 mt-2">All registered users on the platform</p>
               </div>
               
               <div className="p-6 bg-musa-bg dark:bg-gray-900/50 rounded-2xl shadow-card border border-green-100 dark:border-green-900/30">
@@ -115,10 +143,12 @@ export default function AdminDashboardPage() {
                   <h3 className="text-lg font-semibold text-gray-800 dark:text-white">Active Households</h3>
                 </div>
                 <div className="flex items-end">
-                  <p className="text-3xl font-bold text-green-600 dark:text-green-400">--</p>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 ml-2 mb-1">households</p>
+                  <p className="text-3xl font-bold text-green-600 dark:text-green-400">
+                    {isLoadingStats ? '...' : (adminStats?.activeHouseholds || '0')}
+                  </p>
+                  <p className="text-sm text-gray-500 dark:text-gray-300 ml-2 mb-1">households</p>
                 </div>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Total active households in the estate</p>
+                <p className="text-sm text-gray-500 dark:text-gray-300 mt-2">Total active households in the estate</p>
               </div>
               
               <div className="p-6 bg-musa-bg dark:bg-gray-900/50 rounded-2xl shadow-card border border-purple-100 dark:border-purple-900/30">
@@ -131,21 +161,50 @@ export default function AdminDashboardPage() {
                   <h3 className="text-lg font-semibold text-gray-800 dark:text-white">Recent Activities</h3>
                 </div>
                 <div className="flex items-end">
-                  <p className="text-3xl font-bold text-purple-600 dark:text-purple-400">--</p>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 ml-2 mb-1">events</p>
+                  <p className="text-3xl font-bold text-purple-600 dark:text-purple-400">
+                    {isLoadingStats ? '...' : (adminStats?.recentActivities || '0')}
+                  </p>
+                  <p className="text-sm text-gray-500 dark:text-gray-300 ml-2 mb-1">events</p>
                 </div>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Estate activities in the last 24 hours</p>
+                <p className="text-sm text-gray-500 dark:text-gray-300 mt-2">Estate activities in the last 24 hours</p>
               </div>
             </div>
             
+            {statsError && (
+              <div className="mt-4 p-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-lg">
+                <p className="text-red-600 dark:text-red-400 text-sm">{statsError}</p>
+              </div>
+            )}
+            
             <div className="mt-6 text-center">
-              <button className="btn-outline inline-flex items-center">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <button 
+                onClick={loadAdminStats}
+                disabled={isLoadingStats}
+                className="btn-outline inline-flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className={`h-5 w-5 mr-2 ${isLoadingStats ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
-                Refresh Statistics
+                {isLoadingStats ? 'Refreshing...' : 'Refresh Statistics'}
               </button>
             </div>
+            
+            {adminStats && (
+              <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-musa-bg dark:bg-gray-900/50 rounded-lg p-4 text-center">
+                  <p className="text-sm text-gray-500 dark:text-gray-300 mb-1">Pending Approvals</p>
+                  <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">{adminStats.pendingUsers}</p>
+                </div>
+                <div className="bg-musa-bg dark:bg-gray-900/50 rounded-lg p-4 text-center">
+                  <p className="text-sm text-gray-500 dark:text-gray-300 mb-1">Total Access Codes</p>
+                  <p className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">{adminStats.totalAccessCodes}</p>
+                </div>
+                <div className="bg-musa-bg dark:bg-gray-900/50 rounded-lg p-4 text-center">
+                  <p className="text-sm text-gray-500 dark:text-gray-300 mb-1">Today's Codes</p>
+                  <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{adminStats.todayAccessCodes}</p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
