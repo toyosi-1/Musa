@@ -213,8 +213,8 @@ export default function ResidentDashboard({ user }: ResidentDashboardProps) {
             onClick={() => setActiveTab('codes')}
             className={`py-4 px-3 font-medium text-md border-b-2 transition-colors ${
               activeTab === 'codes'
-                ? 'border-primary text-primary dark:text-primary-light font-semibold'
-                : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300'
+                ? 'border-primary text-primary dark:text-blue-400 font-semibold'
+                : 'border-transparent text-gray-600 dark:text-gray-200 hover:text-gray-800 dark:hover:text-white hover:border-gray-300 dark:hover:border-gray-500'
             }`}
           >
             <div className="flex items-center">
@@ -228,8 +228,8 @@ export default function ResidentDashboard({ user }: ResidentDashboardProps) {
             onClick={() => setActiveTab('household')}
             className={`py-4 px-3 font-medium text-md border-b-2 transition-colors ${
               activeTab === 'household'
-                ? 'border-primary text-primary dark:text-primary-light font-semibold'
-                : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300'
+                ? 'border-primary text-primary dark:text-blue-400 font-semibold'
+                : 'border-transparent text-gray-600 dark:text-gray-200 hover:text-gray-800 dark:hover:text-white hover:border-gray-300 dark:hover:border-gray-500'
             }`}
           >
             <div className="flex items-center">
@@ -274,14 +274,14 @@ export default function ResidentDashboard({ user }: ResidentDashboardProps) {
                 </svg>
                 Generate New Access Code
               </h2>
-              <p className="text-gray-600 dark:text-gray-400">Create a new access code for guests or service providers.</p>
+              <p className="text-gray-600 dark:text-gray-300">Create a new access code for guests or service providers.</p>
               {user.householdId && household && household.address && (
                 <p className="text-sm text-green-600 dark:text-green-400 mt-1 flex items-center">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                   </svg>
-                  Guards will see your full address when verifying codes
+                  Guards will see this address when verifying visitor access codes
                 </p>
               )}
             </div>
@@ -326,13 +326,15 @@ export default function ResidentDashboard({ user }: ResidentDashboardProps) {
           
           <div className="card px-2 sm:px-4">
             <div className="mb-6">
-              <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-2 flex items-center">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
+              <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-2 flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7 mr-3 text-primary dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7 5.955c-.34-.059-.68-.114-1.021-.165C10.981 15.564 9.5 16.5 8 16.5s-2.98-.936-4.979-1.71C2.68 14.886 2.34 14.941 2 15a6 6 0 117-5.955m5 2a2 2 0 11-4 0 2 2 0 014 0z" />
                 </svg>
                 Your Access Codes
               </h2>
-              <p className="text-gray-600 dark:text-gray-400">Manage your existing access codes.</p>
+              <p className="text-gray-600 dark:text-gray-300 mb-6">
+                Generate secure access codes for your visitors and guests.
+              </p>
             </div>
             
             {accessCodes.length === 0 ? (
@@ -342,16 +344,16 @@ export default function ResidentDashboard({ user }: ResidentDashboardProps) {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
-                <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">No Access Codes</h3>
-                <p className="text-gray-500 dark:text-gray-400 max-w-md mx-auto">
+                <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-2">No Access Codes</h3>
+                <p className="text-gray-500 dark:text-gray-300 max-w-md mx-auto">
                   You haven't created any access codes yet. Create your first code using the form above.
                 </p>
                 {household && !household.address && (
-                  <div className="mt-4 text-sm text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/20 p-3 rounded-lg inline-block">
+                  <div className="mt-4 text-sm text-orange-600 dark:text-orange-300 bg-orange-50 dark:bg-orange-900/30 p-3 rounded-lg inline-block border border-orange-200 dark:border-orange-700/50">
                     <span className="font-semibold">Tip:</span> Guards won't be able to see your address when scanning codes. 
                     <button 
                       onClick={() => setActiveTab('household')} 
-                      className="ml-1 underline hover:text-orange-700"
+                      className="ml-1 underline hover:text-orange-700 dark:hover:text-orange-200 transition-colors"
                     >
                       Add your address
                     </button>
@@ -384,12 +386,12 @@ export default function ResidentDashboard({ user }: ResidentDashboardProps) {
             <div className="card">
               <div className="mb-4">
                 <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-2 flex items-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2 text-primary dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                   </svg>
                   Pending Invitations
                 </h2>
-                <p className="text-gray-600 dark:text-gray-400">Check for household invitations from other residents.</p>
+                <p className="text-gray-600 dark:text-gray-300">Check for household invitations from other residents.</p>
               </div>
               
               <PendingInvitations 
@@ -405,12 +407,12 @@ export default function ResidentDashboard({ user }: ResidentDashboardProps) {
           <div className="card">
             <div className="mb-4">
               <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-2 flex items-center">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2 text-primary dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                 </svg>
                 Household Management
               </h2>
-              <p className="text-gray-600 dark:text-gray-400">
+              <p className="text-gray-600 dark:text-gray-300">
                 {household ? 'Manage your household members and settings.' : 'Create a new household or join an existing one.'}
               </p>
             </div>
