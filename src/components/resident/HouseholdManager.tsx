@@ -285,19 +285,19 @@ export default function HouseholdManager({ user, household, onCreateHousehold, r
         
         <div className="space-y-4">
           <div>
-            <span className="text-sm text-gray-500 dark:text-gray-400">Name:</span>
+            <span className="text-sm text-gray-500 dark:text-gray-300">Name:</span>
             <p className="font-medium">{household.name}</p>
           </div>
           
           <div>
-            <span className="text-sm text-gray-500 dark:text-gray-400">Created:</span>
+            <span className="text-sm text-gray-500 dark:text-gray-300">Created:</span>
             <p className="font-medium">{new Date(household.createdAt).toLocaleDateString()}</p>
           </div>
           
           {/* Address Display */}
           <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
             <div className="flex justify-between items-center mb-2">
-              <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Address</span>
+              <span className="text-sm font-medium text-gray-500 dark:text-gray-300">Address</span>
               <button 
                 onClick={() => setShowAddressForm(!showAddressForm)}
                 className="text-xs font-medium text-primary hover:text-primary-dark transition"
@@ -320,7 +320,7 @@ export default function HouseholdManager({ user, household, onCreateHousehold, r
                     {household.country && <p>{household.country}</p>}
                   </div>
                 ) : (
-                  <p className="text-gray-500 dark:text-gray-400 italic">
+                  <p className="text-gray-500 dark:text-gray-300 italic">
                     No address added yet. Guards won't be able to see where visitors are going.
                   </p>
                 )}
@@ -466,7 +466,7 @@ export default function HouseholdManager({ user, household, onCreateHousehold, r
                           {member.id === user.uid && ' (You)'}
                         </span>
                         {member.email && member.displayName && (
-                          <span className="text-xs text-gray-500 dark:text-gray-400 block">{member.email}</span>
+                          <span className="text-xs text-gray-500 dark:text-gray-300 block">{member.email}</span>
                         )}
                       </div>
                     </li>
@@ -538,7 +538,7 @@ export default function HouseholdManager({ user, household, onCreateHousehold, r
             Danger Zone
           </h2>
           
-          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+          <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
             Once you leave this household, you will lose access to all household features and will need to be re-invited to rejoin.
           </p>
           

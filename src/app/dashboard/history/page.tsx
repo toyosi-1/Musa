@@ -94,7 +94,7 @@ export default function HistoryPage() {
         <div className="space-y-6">
           {Object.entries(groupedHistory).map(([dateKey, entries]) => (
             <div key={dateKey} className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4">
-              <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-3">{dateKey}</h2>
+              <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-300 mb-3">{dateKey}</h2>
               
               <div className="space-y-3">
                 {entries.map(entry => (
@@ -118,7 +118,7 @@ export default function HistoryPage() {
                     </div>
                     <div className="flex-1">
                       <p className="font-medium">{entry.details}</p>
-                      <div className="flex justify-between text-sm text-gray-500 dark:text-gray-400">
+                      <div className="flex justify-between text-sm text-gray-500 dark:text-gray-300">
                         <span>{entry.location}</span>
                         <span>{entry.date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                       </div>
@@ -134,7 +134,7 @@ export default function HistoryPage() {
           <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-          <p className="text-gray-500 dark:text-gray-400">No activity history to display</p>
+          <p className="text-gray-500 dark:text-gray-300">No activity history to display</p>
         </div>
       )}
     </div>

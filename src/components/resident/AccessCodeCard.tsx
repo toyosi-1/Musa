@@ -83,7 +83,7 @@ export default function AccessCodeCard({ accessCode, onDeactivate }: AccessCodeC
                 {!accessCode.isActive ? 'Inactive' : isExpired ? 'Expired' : 'Active'}
               </span>
             </div>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            <p className="text-sm text-gray-500 dark:text-gray-300 mt-1">
               {accessCode.description || 'No description'}
             </p>
           </div>
@@ -144,7 +144,7 @@ export default function AccessCodeCard({ accessCode, onDeactivate }: AccessCodeC
                   className="rounded-md max-w-full h-auto"
                 />
               </div>
-              <div className="mt-2 text-center text-xs text-gray-500 dark:text-gray-400">
+              <div className="mt-2 text-center text-xs text-gray-500 dark:text-gray-300">
                 Scan this code for entry
               </div>
             </div>
@@ -168,7 +168,7 @@ export default function AccessCodeCard({ accessCode, onDeactivate }: AccessCodeC
         </div>
         
         {/* Code info */}
-        <div className="space-y-2.5 text-sm text-gray-600 dark:text-gray-400 mt-6 p-4 bg-gray-50 dark:bg-gray-700/30 rounded-lg">
+        <div className="space-y-2.5 text-sm text-gray-600 dark:text-gray-300 mt-6 p-4 bg-gray-50 dark:bg-gray-700/30 rounded-lg">
           <div className="flex justify-between items-center">
             <span className="flex items-center gap-1.5">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 opacity-70" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -178,7 +178,7 @@ export default function AccessCodeCard({ accessCode, onDeactivate }: AccessCodeC
               <span>Status:</span>
             </span>
             <span className={`font-medium ${
-              !accessCode.isActive ? 'text-gray-500 dark:text-gray-400' :
+              !accessCode.isActive ? 'text-gray-500 dark:text-gray-300' :
               isExpired ? 'text-warning-600' : 'text-success-600'
             }`}>
               {!accessCode.isActive ? 'Inactive' :

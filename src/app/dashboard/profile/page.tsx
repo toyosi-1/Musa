@@ -61,12 +61,12 @@ export default function ProfilePage() {
           
           <div className="space-y-3">
             <div className="flex justify-between py-2 border-b border-gray-200 dark:border-gray-700">
-              <span className="text-gray-500 dark:text-gray-400">Account ID</span>
+              <span className="text-gray-500 dark:text-gray-300">Account ID</span>
               <span className="font-medium">{currentUser.uid.slice(0, 8)}...</span>
             </div>
             
             <div className="flex justify-between py-2 border-b border-gray-200 dark:border-gray-700">
-              <span className="text-gray-500 dark:text-gray-400">Status</span>
+              <span className="text-gray-500 dark:text-gray-300">Status</span>
               <span className={`font-medium ${
                 currentUser.status === 'approved' 
                   ? 'text-green-600 dark:text-green-400' 
@@ -79,14 +79,14 @@ export default function ProfilePage() {
             </div>
             
             <div className="flex justify-between py-2 border-b border-gray-200 dark:border-gray-700">
-              <span className="text-gray-500 dark:text-gray-400">Email Verified</span>
+              <span className="text-gray-500 dark:text-gray-300">Email Verified</span>
               <span className="font-medium">
                 {currentUser.isEmailVerified ? 'Yes' : 'No'}
               </span>
             </div>
             
             <div className="flex justify-between py-2 border-b border-gray-200 dark:border-gray-700">
-              <span className="text-gray-500 dark:text-gray-400">Joined</span>
+              <span className="text-gray-500 dark:text-gray-300">Joined</span>
               <span className="font-medium">
                 {new Date(currentUser.createdAt).toLocaleDateString()}
               </span>
@@ -116,7 +116,7 @@ export default function ProfilePage() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 w-full max-w-md">
             <h3 className="text-xl font-bold mb-4">Edit Profile</h3>
-            <p className="text-gray-500 dark:text-gray-400 mb-6">Profile editing functionality will be implemented in a future update.</p>
+            <p className="text-gray-500 dark:text-gray-300 mb-6">Profile editing functionality will be implemented in a future update.</p>
             <button 
               onClick={() => setIsEditing(false)}
               className="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-4 rounded-lg"

@@ -79,7 +79,7 @@ export default function DashboardLayout({
             className={`flex flex-col items-center justify-center flex-1 py-2 px-1 transition-all duration-200 ${
               isActive('/dashboard') && !isActive('/dashboard/profile') 
                 ? 'text-blue-600 dark:text-blue-400' 
-                : 'text-gray-600 dark:text-gray-400 active:text-blue-600 dark:active:text-blue-400'
+                : 'text-gray-600 dark:text-gray-200 active:text-blue-600 dark:active:text-blue-400'
             }`}
             style={{ WebkitTapHighlightColor: 'transparent' }}
           >
@@ -103,7 +103,7 @@ export default function DashboardLayout({
             <Link 
               href="/dashboard/scan" 
               className={`flex flex-col items-center justify-center flex-1 py-2 px-1 transition-all duration-200 ${
-                isActive('/dashboard/scan') ? 'text-red-600 dark:text-red-400' : 'text-gray-600 dark:text-gray-400 active:text-red-600 dark:active:text-red-400'
+                isActive('/dashboard/scan') ? 'text-red-600 dark:text-red-400' : 'text-gray-600 dark:text-gray-200 active:text-red-600 dark:active:text-red-400'
               }`}
               style={{ WebkitTapHighlightColor: 'transparent' }}
             >
@@ -129,7 +129,7 @@ export default function DashboardLayout({
             className={`flex flex-col items-center justify-center flex-1 py-2 px-1 transition-all duration-200 ${
               isActive('/dashboard/history') 
                 ? 'text-blue-600 dark:text-blue-400' 
-                : 'text-gray-600 dark:text-gray-400 active:text-blue-600 dark:active:text-blue-400'
+                : 'text-gray-600 dark:text-gray-200 active:text-blue-600 dark:active:text-blue-400'
             }`}
             style={{ WebkitTapHighlightColor: 'transparent' }}
           >
@@ -152,7 +152,7 @@ export default function DashboardLayout({
           <div className="flex flex-col items-center justify-center flex-1 py-2 px-1">
             <button 
               onClick={toggleProfileDialog} 
-              className="flex flex-col items-center justify-center w-full transition-all duration-200 text-gray-600 dark:text-gray-400 active:text-blue-600 dark:active:text-blue-400 focus:outline-none"
+              className="flex flex-col items-center justify-center w-full transition-all duration-200 text-gray-600 dark:text-gray-200 active:text-blue-600 dark:active:text-blue-400 focus:outline-none"
               style={{ WebkitTapHighlightColor: 'transparent' }}
             >
               <div className="flex items-center justify-center w-7 h-7 mb-1 transition-all duration-200 transform scale-100 hover:scale-105">
@@ -186,24 +186,24 @@ export default function DashboardLayout({
             {/* User Details */}
             <div className="space-y-3">
               <div>
-                <label className="block text-sm font-medium text-gray-500 dark:text-gray-400">Full Name</label>
+                <label className="block text-sm font-medium text-gray-500 dark:text-gray-300">Full Name</label>
                 <p className="text-lg font-medium">{currentUser?.displayName || 'Not provided'}</p>
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-500 dark:text-gray-400">Email</label>
+                <label className="block text-sm font-medium text-gray-500 dark:text-gray-300">Email</label>
                 <p className="text-lg">{currentUser?.email}</p>
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-500 dark:text-gray-400">Role</label>
+                <label className="block text-sm font-medium text-gray-500 dark:text-gray-300">Role</label>
                 <p className="capitalize text-lg">
                   {currentUser?.role || 'Not assigned'}
                 </p>
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-500 dark:text-gray-400">Status</label>
+                <label className="block text-sm font-medium text-gray-500 dark:text-gray-300">Status</label>
                 <div className="flex items-center gap-2">
                   <span className={`inline-block w-3 h-3 rounded-full ${currentUser?.status === 'approved' ? 'bg-green-500' : 'bg-yellow-500'}`}></span>
                   <span className="capitalize">{currentUser?.status || 'Pending'}</span>
