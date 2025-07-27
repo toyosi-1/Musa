@@ -62,7 +62,7 @@ export default function RegisterPage({
               <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-3">
                 {defaultRole === 'guard' ? 'Join as a Security Guard' : 'Create Your Resident Account'}
               </h1>
-              <p className="text-gray-600 dark:text-gray-400 max-w-md mx-auto">
+              <p className="text-gray-600 dark:text-gray-300 max-w-md mx-auto">
                 {defaultRole === 'guard' 
                   ? 'Register as a guard to help manage estate access and security.' 
                   : 'Register as a resident to create and manage access codes for your household.'}
@@ -73,7 +73,7 @@ export default function RegisterPage({
               <AuthForm mode="register" defaultRole={defaultRole} />
             </div>
             
-            <div className="text-center mt-6 text-sm text-gray-500 dark:text-gray-400">
+            <div className="text-center mt-6 text-sm text-gray-500 dark:text-gray-300">
               By registering, you agree to our
               <a href="#" className="text-primary dark:text-primary-light hover:underline mx-1">Terms of Service</a>
               and

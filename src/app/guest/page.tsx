@@ -72,7 +72,7 @@ export default function GuestPage() {
           <h1 className="text-xl font-semibold text-center text-red-600 dark:text-red-400 mb-4">
             {error || 'Error verifying access code'}
           </h1>
-          <p className="text-center text-gray-600 dark:text-gray-400 mb-6">
+          <p className="text-center text-gray-600 dark:text-gray-300 mb-6">
             Please try scanning the QR code again or contact the resident for assistance.
           </p>
           <div className="flex justify-center">
@@ -96,7 +96,7 @@ export default function GuestPage() {
         </h1>
         
         <div className="mb-6">
-          <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+          <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">
             Let the resident know you've arrived or send them a message.
           </p>
         </div>

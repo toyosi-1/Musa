@@ -26,7 +26,7 @@ export default function LoginPage() {
             </svg>
           </div>
           <h1 className="text-3xl font-bold text-gray-800 dark:text-white">Welcome Back</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-2">
+          <p className="text-gray-600 dark:text-gray-300 mt-2">
             Sign in to your Musa account
           </p>
         </div>
@@ -36,7 +36,7 @@ export default function LoginPage() {
         </div>
         
         <div className="text-center mt-8">
-          <p className="text-gray-600 dark:text-gray-400">
+          <p className="text-gray-600 dark:text-gray-300">
             Don't have an account?{' '}
             <Link href="/auth/register" className="text-primary font-medium hover:underline">
               Register now

@@ -22,7 +22,7 @@ export default function Home() {
 
         <div className="md:w-1/2 space-y-6 animate-slide-in-right">
           <h2 className="text-4xl font-bold text-gray-800 dark:text-white">Modern Estate Access Control</h2>
-          <p className="text-xl text-gray-600">
+          <p className="text-xl text-gray-600 dark:text-gray-200">
             Musa is a seamless, fast, and user-friendly access control system designed for estates.
             No more manual security checks – just scan and go.
           </p>
