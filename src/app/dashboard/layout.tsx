@@ -63,7 +63,7 @@ export default function DashboardLayout({
   return (
     <div className="min-h-screen flex flex-col bg-musa-bg dark:bg-gray-900 safe-area-inset-bottom">
       <main className="flex-grow overflow-y-auto overflow-x-hidden pb-16 md:pb-0">
-        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="w-full max-w-7xl mx-auto px-5 sm:px-6 lg:px-8 py-6 md:py-8">
           {children}
         </div>
       </main>

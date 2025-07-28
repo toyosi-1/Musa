@@ -54,69 +54,139 @@ html, body {
   overscroll-behavior-y: auto;
 }
 
-/* Mobile-specific improvements */
+/* Mobile-specific improvements for native iOS-style design */
 @media (max-width: 768px) {
-  /* Better spacing for mobile cards */
+  /* Spacious mobile cards with native iOS styling */
   .card {
-    margin: 0.75rem !important;
-    padding: 1.25rem !important;
-    border-radius: 1rem !important;
+    margin: 1rem 1.25rem !important;
+    padding: 1.75rem 1.5rem !important;
+    border-radius: 1.25rem !important;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08) !important;
+    background: white !important;
   }
   
-  /* Improve mobile container spacing */
+  .dark .card {
+    background: #1f2937 !important;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3) !important;
+  }
+  
+  /* Native iOS container spacing */
   .container {
-    padding-left: 1rem !important;
-    padding-right: 1rem !important;
+    padding-left: 1.25rem !important;
+    padding-right: 1.25rem !important;
   }
   
-  /* Better mobile form spacing */
+  /* Generous mobile form spacing */
   .space-y-6 > * + * {
-    margin-top: 1.5rem !important;
+    margin-top: 2rem !important;
   }
   
   .space-y-4 > * + * {
-    margin-top: 1rem !important;
+    margin-top: 1.5rem !important;
   }
   
-  /* Mobile-friendly button spacing */
-  .btn {
-    padding: 0.875rem 1.5rem !important;
-    font-size: 1rem !important;
-    min-height: 48px !important;
+  .space-y-8 > * + * {
+    margin-top: 2.5rem !important;
   }
   
-  /* Better mobile input fields */
+  /* Native iOS button styling */
+  .btn, button {
+    padding: 1rem 1.75rem !important;
+    font-size: 1.0625rem !important;
+    min-height: 52px !important;
+    border-radius: 0.875rem !important;
+    font-weight: 600 !important;
+    letter-spacing: -0.01em !important;
+  }
+  
+  /* Native iOS input fields */
   input, textarea, select {
-    padding: 0.875rem !important;
-    font-size: 1rem !important;
-    min-height: 48px !important;
+    padding: 1rem 1.25rem !important;
+    font-size: 1.0625rem !important;
+    min-height: 52px !important;
+    border-radius: 0.875rem !important;
+    border: 1px solid #e5e7eb !important;
+    background: #f9fafb !important;
   }
   
-  /* Mobile dashboard improvements */
+  .dark input, .dark textarea, .dark select {
+    background: #374151 !important;
+    border-color: #4b5563 !important;
+    color: white !important;
+  }
+  
+  /* Spacious mobile dashboard */
   .dashboard-container {
-    padding: 1rem !important;
+    padding: 1.5rem 1.25rem !important;
+    gap: 2rem !important;
+  }
+  
+  /* Native iOS grid spacing */
+  .grid {
     gap: 1.5rem !important;
   }
   
-  /* Mobile grid improvements */
-  .grid {
-    gap: 1rem !important;
-  }
-  
-  /* Better mobile text sizing */
+  /* Native iOS typography */
   h1 {
-    font-size: 1.75rem !important;
-    line-height: 1.2 !important;
+    font-size: 2rem !important;
+    line-height: 1.15 !important;
+    font-weight: 700 !important;
+    letter-spacing: -0.025em !important;
+    margin-bottom: 1.5rem !important;
   }
   
   h2 {
-    font-size: 1.5rem !important;
+    font-size: 1.625rem !important;
+    line-height: 1.25 !important;
+    font-weight: 600 !important;
+    letter-spacing: -0.02em !important;
+    margin-bottom: 1rem !important;
+  }
+  
+  h3 {
+    font-size: 1.375rem !important;
     line-height: 1.3 !important;
+    font-weight: 600 !important;
+    margin-bottom: 0.75rem !important;
+  }
+  
+  /* Native iOS body text */
+  p, span, div {
+    line-height: 1.5 !important;
+    letter-spacing: -0.01em !important;
   }
   
   /* Mobile-friendly bottom navigation spacing */
   .bottom-nav {
     padding-bottom: env(safe-area-inset-bottom, 1rem) !important;
+  }
+  
+  /* Native iOS section spacing */
+  .section {
+    margin-bottom: 2.5rem !important;
+  }
+  
+  /* Native iOS list spacing */
+  .list-item {
+    padding: 1.25rem !important;
+    margin-bottom: 0.75rem !important;
+  }
+  
+  /* Generous mobile padding for main content */
+  main {
+    padding-top: 1.5rem !important;
+    padding-bottom: 2rem !important;
+  }
+  
+  /* Native iOS form sections */
+  .form-section {
+    margin-bottom: 2rem !important;
+  }
+  
+  /* Better mobile modal spacing */
+  .modal-content {
+    padding: 2rem 1.5rem !important;
+    margin: 1.5rem !important;
   }
 }
 
