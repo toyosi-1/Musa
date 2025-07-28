@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeftIcon, MapPinIcon } from '@heroicons/react/24/solid';
 import dynamic from 'next/dynamic';
 import { Household } from '@/types/user';
+import { logVerificationAttempt } from '@/services/guardActivityService';
 
 // Import the QrScanner component with dynamic loading to avoid SSR issues
 const QrScanner = dynamic(() => import('@/components/qr/QrScanner'), { 
@@ -21,17 +22,36 @@ export default function ScanPage() {
     message?: string; 
     household?: Household;
     destinationAddress?: string;
+    accessCodeId?: string;
   } | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const router = useRouter();
   
-  const handleScanResult = (result: { 
+  const handleScanResult = async (result: { 
     isValid: boolean; 
     message?: string; 
     household?: Household;
     destinationAddress?: string;
+    accessCodeId?: string;
   }) => {
     setScanResult(result);
+    
+    // Log the verification attempt and send notification to resident
+    if (currentUser?.role === 'guard') {
+      try {
+        await logVerificationAttempt(currentUser.uid, {
+          code: 'QR_SCAN', // We don't have the actual code text from QR scan
+          isValid: result.isValid,
+          message: result.message,
+          householdId: result.household?.id,
+          destinationAddress: result.destinationAddress,
+          accessCodeId: result.accessCodeId
+        });
+        console.log('✅ QR scan verification logged and notification sent');
+      } catch (error) {
+        console.error('❌ Error logging QR scan verification:', error);
+      }
+    }
     
     // Keep the result visible for longer if it's valid and has address info
     const displayTime = result.isValid && result.destinationAddress ? 10000 : 5000;

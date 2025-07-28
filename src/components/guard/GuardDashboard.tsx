@@ -68,7 +68,8 @@ export default function GuardDashboard({ user }: GuardDashboardProps) {
           isValid: result.isValid,
           message: result.message,
           householdId: result.household?.id,
-          destinationAddress: result.destinationAddress
+          destinationAddress: result.destinationAddress,
+          accessCodeId: result.accessCodeId
         });
         console.log('Verification attempt logged successfully');
       } catch (logError) {

@@ -10,6 +10,7 @@ type QrScannerProps = {
     message?: string; 
     household?: Household;
     destinationAddress?: string;
+    accessCodeId?: string;
     guestCommunicationUrl?: string;
   }) => void;
   isActive: boolean;

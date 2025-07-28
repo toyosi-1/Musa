@@ -1,6 +1,8 @@
 'use client';
 
-import { ref, set, get, update, query, orderByChild, limitToLast } from 'firebase/database';
+import { ref, set, get, query, orderByChild, equalTo, limitToLast } from 'firebase/database';
+import { createAccessCodeScanNotification } from './notificationService';
+import { AccessCode } from '@/types/user';
 import { getFirebaseDatabase } from '@/lib/firebase';
 
 export type VerificationRecord = {
@@ -15,7 +17,7 @@ export type VerificationRecord = {
 };
 
 /**
- * Log a verification attempt by a guard
+ * Log a verification attempt by a guard and notify the resident
  */
 export const logVerificationAttempt = async (
   guardId: string,
@@ -25,6 +27,7 @@ export const logVerificationAttempt = async (
     message?: string;
     householdId?: string;
     destinationAddress?: string;
+    accessCodeId?: string;
   }
 ): Promise<VerificationRecord> => {
   try {
@@ -47,6 +50,33 @@ export const logVerificationAttempt = async (
     // Also store in estate-wide verification log
     const estateLogRef = ref(db, `estateActivity/verifications/${id}`);
     await set(estateLogRef, record);
+    
+    // Create notification for the resident if we have access code info
+    if (verificationData.accessCodeId) {
+      try {
+        // Get the access code details to find the owner
+        const accessCodeRef = ref(db, `accessCodes/${verificationData.accessCodeId}`);
+        const accessCodeSnapshot = await get(accessCodeRef);
+        
+        if (accessCodeSnapshot.exists()) {
+          const accessCode = accessCodeSnapshot.val() as AccessCode;
+          
+          // Create notification for the resident
+          await createAccessCodeScanNotification(
+            accessCode,
+            guardId,
+            verificationData.isValid,
+            verificationData.message || 'Access code verified',
+            verificationData.destinationAddress
+          );
+          
+          console.log(`📱 Notification sent to resident ${accessCode.userId} for code scan`);
+        }
+      } catch (notificationError) {
+        console.error('Error creating scan notification:', notificationError);
+        // Don't throw - notification failure shouldn't block verification logging
+      }
+    }
     
     return record;
   } catch (error) {

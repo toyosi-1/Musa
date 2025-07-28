@@ -7,6 +7,7 @@ import { Dialog } from '@/components/ui/Dialog';
 import Link from 'next/link';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import { HomeIcon, ClockIcon, UserIcon, QrCodeIcon } from '@heroicons/react/24/outline';
+import NotificationBell from '@/components/notifications/NotificationBell';
 
 export default function DashboardLayout({
   children,
@@ -64,8 +65,26 @@ export default function DashboardLayout({
 
   return (
     <div className="min-h-screen flex flex-col bg-musa-bg dark:bg-gray-900 safe-area-inset-bottom">
+      {/* Top Header with Notifications */}
+      <header className="md:block hidden bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border-b border-gray-200 dark:border-gray-700 sticky top-0 z-40">
+        <div className="w-full max-w-7xl mx-auto px-5 sm:px-6 lg:px-8 py-4">
+          <div className="flex justify-between items-center">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+              {currentUser?.role === 'resident' ? 'Resident Dashboard' : 
+               currentUser?.role === 'guard' ? 'Guard Dashboard' : 
+               currentUser?.role === 'admin' ? 'Admin Dashboard' : 'Dashboard'}
+            </h1>
+            <NotificationBell />
+          </div>
+        </div>
+      </header>
+
       <main className="flex-grow overflow-y-auto overflow-x-hidden pb-12 md:pb-0">
         <div className="w-full max-w-7xl mx-auto px-5 sm:px-6 lg:px-8 py-6 md:py-8">
+          {/* Mobile Notification Bell */}
+          <div className="md:hidden flex justify-end mb-4">
+            <NotificationBell />
+          </div>
           {children}
         </div>
       </main>
