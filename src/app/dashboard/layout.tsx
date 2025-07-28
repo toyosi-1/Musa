@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Dialog } from '@/components/ui/Dialog';
 import Link from 'next/link';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
-import { HomeIcon, ClockIcon, UserIcon } from '@heroicons/react/24/outline';
+import { HomeIcon, ClockIcon, UserIcon, QrCodeIcon } from '@heroicons/react/24/outline';
 
 export default function DashboardLayout({
   children,
@@ -72,7 +72,7 @@ export default function DashboardLayout({
 
       {/* Bottom Navigation - Mobile Only */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border-t border-gray-200 dark:border-gray-700 shadow-lg z-50 h-20 safe-area-inset-bottom">
-        <div className="flex justify-around items-center h-full px-4">
+        <div className={`flex items-center h-full px-2 ${currentUser?.role === 'guard' ? 'justify-between' : 'justify-around'}`}>
           <Link
             href="/dashboard"
             className={`flex flex-col items-center justify-center flex-1 max-w-[100px] py-3 px-2 rounded-lg transition-all ${
@@ -85,6 +85,22 @@ export default function DashboardLayout({
             <HomeIcon className="w-7 h-7 mb-1" />
             <span className="text-sm font-medium leading-tight">Home</span>
           </Link>
+          
+          {/* Show QR Scanner for Guards */}
+          {currentUser?.role === 'guard' && (
+            <Link
+              href="/dashboard/scan"
+              className={`flex flex-col items-center justify-center flex-1 max-w-[80px] py-3 px-1 rounded-lg transition-all ${
+                pathname === '/dashboard/scan'
+                  ? 'text-blue-600 dark:text-blue-400 bg-blue-50/80 dark:bg-blue-900/20'
+                  : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50'
+              }`}
+              aria-label="Scan QR"
+            >
+              <QrCodeIcon className="w-7 h-7 mb-1" />
+              <span className="text-sm font-medium leading-tight">Scan</span>
+            </Link>
+          )}
           
           <Link
             href="/dashboard/history"
@@ -101,7 +117,7 @@ export default function DashboardLayout({
           
           <button
             onClick={() => setShowUserDialog(true)}
-            className="flex flex-col items-center justify-center flex-1 max-w-[100px] py-3 px-2 rounded-lg transition-all text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50"
+            className={`flex flex-col items-center justify-center ${currentUser?.role === 'guard' ? 'flex-1 max-w-[80px]' : 'flex-1 max-w-[100px]'} py-3 px-1 rounded-lg transition-all text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50`}
             aria-label="Account"
           >
             <UserIcon className="w-7 h-7 mb-1" />
