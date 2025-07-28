@@ -1,7 +1,7 @@
 import { getFirebaseDatabase } from '@/lib/firebase';
 import { Household, HouseholdInvite } from '@/types/user';
 import { ref, get, set, push, update, query, orderByChild, equalTo, remove } from 'firebase/database';
-import { sendHouseholdInvitationEmail, sendHouseholdInvitationFallback } from './emailService';
+import { sendHouseholdInvitationEmail as sendHouseholdInvitationSMTP } from './smtpEmailService';
 
 // Reject a household invitation
 export const rejectHouseholdInvite = async (
@@ -303,26 +303,27 @@ export const createHouseholdInvite = async (
       
       console.log('Sending household invitation email to:', email);
       
-      // Try to send email using Firebase Functions first
-      try {
-        await sendHouseholdInvitationEmail(invite, household, inviterName);
-        console.log('Household invitation email sent successfully via Firebase Functions');
-      } catch (firebaseEmailError) {
-        console.warn('Firebase Functions email failed, trying fallback method:', firebaseEmailError);
-        
-        // Use fallback email method for development/testing
-        try {
-          await sendHouseholdInvitationFallback(invite, household, inviterName);
-          console.log('Household invitation email sent successfully via fallback method');
-        } catch (fallbackError) {
-          console.error('Both email methods failed:', fallbackError);
-          throw fallbackError;
-        }
+      // Create invitation link
+      const invitationLink = `${process.env.NEXT_PUBLIC_APP_URL || 'https://musa-security.com'}/invite/${invite.id}`;
+      
+      // Send email using direct SMTP service
+      const emailSent = await sendHouseholdInvitationSMTP({
+        householdName: household.name,
+        inviterName: inviterName,
+        acceptUrl: invitationLink,
+        recipientEmail: email
+      });
+      
+      if (!emailSent) {
+        throw new Error('Failed to send invitation email via SMTP');
       }
+      
+      console.log('✅ Household invitation email sent successfully via SMTP');
     } catch (emailError) {
-      console.error('Failed to send invitation email:', emailError);
+      console.error('❌ Failed to send invitation email:', emailError);
       // Don't throw error - invitation was created successfully, email is just a notification
       // The user can still accept the invitation through the app
+      console.log('⚠️  Invitation created but email delivery failed. User can still accept via app.');
     }
     
     return invite;
