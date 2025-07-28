@@ -148,10 +148,38 @@ export default function GuardDashboard({ user }: GuardDashboardProps) {
         console.log('Loaded guard stats:', stats);
         setActivityStats(stats);
         
-        // Fetch verification history
-        const history = await getGuardVerificationHistory(user.uid, 10);
-        console.log('Loaded verification history:', history.length, 'records');
-        setVerificationHistory(history);
+        // Try to fetch verification history
+        try {
+          const history = await getGuardVerificationHistory(user.uid, 10);
+          console.log('Loaded verification history:', history.length, 'records');
+          setVerificationHistory(history);
+        } catch (historyError) {
+          // Handle the missing index error with a manual fallback
+          console.warn('Using fallback method for guard history due to:', historyError);
+          
+          try {
+            const db = await import('@/lib/firebase').then(m => m.getFirebaseDatabase());
+            const { ref, get } = await import('firebase/database');
+            
+            // Direct fetch without ordering (bypassing the need for an index)
+            const verificationRef = ref(db, `guardActivity/${user.uid}/verifications`);
+            const snapshot = await get(verificationRef);
+            
+            if (snapshot.exists()) {
+              // Process and sort the data manually
+              const records: VerificationRecord[] = Object.values(snapshot.val());
+              const sortedRecords = records.sort((a, b) => b.timestamp - a.timestamp).slice(0, 10);
+              console.log('Fallback loaded verification history:', sortedRecords.length, 'records');
+              setVerificationHistory(sortedRecords);
+            } else {
+              console.log('No verification history found with fallback method');
+              setVerificationHistory([]);
+            }
+          } catch (fallbackError) {
+            console.error('Fallback method also failed:', fallbackError);
+            setVerificationHistory([]);
+          }
+        }
         
         // Log current statistics for debugging
         console.log('Current activity stats:', {

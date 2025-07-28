@@ -26,6 +26,13 @@
         ".validate": "newData.hasChildren(['householdId', 'invitedBy', 'email', 'status', 'createdAt', 'expiresAt'])"
       }
     },
+    "guardActivity": {
+      "$uid": {
+        "verifications": {
+          ".indexOn": "timestamp"
+        }
+      }
+    },
     "invitesByEmail": {}
   }
 }

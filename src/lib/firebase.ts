@@ -18,6 +18,12 @@ import {
   goOnline,
   goOffline
 } from 'firebase/database';
+import {
+  getFirestore,
+  connectFirestoreEmulator,
+  Firestore,
+  enableIndexedDbPersistence
+} from 'firebase/firestore';
 
 // Firebase configuration - using environment variables
 const firebaseConfig = {
@@ -44,6 +50,7 @@ let connectionPromise: Promise<boolean> | null = null;
 type FirebaseAppType = FirebaseApp;
 type AuthType = Auth;
 type DatabaseType = Database;
+type FirestoreType = Firestore;
 
 // Connection test timeout (in ms) - reduced for faster response
 const CONNECTION_TIMEOUT = 3000; // 3 seconds for faster feedback
@@ -117,6 +124,7 @@ const timeEnd = (label: string) => {
 let app: FirebaseApp | undefined;
 let auth: Auth | undefined;
 let rtdb: Database | undefined;
+let firestore: Firestore | undefined;
 let firebaseInitialized = false;
 let initPromise: Promise<boolean> | null = null;
 
@@ -305,6 +313,77 @@ export async function getFirebaseDatabase(): Promise<Database> {
 }
 
 /**
+ * Gets the Firebase Firestore instance, initializing app if necessary
+ */
+export async function getFirebaseFirestore(): Promise<Firestore> {
+  // Return empty stub in server context
+  if (typeof window === 'undefined') {
+    console.log('Server context detected, returning empty Firestore stub');
+    return {} as Firestore;
+  }
+  
+  if (!firestore) {
+    console.log('🔄 Initializing Firebase Firestore...');
+    try {
+      // Dynamically import Firebase Firestore modules
+      const { getFirestore, connectFirestoreEmulator, enableIndexedDbPersistence } = await import('firebase/firestore');
+      const app = await getFirebaseApp();
+      
+      // Initialize Firestore
+      firestore = getFirestore(app);
+      
+      // Enable offline persistence for better performance
+      try {
+        enableIndexedDbPersistence(firestore)
+          .then(() => console.log('✅ Firestore persistence enabled'))
+          .catch((err) => {
+            if (err.code === 'failed-precondition') {
+              console.warn('⚠️ Multiple tabs open, persistence can only be enabled in one tab at a time');
+            } else if (err.code === 'unimplemented') {
+              console.warn('⚠️ The current browser does not support all of the features required for Firestore persistence');
+            } else {
+              console.warn('⚠️ Error enabling Firestore persistence:', err);
+            }
+          });
+      } catch (e) {
+        console.warn('⚠️ Could not enable Firestore persistence:', e);
+      }
+      
+      // Check if we should use emulators
+      const useEmulators = process.env.NODE_ENV === 'development' && 
+                        process.env.NEXT_PUBLIC_USE_FIREBASE_EMULATORS === 'true';
+      
+      if (useEmulators) {
+        try {
+          console.log('🔌 Connecting to Firestore emulator...');
+          connectFirestoreEmulator(firestore, 'localhost', 8080);
+          console.log('✅ Connected to Firestore emulator');
+        } catch (err) {
+          console.warn('⚠️ Failed to connect to Firestore emulator:', err);
+        }
+      } else {
+        console.log('🌐 Using production Firebase Firestore');
+      }
+      
+      console.log('✅ Firebase Firestore initialized successfully');
+    } catch (error: unknown) {
+      console.error('❌ Error initializing Firebase Firestore:', error);
+      
+      if (error && typeof error === 'object') {
+        const firebaseError = error as { code?: string; message: string };
+        throw new Error(`Failed to initialize Firebase Firestore: ${firebaseError.message || 'Unknown error'}`);
+      }
+      
+      throw new Error('Failed to initialize Firebase Firestore: Unknown error occurred');
+    }
+  } else {
+    console.log('♻️ Using existing Firebase Firestore instance');
+  }
+  
+  return firestore as Firestore;
+}
+
+/**
  * Initialize Firebase with all services
  * Returns a promise that resolves when initialization is complete
  */
@@ -478,6 +557,21 @@ if (typeof window !== 'undefined' && !isInitialized) {
 
 // Export initialized instances
 export { firebaseApp, firebaseAuth, firebaseDb };
+
+// Export Firestore instance
+export let db: Firestore;
+
+// Initialize Firestore if we're on the client side
+if (typeof window !== 'undefined') {
+  getFirebaseFirestore()
+    .then(firestoreInstance => {
+      db = firestoreInstance;
+      console.log('✅ Firestore instance exported as db');
+    })
+    .catch(error => {
+      console.error('❌ Failed to initialize Firestore for export:', error);
+    });
+}
 
 // Export database helpers
 export { ref, onValue, get };

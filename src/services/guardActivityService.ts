@@ -65,18 +65,21 @@ export const getGuardVerificationHistory = async (
   try {
     const db = await getFirebaseDatabase();
     
-    // Query the guard's verification history, ordered by timestamp
+    // Query the guard's verification history without ordering (working around missing index)
     const verificationRef = ref(db, `guardActivity/${guardId}/verifications`);
-    const verificationQuery = query(verificationRef, orderByChild('timestamp'), limitToLast(limit));
     
-    const snapshot = await get(verificationQuery);
+    // Get all records without using orderByChild (avoids the need for an index)
+    const snapshot = await get(verificationRef);
     if (!snapshot.exists()) {
       return [];
     }
     
-    // Convert to array and sort by timestamp (newest first)
+    // Convert to array and sort by timestamp in the client (newest first)
     const records: VerificationRecord[] = Object.values(snapshot.val());
-    return records.sort((a, b) => b.timestamp - a.timestamp);
+    const sortedRecords = records.sort((a, b) => b.timestamp - a.timestamp);
+    
+    // Only return the most recent records up to the limit
+    return sortedRecords.slice(0, limit);
   } catch (error) {
     console.error('Error getting guard verification history:', error);
     return [];

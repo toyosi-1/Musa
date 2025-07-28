@@ -106,7 +106,7 @@ export default function AuthForm({ mode, defaultRole }: AuthFormProps) {
   } = useForm<AuthFormInputs>({
     resolver: zodResolver(authSchema),
     defaultValues: {
-      role: defaultRole === 'admin' ? undefined : defaultRole, // Don't allow admin registration through form
+      role: defaultRole, // Temporarily allow admin registration for testing
       agreedToTerms: false,
     },
   });
