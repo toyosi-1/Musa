@@ -3,18 +3,23 @@
  * Helpers for managing persistent sessions in Progressive Web App mode
  */
 
+import { ref, get } from 'firebase/database';
+
 // Check if the app is running in PWA (standalone) mode
 export const isPwaMode = (): boolean => {
   if (typeof window === 'undefined') return false;
   return window.matchMedia('(display-mode: standalone)').matches || 
-         window.navigator.standalone === true; // iOS Safari
+         (window.navigator as any).standalone === true; // iOS Safari specific property
 };
 
 // Store for backup session data
 interface SessionBackup {
   userId?: string;
+  email?: string;
+  role?: string;
   authTime: number;
   lastActive: number;
+  displayName?: string;
 }
 
 // Namespace for all session storage keys
@@ -28,11 +33,14 @@ const STORAGE_KEYS = {
  * Creates a backup of the auth session in multiple storage locations
  * This provides redundancy if one storage method fails
  */
-export const backupSession = (userId: string): void => {
+export const backupSession = (userId: string, email?: string, role?: string, displayName?: string): void => {
   if (typeof window === 'undefined') return;
   
   const sessionData: SessionBackup = {
     userId,
+    email,
+    role,
+    displayName,
     authTime: Date.now(),
     lastActive: Date.now(),
   };
@@ -47,7 +55,10 @@ export const backupSession = (userId: string): void => {
     }
     
     // Create HTTP-only cookie as fallback (especially for iOS PWA)
-    document.cookie = `${STORAGE_KEYS.SESSION_BACKUP}=${encodeURIComponent(JSON.stringify({ userId }))}; path=/; max-age=2592000; SameSite=Lax; secure`;
+    document.cookie = `${STORAGE_KEYS.SESSION_BACKUP}=${encodeURIComponent(JSON.stringify({ userId, email, role, displayName }))}; path=/; max-age=2592000; SameSite=Lax; secure`;
+    
+    // Also backup to sessionStorage for immediate recovery during PWA page reloads
+    sessionStorage.setItem(STORAGE_KEYS.SESSION_BACKUP, JSON.stringify(sessionData));
   } catch (error) {
     console.error('Failed to backup session:', error);
   }
@@ -217,16 +228,94 @@ export const hasFirebaseAuthSession = (): boolean => {
   if (typeof window === 'undefined') return false;
   
   try {
-    // Check multiple storage locations for Firebase auth data
+    // First check for our backup session
+    const musaSession = getSessionBackup();
+    if (musaSession?.userId) {
+      return true;
+    }
+    
+    // Then check multiple storage locations for Firebase auth data
     const firebaseAuthKey = Object.keys(localStorage).find(key => 
       key.startsWith('firebase:authUser') || 
       key.includes('firebase:authUser')
     );
     
-    return !!firebaseAuthKey;
+    // Also check IndexedDB for firebase auth data
+    const hasIndexedDBAuth = 'indexedDB' in window && 
+      window.indexedDB.databases && 
+      window.indexedDB.databases().then(dbs => 
+        dbs.some(db => db.name?.includes('firebaseLocalStorage'))
+      );
+    
+    return !!firebaseAuthKey || !!hasIndexedDBAuth;
   } catch (error) {
     console.error('Error checking for Firebase auth session:', error);
     return false;
+  }
+};
+
+/**
+ * Force reload the Firebase auth state
+ * This can help recover from PWA suspension states
+ */
+export const forceReloadAuthState = async (): Promise<void> => {
+  if (typeof window === 'undefined') return;
+  
+  try {
+    const firebaseModule = await import('@/lib/firebase');
+    const auth = await firebaseModule.getFirebaseAuth();
+    const db = await firebaseModule.getFirebaseDatabase();
+    
+    // Check network connectivity first
+    const isOnline = window.navigator.onLine;
+    console.log(`🌐 Network status: ${isOnline ? 'online' : 'offline'}`);
+    
+    // Force reload the current user if online
+    if (auth.currentUser && isOnline) {
+      try {
+        await auth.currentUser.reload();
+        console.log('✅ Auth user force reloaded successfully');
+        
+        // After successful reload, backup session data again
+        // Access user data from database directly instead of using non-existent method
+        const db = await firebaseModule.getFirebaseDatabase();
+        const userRef = ref(db, `users/${auth.currentUser.uid}`);
+        const snapshot = await get(userRef);
+        const userProfile = snapshot.exists() ? snapshot.val() : null;
+        if (userProfile) {
+          backupSession(
+            auth.currentUser.uid,
+            auth.currentUser.email || undefined,
+            userProfile.role,
+            userProfile.displayName
+          );
+          console.log('✅ Session backup refreshed after reload');
+        }
+      } catch (reloadError) {
+        console.warn('Failed to reload user, trying offline recovery:', reloadError);
+        // Continue with offline recovery attempt
+      }
+    } else {
+      console.log('❌ No current user to force reload or device offline');
+      
+      // Try to recover from backup (for both offline and no current user cases)
+      const sessionBackup = getSessionBackup();
+      if (sessionBackup?.userId) {
+        console.log('🔄 Found session backup, triggering auth recovery...');
+        // The recovery will happen in AuthContext
+        // We'll explicitly note we're using offline credentials
+        localStorage.setItem('musa_offline_recovery', 'true');
+        sessionStorage.setItem('musa_offline_recovery', 'true');
+        
+        // Signal to AuthContext that we're recovering
+        const pwaRecoveryEvent = new CustomEvent('pwa-session-recovery', {
+          detail: { userId: sessionBackup.userId }
+        });
+        document.dispatchEvent(pwaRecoveryEvent);
+      }
+    }
+  } catch (error) {
+    console.error('Failed to force reload auth state:', error);
   }
 };
 
@@ -240,7 +329,9 @@ export const registerPwaLifecycleEvents = (): void => {
   // Update session timestamp on visibility change (app foreground/background)
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') {
+      console.log('🔄 App became visible, refreshing session...');
       refreshSessionBackup();
+      forceReloadAuthState().catch(console.error);
     }
   });
   
@@ -254,6 +345,22 @@ export const registerPwaLifecycleEvents = (): void => {
   window.addEventListener('appinstalled', () => {
     // Log PWA installation
     console.log('PWA installed successfully');
+  });
+  
+  // Focus events for PWAs (iOS Safari specifically)
+  window.addEventListener('focus', () => {
+    console.log('🔄 Window focus event, refreshing session...');
+    refreshSessionBackup();
+    forceReloadAuthState().catch(console.error);
+  });
+  
+  // Page show/hide events (iOS PWA app switching)
+  window.addEventListener('pageshow', (e) => {
+    if (e.persisted) {
+      console.log('🔄 Page restored from bfcache, refreshing session...');
+      refreshSessionBackup();
+      forceReloadAuthState().catch(console.error);
+    }
   });
 };
 
@@ -270,20 +377,29 @@ export const optimizePwaPageReload = (): void => {
       const scrollPos = window.scrollY;
       sessionStorage.setItem('musa_scroll_position', scrollPos.toString());
       sessionStorage.setItem('musa_last_path', window.location.pathname);
+      
+      // Ensure session backup is fresh before unload
+      refreshSessionBackup();
     } catch (error) {
       console.error('Failed to save page state:', error);
     }
   });
   
-  // Restore scroll position on page load
+  // Restore scroll position and check auth on page load
   window.addEventListener('load', () => {
     try {
+      // Restore scroll position if needed
       const savedScrollPos = sessionStorage.getItem('musa_scroll_position');
       if (savedScrollPos && window.location.pathname === sessionStorage.getItem('musa_last_path')) {
         setTimeout(() => {
           window.scrollTo(0, parseInt(savedScrollPos, 10));
         }, 100);
       }
+      
+      // Check auth state on page load (critical for PWAs)
+      setTimeout(() => {
+        forceReloadAuthState().catch(console.error);
+      }, 500); // Small delay to ensure Firebase is initialized
     } catch (error) {
       console.error('Failed to restore page state:', error);
     }

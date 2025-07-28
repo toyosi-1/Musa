@@ -71,38 +71,41 @@ export default function DashboardLayout({
       </main>
 
       {/* Bottom Navigation - Mobile Only */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border-t border-gray-200/50 dark:border-gray-700/50 z-50 h-12">
-        <div className="flex justify-around items-center h-full px-4 safe-area-inset-bottom">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border-t border-gray-200 dark:border-gray-700 shadow-lg z-50 h-16 safe-area-inset-bottom">
+        <div className="flex justify-evenly items-center h-full max-w-md mx-auto">
           <Link
             href="/dashboard"
-            className={`flex flex-col items-center justify-center flex-1 py-1 transition-colors ${
+            className={`flex flex-col items-center justify-center min-w-[72px] py-2 px-3 rounded-md transition-all ${
               pathname === '/dashboard'
-                ? 'text-blue-600 dark:text-blue-400'
-                : 'text-gray-500 dark:text-gray-400'
+                ? 'text-blue-600 dark:text-blue-400 bg-blue-50/80 dark:bg-blue-900/20'
+                : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50'
             }`}
+            aria-label="Home"
           >
-            <HomeIcon className="w-6 h-6" />
-            <span className="text-[10px] font-medium mt-0.5 leading-none">Home</span>
+            <HomeIcon className="w-6 h-6 mb-1" />
+            <span className="text-xs font-medium leading-tight">Home</span>
           </Link>
           
           <Link
             href="/dashboard/history"
-            className={`flex flex-col items-center justify-center flex-1 py-1 transition-colors ${
+            className={`flex flex-col items-center justify-center min-w-[72px] py-2 px-3 rounded-md transition-all ${
               pathname === '/dashboard/history'
-                ? 'text-blue-600 dark:text-blue-400'
-                : 'text-gray-500 dark:text-gray-400'
+                ? 'text-blue-600 dark:text-blue-400 bg-blue-50/80 dark:bg-blue-900/20'
+                : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50'
             }`}
+            aria-label="History"
           >
-            <ClockIcon className="w-6 h-6" />
-            <span className="text-[10px] font-medium mt-0.5 leading-none">History</span>
+            <ClockIcon className="w-6 h-6 mb-1" />
+            <span className="text-xs font-medium leading-tight">History</span>
           </Link>
           
           <button
             onClick={() => setShowUserDialog(true)}
-            className="flex flex-col items-center justify-center flex-1 py-1 transition-colors text-gray-500 dark:text-gray-400"
+            className="flex flex-col items-center justify-center min-w-[72px] py-2 px-3 rounded-md transition-all text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50"
+            aria-label="Account"
           >
-            <UserIcon className="w-6 h-6" />
-            <span className="text-[10px] font-medium mt-0.5 leading-none">Account</span>
+            <UserIcon className="w-6 h-6 mb-1" />
+            <span className="text-xs font-medium leading-tight">Account</span>
           </button>
         </div>
       </nav>

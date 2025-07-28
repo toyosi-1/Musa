@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google';
 import { Suspense } from 'react';
 import Script from 'next/script';
 import './globals.css';
+import '@/styles/mobile-responsive.css';
 import AuthWrapper from '@/components/auth/AuthWrapper';
 import LoadingScreen from '@/components/ui/LoadingScreen';
 import { ThemeProvider } from '@/contexts/ThemeContext';

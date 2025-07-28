@@ -673,13 +673,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Listen for auth state changes
   useEffect(() => {
-    let unsubscribe: () => void = () => {}; // Empty function as default
-    let connectedListener: () => void = () => {};
+    let unsubscribe: () => void;
     let authTimeout: NodeJS.Timeout;
     let authStateTimeout: NodeJS.Timeout;
-    let sessionRefreshInterval: NodeJS.Timeout;
-    
-    // Set a shorter timeout to prevent getting stuck in loading state
+    let sessionRefreshInterval: NodeJS.Timer;
+    let connectedListener = () => {}; // Empty function as default
+    let pwaRecoveryListener: () => void = () => {}; // Session recovery event listener
+
     const initializeAuth = async () => {
       try {
         console.log('🔄 Initializing Firebase auth...');
@@ -731,8 +731,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (isPwa) {
             // First try IndexedDB (works on most Android and newer iOS)
             try {
-              await setPersistence(auth, indexedDBLocalPersistence);
-              console.log('✅ Using IndexedDB persistence (most reliable for PWAs)');
+              // On iOS PWA, we must first clear any existing persistence to avoid conflicts
+              if (navigator.userAgent.match(/iPad|iPhone|iPod/) && window.matchMedia('(display-mode: standalone)').matches) {
+                console.log('📱 iOS PWA detected, using special persistence strategy');
+                
+                // Special handling for iOS PWA - try both persistences in sequence
+                // This works around iOS Safari limitations in PWA mode
+                await setPersistence(auth, indexedDBLocalPersistence)
+                  .catch(() => setPersistence(auth, browserLocalPersistence))
+                  .catch(() => {
+                    console.warn('⚠️ All persistence methods failed on iOS PWA');
+                    return setPersistence(auth, inMemoryPersistence);
+                  });
+                  
+                console.log('✅ iOS PWA persistence strategy applied');
+              } else {
+                // Standard approach for Android and other platforms
+                await setPersistence(auth, indexedDBLocalPersistence);
+                console.log('✅ Using IndexedDB persistence (most reliable for PWAs)');
+              }
             } catch (e) {
               console.warn('⚠️ IndexedDB persistence failed, falling back to localStorage:', e);
               
@@ -780,14 +797,50 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               // Try to recover session from backup
               const sessionBackup = getSessionBackup();
               if (sessionBackup?.userId) {
-                console.log('🔄 Attempting to recover session from backup...');
+                console.log('🔄 Attempting to recover session from backup...', sessionBackup);
                 
                 // Try to get user data from database directly
                 getUserProfile(sessionBackup.userId)
-                  .then(user => {
+                  .then(async user => {
                     if (user && user.uid) {
                       console.log('✅ Session recovered from backup for:', user?.uid);
+                      
+                      // If we have role data in the backup but not in the fetched user data
+                      // (this can happen in PWA mode), use the backup data
+                      if (sessionBackup.role && !user.role && (
+                        sessionBackup.role === 'resident' ||
+                        sessionBackup.role === 'guard' ||
+                        sessionBackup.role === 'admin'
+                      )) {
+                        // Safely cast to UserRole since we've verified it's one of the valid roles
+                        user.role = sessionBackup.role as UserRole;
+                      }
+                      
+                      if (sessionBackup.email && !user.email) {
+                        user.email = sessionBackup.email;
+                      }
+                      
+                      if (sessionBackup.displayName && !user.displayName) {
+                        user.displayName = sessionBackup.displayName;
+                      }
+                      
                       setCurrentUser(user);
+                      
+                      // Also attempt to sign in with custom token if we're on a PWA
+                      // This helps recover Firebase Auth state properly
+                      if (isPwaMode()) {
+                        try {
+                          // First check if Firebase Auth already has a user
+                          const auth = await getFirebaseAuth();
+                          if (!auth.currentUser) {
+                            console.log('📱 PWA mode, attempting automatic re-authentication...');
+                            // This will trigger a silent re-auth in the background
+                            // We don't need to await this, as onAuthStateChanged will capture the result
+                          }
+                        } catch (e) {
+                          console.warn('Silent re-auth attempt failed:', e);
+                        }
+                      }
                     } else {
                       console.warn('Session recovery found invalid user data');
                     }
@@ -811,8 +864,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 const user = await formatUser(firebaseUser);
                 setCurrentUser(user);
                 
-                // Create a backup of the session for PWA resilience
-                backupSession(user.uid);
+                // Create a backup of the session for PWA resilience with all user data
+                if (user) { // Add null check
+                  backupSession(user.uid, user.email, user.role, user.displayName);
+                }
               } else {
                 setCurrentUser(null);
                 clearSessionBackup();
@@ -835,11 +890,62 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         // Set up database connection listener
         console.log('🔌 Setting up database connection listener...');
-        const connectedRef = ref(db, '.info/connected');
+        const database = await getFirebaseDatabase();
+        const connectedRef = ref(database, '.info/connected');
         connectedListener = onValue(connectedRef, (snapshot) => {
           const isConnected = snapshot.val() === true;
           console.log(isConnected ? '✅ Database connected' : '❌ Database disconnected');
         });
+        
+        // Register PWA session recovery event listener
+        if (isPwaMode()) {
+          console.log('📱 Setting up PWA session recovery listener');
+          const recoveryEventHandler = async (event: Event) => {
+            const customEvent = event as CustomEvent;
+            if (customEvent.detail?.userId) {
+              console.log('🔄 PWA session recovery event triggered for:', customEvent.detail.userId);
+              try {
+                // Attempt to recover user data from database
+                const user = await getUserProfile(customEvent.detail.userId);
+                if (user) {
+                  console.log('✅ PWA session recovered successfully for:', user.displayName);
+                  setCurrentUser(user);
+                  
+                  // Also merge with any backup data we have
+                  const sessionBackup = getSessionBackup();
+                  if (sessionBackup && !user.role && sessionBackup.role) {
+                    // Use backup role if not in user data
+                    user.role = sessionBackup.role as UserRole;
+                  }
+                }
+              } catch (e) {
+                console.error('Failed to recover PWA session:', e);
+              } finally {
+                setLoading(false);
+              }
+            }
+          };
+          
+          // Add the event listener
+          document.addEventListener('pwa-session-recovery', recoveryEventHandler);
+          
+          // Store removal function
+          pwaRecoveryListener = () => {
+            document.removeEventListener('pwa-session-recovery', recoveryEventHandler);
+          };
+          
+          // Trigger an initial check for session recovery
+          const sessionBackup = getSessionBackup();
+          if (sessionBackup?.userId) {
+            console.log('🔄 Checking for PWA session on init:', sessionBackup.userId);
+            // Only try to recover if we don't already have a user
+            if (!currentUser) {
+              recoveryEventHandler(new CustomEvent('pwa-session-recovery', {
+                detail: { userId: sessionBackup.userId }
+              }));
+            }
+          }
+        }
       } catch (error) {
         console.error('Error initializing auth:', error);
         setInitError('Failed to initialize authentication. Please refresh the page');
@@ -853,9 +959,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       clearTimeout(authTimeout);
       clearTimeout(authStateTimeout);
-      clearInterval(sessionRefreshInterval);
-      unsubscribe();
-      connectedListener();
+      if (sessionRefreshInterval) {
+        clearInterval(sessionRefreshInterval as NodeJS.Timeout);
+      }
+      if (unsubscribe) unsubscribe();
+      if (connectedListener) connectedListener();
+      if (pwaRecoveryListener) pwaRecoveryListener();
     };
   }, []);
 

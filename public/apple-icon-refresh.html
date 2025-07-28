@@ -184,15 +184,34 @@
             }
         }
         
-        // Clear local and session storage
-        localStorage.clear();
-        sessionStorage.clear();
+        // Selectively clear caches but preserve authentication data
+        // Get authentication data before clearing
+        const authData = localStorage.getItem('musa_session_backup');
+        const firebaseAuth = localStorage.getItem('firebase:authUser');
         
-        // Clear IndexedDB for PWA data
+        // Clear non-essential local storage items
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && !key.includes('musa_session') && !key.includes('firebase:auth') && !key.includes('musa_auth')) {
+                localStorage.removeItem(key);
+            }
+        }
+        
+        // Do the same for session storage - preserve auth items
+        for (let i = 0; i < sessionStorage.length; i++) {
+            const key = sessionStorage.key(i);
+            if (key && !key.includes('musa_session') && !key.includes('firebase:auth') && !key.includes('musa_auth')) {
+                sessionStorage.removeItem(key);
+            }
+        }
+        
+        // Only clear non-auth related IndexedDB databases
         if (window.indexedDB) {
             indexedDB.databases().then(dbs => {
                 dbs.forEach(db => {
-                    indexedDB.deleteDatabase(db.name);
+                    if (db.name && !db.name.includes('firebase') && !db.name.includes('musa')) {
+                        indexedDB.deleteDatabase(db.name);
+                    }
                 });
             });
         }

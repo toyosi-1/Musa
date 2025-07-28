@@ -207,36 +207,41 @@ export default function ResidentDashboard({ user }: ResidentDashboardProps) {
       )}
       
       {/* Tab Navigation */}
-      <div className="border-b border-gray-200 dark:border-gray-700 mb-6">
-        <nav className="flex space-x-4 md:space-x-8">
+      <div className="border-b border-gray-200 dark:border-gray-700 mb-6 overflow-hidden">
+        <nav className="flex w-full overflow-x-auto scrollbar-none rounded-t-lg bg-gray-50 dark:bg-gray-800/50 whitespace-nowrap">
           <button
             onClick={() => setActiveTab('codes')}
-            className={`py-3 px-2 md:py-4 md:px-3 font-medium text-sm md:text-md border-b-2 transition-colors ${
+            className={`min-w-[120px] flex-none md:flex-1 py-3 px-3 md:py-4 md:px-5 font-medium text-sm md:text-base transition-all min-h-[56px] ${
               activeTab === 'codes'
-                ? 'border-primary text-primary dark:text-blue-400 font-semibold'
-                : 'border-transparent text-gray-600 dark:text-gray-200 hover:text-gray-800 dark:hover:text-white hover:border-gray-300 dark:hover:border-gray-500'
+                ? 'bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 font-semibold border-b-2 border-blue-500 shadow-sm'
+                : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700/70 hover:text-gray-900 dark:hover:text-white'
             }`}
+            aria-selected={activeTab === 'codes'}
+            role="tab"
           >
-            <div className="flex items-center">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div className="flex items-center justify-center">
+              <svg xmlns="http://www.w3.org/2000/svg" className={`h-5 w-5 mr-1.5 ${activeTab === 'codes' ? 'text-blue-500 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
               </svg>
-              Access Codes
+              <span className="whitespace-nowrap">Access Codes</span>
             </div>
           </button>
           <button
             onClick={() => setActiveTab('household')}
-            className={`py-3 px-2 md:py-4 md:px-3 font-medium text-sm md:text-md border-b-2 transition-colors ${
+            className={`min-w-[120px] flex-none md:flex-1 py-3 px-3 md:py-4 md:px-5 font-medium text-sm md:text-base transition-all min-h-[56px] ${
               activeTab === 'household'
-                ? 'border-primary text-primary dark:text-blue-400 font-semibold'
-                : 'border-transparent text-gray-600 dark:text-gray-200 hover:text-gray-800 dark:hover:text-white hover:border-gray-300 dark:hover:border-gray-500'
+                ? 'bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 font-semibold border-b-2 border-blue-500 shadow-sm'
+                : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700/70 hover:text-gray-900 dark:hover:text-white'
             }`}
+            aria-selected={activeTab === 'household'}
+            role="tab"
           >
-            <div className="flex items-center">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div className="flex items-center justify-center">
+              <svg xmlns="http://www.w3.org/2000/svg" className={`h-5 w-5 mr-1.5 ${activeTab === 'household' ? 'text-blue-500 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
               </svg>
-              Household Management
+              <span className="whitespace-nowrap hidden sm:inline">Household Management</span>
+              <span className="whitespace-nowrap sm:hidden">Household</span>
             </div>
           </button>
         </nav>
@@ -361,7 +366,7 @@ export default function ResidentDashboard({ user }: ResidentDashboardProps) {
                 )}
               </div>
             ) : (
-              <div className="grid grid-cols-1 gap-4 md:gap-6 md:grid-cols-2 w-full overflow-hidden">
+              <div className="grid grid-cols-1 gap-4 sm:gap-5 lg:gap-6 lg:grid-cols-2 w-full max-w-full overflow-hidden">
                 {accessCodes.map(code => (
                   <div key={code.id} className="w-full overflow-hidden">
                     <AccessCodeCard 

@@ -67,7 +67,7 @@ export default function AccessCodeCard({ accessCode, onDeactivate }: AccessCodeC
   };
 
   return (
-    <div className={`w-full box-border bg-musa-bg dark:bg-gray-900/50 rounded-xl md:rounded-2xl shadow-lg border border-transparent dark:border-gray-700/50 animate-fade-in transition-all duration-300 ${!accessCode.isActive || isExpired ? 'opacity-80' : 'hover:shadow-card-hover'}`}>
+    <div className={`w-full max-w-full box-border bg-musa-bg dark:bg-gray-900/50 rounded-xl md:rounded-2xl shadow-lg border border-transparent dark:border-gray-700/50 animate-fade-in transition-all duration-300 ${!accessCode.isActive || isExpired ? 'opacity-80' : 'hover:shadow-card-hover'}`}>
       {/* Status indicator */}
       <div className={`w-full h-1.5 rounded-t-xl md:rounded-t-2xl ${!accessCode.isActive ? 'bg-gray-300 dark:bg-gray-600' : isExpired ? 'bg-warning' : 'bg-success'}`}></div>
       
