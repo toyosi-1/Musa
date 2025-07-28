@@ -23,7 +23,7 @@ export default function ResidentDashboard({ user }: ResidentDashboardProps) {
   const [household, setHousehold] = useState<Household | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [activeTab, setActiveTab] = useState<'codes' | 'household'>('codes');
+  // Removed activeTab state since we now show both sections simultaneously
 
   // Reference to track if we've already attempted householdId refresh
   const householdIdCheckedRef = useRef(false);
@@ -206,49 +206,17 @@ export default function ResidentDashboard({ user }: ResidentDashboardProps) {
         </div>
       )}
       
-      {/* Tab Navigation */}
-      <div className="border-b border-gray-200 dark:border-gray-700 mb-6 overflow-hidden">
-        <nav className="flex w-full overflow-x-auto scrollbar-none rounded-t-lg bg-gray-50 dark:bg-gray-800/50 whitespace-nowrap">
-          <button
-            onClick={() => setActiveTab('codes')}
-            className={`min-w-[120px] flex-none md:flex-1 py-3 px-3 md:py-4 md:px-5 font-medium text-sm md:text-base transition-all min-h-[56px] ${
-              activeTab === 'codes'
-                ? 'bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 font-semibold border-b-2 border-blue-500 shadow-sm'
-                : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700/70 hover:text-gray-900 dark:hover:text-white'
-            }`}
-            aria-selected={activeTab === 'codes'}
-            role="tab"
-          >
-            <div className="flex items-center justify-center">
-              <svg xmlns="http://www.w3.org/2000/svg" className={`h-5 w-5 mr-1.5 ${activeTab === 'codes' ? 'text-blue-500 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
-              </svg>
-              <span className="whitespace-nowrap">Access Codes</span>
-            </div>
-          </button>
-          <button
-            onClick={() => setActiveTab('household')}
-            className={`min-w-[120px] flex-none md:flex-1 py-3 px-3 md:py-4 md:px-5 font-medium text-sm md:text-base transition-all min-h-[56px] ${
-              activeTab === 'household'
-                ? 'bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 font-semibold border-b-2 border-blue-500 shadow-sm'
-                : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700/70 hover:text-gray-900 dark:hover:text-white'
-            }`}
-            aria-selected={activeTab === 'household'}
-            role="tab"
-          >
-            <div className="flex items-center justify-center">
-              <svg xmlns="http://www.w3.org/2000/svg" className={`h-5 w-5 mr-1.5 ${activeTab === 'household' ? 'text-blue-500 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-              </svg>
-              <span className="whitespace-nowrap hidden sm:inline">Household Management</span>
-              <span className="whitespace-nowrap sm:hidden">Household</span>
-            </div>
-          </button>
-        </nav>
-      </div>
+      {/* Access Codes Section */}
+      <div className="space-y-8">
+        {/* Section Header */}
+        <div className="flex items-center mb-6">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7 mr-3 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1721 9z" />
+          </svg>
+          <h2 className="text-2xl font-bold text-gray-800 dark:text-white">Access Codes</h2>
+        </div>
       
-      {/* Tab Content */}
-      {activeTab === 'codes' && (
+      <div className="space-y-8">
         <div className="space-y-8">
           {/* Address Missing Warning */}
           {user.householdId && household && !household.address && (
@@ -261,7 +229,7 @@ export default function ResidentDashboard({ user }: ResidentDashboardProps) {
                   <h3 className="font-semibold text-lg">Missing Address Information</h3>
                   <p className="mt-1">Your household has no address set. When guards scan access codes, they won't see where visitors are going. 
                     <button 
-                      onClick={() => setActiveTab('household')} 
+                      onClick={() => document.querySelector('#household-section')?.scrollIntoView({ behavior: 'smooth' })} 
                       className="ml-1 font-medium underline hover:text-orange-800">
                       Add your address now
                     </button>
@@ -305,7 +273,7 @@ export default function ResidentDashboard({ user }: ResidentDashboardProps) {
                     </p>
                     <div className="mt-2">
                       <button 
-                        onClick={() => setActiveTab('household')} 
+                        onClick={() => document.querySelector('#household-section')?.scrollIntoView({ behavior: 'smooth' })} 
                         className="text-sm font-medium text-yellow-700 dark:text-yellow-200 hover:text-yellow-600 dark:hover:text-yellow-300 underline"
                       >
                         Go to Household Management
@@ -357,7 +325,7 @@ export default function ResidentDashboard({ user }: ResidentDashboardProps) {
                   <div className="mt-4 text-sm text-orange-600 dark:text-orange-300 bg-orange-50 dark:bg-orange-900/30 p-3 rounded-lg inline-block border border-orange-200 dark:border-orange-700/50">
                     <span className="font-semibold">Tip:</span> Guards won't be able to see your address when scanning codes. 
                     <button 
-                      onClick={() => setActiveTab('household')} 
+                      onClick={() => document.querySelector('#household-section')?.scrollIntoView({ behavior: 'smooth' })} 
                       className="ml-1 underline hover:text-orange-700 dark:hover:text-orange-200 transition-colors"
                     >
                       Add your address
@@ -382,64 +350,68 @@ export default function ResidentDashboard({ user }: ResidentDashboardProps) {
           {/* Guest Communication Card */}
 
         </div>
-      )}
+      </div>
       
-      {activeTab === 'household' && (
-        <div className="space-y-8">
-          {/* Show pending invitations for users without a household */}
-          {!user.householdId && !household && (
-            <div className="card">
-              <div className="mb-4">
-                <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-2 flex items-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2 text-primary dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                  </svg>
-                  Pending Invitations
-                </h2>
-                <p className="text-gray-600 dark:text-gray-300">Check for household invitations from other residents.</p>
-              </div>
-              
-              <PendingInvitations 
-                user={user} 
-                onInvitationAccepted={() => {
-                  // Reload the page to refresh user data after accepting an invitation
-                  window.location.reload();
-                }} 
-              />
-            </div>
-          )}
-          
+      {/* Household Management Section */}
+      <div id="household-section" className="space-y-8 mt-12">
+        {/* Section Header */}
+        <div className="flex items-center mb-6">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7 mr-3 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+          </svg>
+          <h2 className="text-2xl font-bold text-gray-800 dark:text-white">Household Management</h2>
+        </div>
+        
+        {/* Show pending invitations for users without a household */}
+        {!user.householdId && !household && (
           <div className="card">
             <div className="mb-4">
               <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-2 flex items-center">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2 text-primary dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                 </svg>
-                Household Management
+                Pending Invitations
               </h2>
-              <p className="text-gray-600 dark:text-gray-300">
-                {household ? 'Manage your household members and settings.' : 'Create a new household or join an existing one.'}
-              </p>
+              <p className="text-gray-600 dark:text-gray-300">Check for household invitations from other residents.</p>
             </div>
             
-            <div className="bg-musa-bg dark:bg-gray-900/50 rounded-xl p-6">
-              {household ? (
-                <HouseholdManager 
-                  user={user}
-                  household={household}
-                  onCreateHousehold={handleCreateHousehold}
-                  refreshHousehold={refreshHousehold}
-                />
-              ) : (
-                <CreateHouseholdForm
-                  onCreateHousehold={handleCreateHousehold}
-                  disabled={loading}
-                />
-              )}
-            </div>
+            <PendingInvitations 
+              user={user} 
+              onInvitationAccepted={() => {
+                // Reload the page to refresh user data after accepting an invitation
+                window.location.reload();
+              }} 
+            />
+          </div>
+        )}
+        
+        <div className="card">
+          <div className="mb-4">
+            <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-2">
+              {household ? 'Manage Your Household' : 'Create or Join a Household'}
+            </h3>
+            <p className="text-gray-600 dark:text-gray-300">
+              {household ? 'Manage your household members and settings.' : 'Create a new household or join an existing one.'}
+            </p>
+          </div>
+          
+          <div className="bg-musa-bg dark:bg-gray-900/50 rounded-xl p-6">
+            {household ? (
+              <HouseholdManager 
+                user={user}
+                household={household}
+                onCreateHousehold={handleCreateHousehold}
+                refreshHousehold={refreshHousehold}
+              />
+            ) : (
+              <CreateHouseholdForm
+                onCreateHousehold={handleCreateHousehold}
+                disabled={loading}
+              />
+            )}
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }
