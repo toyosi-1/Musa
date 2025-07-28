@@ -62,7 +62,7 @@ export default function DashboardLayout({
 
   return (
     <div className="min-h-screen flex flex-col bg-musa-bg dark:bg-gray-900 safe-area-inset-bottom">
-      <main className="flex-grow overflow-y-auto overflow-x-hidden pb-20 md:pb-0">
+      <main className="flex-grow overflow-y-auto overflow-x-hidden pb-16 md:pb-0">
         <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {children}
         </div>
@@ -70,10 +70,10 @@ export default function DashboardLayout({
 
       {/* Professional iOS-Style Bottom Navigation */}
       <nav className="fixed bottom-0 left-0 right-0 bg-white/98 dark:bg-gray-900/98 backdrop-blur-xl border-t border-gray-200/80 dark:border-gray-700/80 z-50 md:hidden" style={{
-        paddingBottom: 'max(env(safe-area-inset-bottom), 20px)',
+        paddingBottom: 'max(env(safe-area-inset-bottom), 12px)',
         boxShadow: '0 -1px 3px 0 rgba(0, 0, 0, 0.1), 0 -1px 2px 0 rgba(0, 0, 0, 0.06)'
       }}>
-        <div className="flex justify-around items-stretch h-20 px-4">
+        <div className="flex justify-around items-stretch h-16 px-4">
           <Link 
             href="/dashboard" 
             className={`flex flex-col items-center justify-center flex-1 py-2 px-1 transition-all duration-200 ${
