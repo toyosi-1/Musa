@@ -207,11 +207,11 @@ export default function ResidentDashboard({ user }: ResidentDashboardProps) {
       )}
       
       {/* Tab Navigation */}
-      <div className="border-b border-gray-200 dark:border-gray-700 mb-8">
-        <nav className="flex space-x-8">
+      <div className="border-b border-gray-200 dark:border-gray-700 mb-6">
+        <nav className="flex space-x-4 md:space-x-8">
           <button
             onClick={() => setActiveTab('codes')}
-            className={`py-4 px-3 font-medium text-md border-b-2 transition-colors ${
+            className={`py-3 px-2 md:py-4 md:px-3 font-medium text-sm md:text-md border-b-2 transition-colors ${
               activeTab === 'codes'
                 ? 'border-primary text-primary dark:text-blue-400 font-semibold'
                 : 'border-transparent text-gray-600 dark:text-gray-200 hover:text-gray-800 dark:hover:text-white hover:border-gray-300 dark:hover:border-gray-500'
@@ -226,7 +226,7 @@ export default function ResidentDashboard({ user }: ResidentDashboardProps) {
           </button>
           <button
             onClick={() => setActiveTab('household')}
-            className={`py-4 px-3 font-medium text-md border-b-2 transition-colors ${
+            className={`py-3 px-2 md:py-4 md:px-3 font-medium text-sm md:text-md border-b-2 transition-colors ${
               activeTab === 'household'
                 ? 'border-primary text-primary dark:text-blue-400 font-semibold'
                 : 'border-transparent text-gray-600 dark:text-gray-200 hover:text-gray-800 dark:hover:text-white hover:border-gray-300 dark:hover:border-gray-500'
@@ -324,10 +324,10 @@ export default function ResidentDashboard({ user }: ResidentDashboardProps) {
             </div>
           </div>
           
-          <div className="card px-2 sm:px-4">
+          <div className="card">
             <div className="mb-6">
-              <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-2 flex items-center">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7 mr-3 text-primary dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <h2 className="text-xl md:text-2xl font-bold text-gray-800 dark:text-white mb-2 flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 md:h-7 md:w-7 mr-2 md:mr-3 text-primary dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7 5.955c-.34-.059-.68-.114-1.021-.165C10.981 15.564 9.5 16.5 8 16.5s-2.98-.936-4.979-1.71C2.68 14.886 2.34 14.941 2 15a6 6 0 117-5.955m5 2a2 2 0 11-4 0 2 2 0 014 0z" />
                 </svg>
                 Your Access Codes
@@ -361,7 +361,7 @@ export default function ResidentDashboard({ user }: ResidentDashboardProps) {
                 )}
               </div>
             ) : (
-              <div className="grid grid-cols-1 gap-6 md:grid-cols-2 w-full overflow-hidden">
+              <div className="grid grid-cols-1 gap-4 md:gap-6 md:grid-cols-2 w-full overflow-hidden">
                 {accessCodes.map(code => (
                   <div key={code.id} className="w-full overflow-hidden">
                     <AccessCodeCard 

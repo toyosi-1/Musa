@@ -67,39 +67,39 @@ export default function AccessCodeCard({ accessCode, onDeactivate }: AccessCodeC
   };
 
   return (
-    <div className={`w-full box-border bg-musa-bg dark:bg-gray-900/50 rounded-2xl shadow-lg border border-transparent dark:border-gray-700/50 animate-fade-in transition-all duration-300 ${!accessCode.isActive || isExpired ? 'opacity-80' : 'hover:shadow-card-hover'}`}>
+    <div className={`w-full box-border bg-musa-bg dark:bg-gray-900/50 rounded-xl md:rounded-2xl shadow-lg border border-transparent dark:border-gray-700/50 animate-fade-in transition-all duration-300 ${!accessCode.isActive || isExpired ? 'opacity-80' : 'hover:shadow-card-hover'}`}>
       {/* Status indicator */}
-      <div className={`w-full h-1.5 rounded-t-2xl ${!accessCode.isActive ? 'bg-gray-300 dark:bg-gray-600' : isExpired ? 'bg-warning' : 'bg-success'}`}></div>
+      <div className={`w-full h-1.5 rounded-t-xl md:rounded-t-2xl ${!accessCode.isActive ? 'bg-gray-300 dark:bg-gray-600' : isExpired ? 'bg-warning' : 'bg-success'}`}></div>
       
-      <div className="p-5">
+      <div className="p-4 md:p-5">
         {/* Code header with status badge */}
-        <div className="flex justify-between items-start mb-4">
-          <div>
-            <div className="flex items-center gap-2">
-              <h3 className="text-xl font-bold font-mono tracking-wide">
+        <div className="flex justify-between items-start mb-3 md:mb-4">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="text-lg md:text-xl font-bold font-mono tracking-wide break-all">
                 {accessCode.code}
               </h3>
-              <span className={`badge ${!accessCode.isActive ? 'badge-danger' : isExpired ? 'badge-warning' : 'badge-success'}`}>
+              <span className={`badge text-xs ${!accessCode.isActive ? 'badge-danger' : isExpired ? 'badge-warning' : 'badge-success'}`}>
                 {!accessCode.isActive ? 'Inactive' : isExpired ? 'Expired' : 'Active'}
               </span>
             </div>
-            <p className="text-sm text-gray-500 dark:text-gray-300 mt-1">
+            <p className="text-sm text-gray-500 dark:text-gray-300 mt-1 break-words">
               {accessCode.description || 'No description'}
             </p>
           </div>
           
-          <div className="flex space-x-2">
+          <div className="flex space-x-1 md:space-x-2 ml-2">
             <button 
               onClick={copyToClipboard}
-              className="p-2 text-gray-500 hover:text-primary-600 transition-all duration-200 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
+              className="p-1.5 md:p-2 text-gray-500 hover:text-primary-600 transition-all duration-200 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
               title="Copy to clipboard"
             >
               {isCopied ? (
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-500" viewBox="0 0 20 20" fill="currentColor">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 md:h-5 md:w-5 text-green-500" viewBox="0 0 20 20" fill="currentColor">
                   <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                 </svg>
               ) : (
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 md:h-5 md:w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
                   <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
                 </svg>
@@ -167,8 +167,8 @@ export default function AccessCodeCard({ accessCode, onDeactivate }: AccessCodeC
           )}
         </div>
         
-        {/* Code info */}
-        <div className="space-y-2.5 text-sm text-gray-600 dark:text-gray-300 mt-6 p-4 bg-gray-50 dark:bg-gray-700/30 rounded-lg">
+        {/* Code details */}
+        <div className="space-y-2 md:space-y-3 text-sm">
           <div className="flex justify-between items-center">
             <span className="flex items-center gap-1.5">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 opacity-70" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -228,10 +228,10 @@ export default function AccessCodeCard({ accessCode, onDeactivate }: AccessCodeC
         
         {/* Actions */}
         {accessCode.isActive && !isExpired && (
-          <div className="mt-5">
+          <div className="mt-4 md:mt-5">
             <button
               onClick={handleDeactivate}
-              className="w-full py-2.5 text-sm text-danger hover:text-danger-600 hover:bg-danger-50 dark:hover:bg-danger-950/30 rounded-lg font-medium transition-all duration-300 flex items-center justify-center gap-2"
+              className="w-full py-2 md:py-2.5 text-sm text-danger hover:text-danger-600 hover:bg-danger-50 dark:hover:bg-danger-950/30 rounded-lg font-medium transition-all duration-300 flex items-center justify-center gap-2"
               disabled={isDeactivating}
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
