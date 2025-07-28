@@ -54,6 +54,72 @@ html, body {
   overscroll-behavior-y: auto;
 }
 
+/* Mobile-specific improvements */
+@media (max-width: 768px) {
+  /* Better spacing for mobile cards */
+  .card {
+    margin: 0.75rem !important;
+    padding: 1.25rem !important;
+    border-radius: 1rem !important;
+  }
+  
+  /* Improve mobile container spacing */
+  .container {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+  
+  /* Better mobile form spacing */
+  .space-y-6 > * + * {
+    margin-top: 1.5rem !important;
+  }
+  
+  .space-y-4 > * + * {
+    margin-top: 1rem !important;
+  }
+  
+  /* Mobile-friendly button spacing */
+  .btn {
+    padding: 0.875rem 1.5rem !important;
+    font-size: 1rem !important;
+    min-height: 48px !important;
+  }
+  
+  /* Better mobile input fields */
+  input, textarea, select {
+    padding: 0.875rem !important;
+    font-size: 1rem !important;
+    min-height: 48px !important;
+  }
+  
+  /* Mobile dashboard improvements */
+  .dashboard-container {
+    padding: 1rem !important;
+    gap: 1.5rem !important;
+  }
+  
+  /* Mobile grid improvements */
+  .grid {
+    gap: 1rem !important;
+  }
+  
+  /* Better mobile text sizing */
+  h1 {
+    font-size: 1.75rem !important;
+    line-height: 1.2 !important;
+  }
+  
+  h2 {
+    font-size: 1.5rem !important;
+    line-height: 1.3 !important;
+  }
+  
+  /* Mobile-friendly bottom navigation spacing */
+  .bottom-nav {
+    padding-bottom: env(safe-area-inset-bottom, 1rem) !important;
+  }
+}
+
 /* Mobile viewport height fix */
 @supports (-webkit-touch-callout: none) {
   .min-h-screen {

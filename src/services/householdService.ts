@@ -1,7 +1,7 @@
 import { getFirebaseDatabase } from '@/lib/firebase';
 import { Household, HouseholdInvite } from '@/types/user';
 import { ref, get, set, push, update, query, orderByChild, equalTo, remove } from 'firebase/database';
-import { sendHouseholdInvitationEmail } from './smtpEmailService';
+import { sendHouseholdInvitationEmail, sendHouseholdInvitationFallback } from './emailService';
 
 // Reject a household invitation
 export const rejectHouseholdInvite = async (
@@ -302,17 +302,22 @@ export const createHouseholdInvite = async (
         inviterSnapshot.val().displayName || 'Someone' : 'Someone';
       
       console.log('Sending household invitation email to:', email);
-      const emailSuccess = await sendHouseholdInvitationEmail({
-        householdName: household.name,
-        inviterName: inviterName,
-        acceptUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'https://musa-security.com'}/invite/${invite.id}`,
-        recipientEmail: email
-      });
       
-      if (emailSuccess) {
-        console.log('Household invitation email sent successfully');
-      } else {
-        console.warn('Failed to send invitation email, but invitation was created');
+      // Try to send email using Firebase Functions first
+      try {
+        await sendHouseholdInvitationEmail(invite, household, inviterName);
+        console.log('Household invitation email sent successfully via Firebase Functions');
+      } catch (firebaseEmailError) {
+        console.warn('Firebase Functions email failed, trying fallback method:', firebaseEmailError);
+        
+        // Use fallback email method for development/testing
+        try {
+          await sendHouseholdInvitationFallback(invite, household, inviterName);
+          console.log('Household invitation email sent successfully via fallback method');
+        } catch (fallbackError) {
+          console.error('Both email methods failed:', fallbackError);
+          throw fallbackError;
+        }
       }
     } catch (emailError) {
       console.error('Failed to send invitation email:', emailError);

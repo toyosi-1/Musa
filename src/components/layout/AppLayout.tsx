@@ -35,7 +35,7 @@ export default function AppLayout({
         <UnifiedNavbar />
         
         <main className="flex-grow py-8 md:py-10">
-          <div className="container mx-auto px-4 md:px-6 lg:px-8">
+          <div className="dashboard-container container mx-auto px-4 md:px-6 lg:px-8">
             {requireAuth ? (
               <StatusGuard 
                 requireStatus={requireStatus} 
