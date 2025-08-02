@@ -117,7 +117,7 @@ export const sendHouseholdInvitationEmail = async (data: HouseholdInviteData): P
 /**
  * Generate HTML template for household invitation
  */
-function generateHouseholdInvitationHTML(data: HouseholdInviteData): string {
+export function generateHouseholdInvitationHTML(data: HouseholdInviteData): string {
   return `
 <!DOCTYPE html>
 <html lang="en">

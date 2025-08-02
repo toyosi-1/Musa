@@ -24,7 +24,7 @@ export default function InvitePage() {
   const [success, setSuccess] = useState(false);
   const [rejected, setRejected] = useState(false);
 
-  const inviteId = params.inviteId as string;
+  const inviteId = params?.inviteId as string;
 
   useEffect(() => {
     const loadInvitation = async () => {

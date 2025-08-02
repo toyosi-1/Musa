@@ -48,7 +48,7 @@ export class EmailDiagnostic {
           })
         });
 
-        if (response.ok) {
+        if (testResponse.ok) {
           const result = await testResponse.json();
           this.addResult('API Route Test', true, 'Email API is accessible and working', result);
         } else {
