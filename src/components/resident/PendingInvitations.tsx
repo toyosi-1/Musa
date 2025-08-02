@@ -101,7 +101,25 @@ export default function PendingInvitations({ user, onInvitationAccepted }: Pendi
       onInvitationAccepted();
     } catch (err) {
       console.error('Error accepting invitation:', err);
-      setError(err instanceof Error ? err.message : 'Failed to accept invitation.');
+      
+      // Convert technical error messages to user-friendly ones
+      let userFriendlyMessage = 'Failed to accept invitation. Please try again.';
+      
+      if (err instanceof Error) {
+        const errorMessage = err.message;
+        
+        if (errorMessage.includes('not-found') || errorMessage.includes('not found')) {
+          userFriendlyMessage = 'This invitation is no longer available or has expired.';
+        } else if (errorMessage.includes('already-in-household') || errorMessage.includes('already in a household')) {
+          userFriendlyMessage = 'You are already a member of a household. Please leave your current household first.';
+        } else if (errorMessage.includes('permission') || errorMessage.includes('denied')) {
+          userFriendlyMessage = 'You do not have permission to accept this invitation.';
+        } else if (errorMessage.includes('network') || errorMessage.includes('connection')) {
+          userFriendlyMessage = 'Network error. Please check your internet connection and try again.';
+        }
+      }
+      
+      setError(userFriendlyMessage);
     } finally {
       setProcessingInviteId(null);
     }

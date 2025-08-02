@@ -90,11 +90,11 @@ export default function DashboardLayout({
       </main>
 
       {/* Bottom Navigation - Mobile Only */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border-t border-gray-200 dark:border-gray-700 shadow-lg z-50 h-20 safe-area-inset-bottom">
-        <div className={`flex items-center h-full px-2 ${currentUser?.role === 'guard' ? 'justify-between' : 'justify-around'}`}>
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border-t border-gray-200 dark:border-gray-700 shadow-lg z-50 h-24 pb-2 safe-area-inset-bottom">
+        <div className={`flex items-center justify-center h-full px-2 ${currentUser?.role === 'guard' ? 'justify-between' : 'justify-around'}`}>
           <Link
             href="/dashboard"
-            className={`flex flex-col items-center justify-center flex-1 max-w-[100px] py-3 px-2 rounded-lg transition-all ${
+            className={`flex flex-col items-center justify-center flex-1 max-w-[100px] py-4 px-2 mt-2 rounded-lg transition-all ${
               pathname === '/dashboard'
                 ? 'text-blue-600 dark:text-blue-400 bg-blue-50/80 dark:bg-blue-900/20'
                 : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50'
@@ -109,7 +109,7 @@ export default function DashboardLayout({
           {currentUser?.role === 'guard' && (
             <Link
               href="/dashboard/scan"
-              className={`flex flex-col items-center justify-center flex-1 max-w-[80px] py-3 px-1 rounded-lg transition-all ${
+              className={`flex flex-col items-center justify-center flex-1 max-w-[80px] py-4 px-1 mt-2 rounded-lg transition-all ${
                 pathname === '/dashboard/scan'
                   ? 'text-blue-600 dark:text-blue-400 bg-blue-50/80 dark:bg-blue-900/20'
                   : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50'
@@ -123,7 +123,7 @@ export default function DashboardLayout({
           
           <Link
             href="/dashboard/history"
-            className={`flex flex-col items-center justify-center flex-1 max-w-[100px] py-3 px-2 rounded-lg transition-all ${
+            className={`flex flex-col items-center justify-center flex-1 max-w-[100px] py-4 px-2 mt-2 rounded-lg transition-all ${
               pathname === '/dashboard/history'
                 ? 'text-blue-600 dark:text-blue-400 bg-blue-50/80 dark:bg-blue-900/20'
                 : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50'
@@ -136,7 +136,7 @@ export default function DashboardLayout({
           
           <button
             onClick={() => setShowUserDialog(true)}
-            className={`flex flex-col items-center justify-center ${currentUser?.role === 'guard' ? 'flex-1 max-w-[80px]' : 'flex-1 max-w-[100px]'} py-3 px-1 rounded-lg transition-all text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50`}
+            className={`flex flex-col items-center justify-center ${currentUser?.role === 'guard' ? 'flex-1 max-w-[80px]' : 'flex-1 max-w-[100px]'} py-4 px-1 mt-2 rounded-lg transition-all text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50`}
             aria-label="Account"
           >
             <UserIcon className="w-7 h-7 mb-1" />
