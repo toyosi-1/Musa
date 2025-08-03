@@ -23,6 +23,15 @@ interface ApprovalNotificationData {
   loginUrl: string;
 }
 
+interface RejectionNotificationData {
+  userName: string;
+  userEmail: string;
+  userRole: string;
+  rejectedBy: string;
+  reason: string;
+  supportEmail?: string;
+}
+
 // SMTP Configuration for mail.hspace.cloud
 const SMTP_CONFIG = {
   host: 'mail.hspace.cloud',
@@ -225,11 +234,22 @@ export function generateHouseholdInvitationHTML(data: HouseholdInviteData): stri
     <div class="container">
         <div class="header">
             <div class="logo">
-                <!-- Musa Character - Email Compatible Version -->
-                <div style="width: 80px; height: 80px; background: linear-gradient(135deg, #DAA520, #B8860B); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: Arial, sans-serif; font-size: 32px; font-weight: bold; color: #FFF; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); border: 4px solid #FFD700; position: relative;">
-                    🏠
-                    <div style="position: absolute; top: -8px; left: 50%; transform: translateX(-50%); width: 60px; height: 15px; background: linear-gradient(135deg, #FFD700, #DAA520); border-radius: 50%; border: 2px solid #B8860B;"></div>
-                </div>
+                <!-- Updated Musa Character - Email Compatible Version -->
+    <!-- Email-friendly Musa Mascot -->
+    <table cellpadding="0" cellspacing="0" border="0" align="center" width="100px" style="margin: 0 auto;">
+      <tr>
+        <td align="center">
+          <table cellpadding="0" cellspacing="0" border="0">
+            <tr>
+              <td bgcolor="#DAA520" style="background-color: #DAA520; width: 90px; height: 90px; border-radius: 45px; border: 4px solid #FFD700; text-align: center; vertical-align: middle;">
+                <span style="font-size: 45px; line-height: 90px;">🏠</span>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  
             </div>
             <h1 class="title">You're Invited!</h1>
             <p class="subtitle">Join a household on Musa Security</p>
@@ -410,11 +430,22 @@ function generateApprovalNotificationHTML(data: ApprovalNotificationData): strin
     <div class="container">
         <div class="header">
             <div class="logo">
-                <!-- Musa Character - Email Compatible Version -->
-                <div style="width: 80px; height: 80px; background: linear-gradient(135deg, #DAA520, #B8860B); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: Arial, sans-serif; font-size: 32px; font-weight: bold; color: #FFF; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); border: 4px solid #FFD700; position: relative;">
-                    🏠
-                    <div style="position: absolute; top: -8px; left: 50%; transform: translateX(-50%); width: 60px; height: 15px; background: linear-gradient(135deg, #FFD700, #DAA520); border-radius: 50%; border: 2px solid #B8860B;"></div>
-                </div>
+                <!-- Updated Musa Character - Email Compatible Version -->
+    <!-- Email-friendly Musa Mascot -->
+    <table cellpadding="0" cellspacing="0" border="0" align="center" width="100px" style="margin: 0 auto;">
+      <tr>
+        <td align="center">
+          <table cellpadding="0" cellspacing="0" border="0">
+            <tr>
+              <td bgcolor="#DAA520" style="background-color: #DAA520; width: 90px; height: 90px; border-radius: 45px; border: 4px solid #FFD700; text-align: center; vertical-align: middle;">
+                <span style="font-size: 45px; line-height: 90px;">🏠</span>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  
             </div>
             <h1 class="title">🎉 Account Approved!</h1>
             <p class="subtitle">Welcome to Musa Security</p>
@@ -469,6 +500,211 @@ function generateApprovalNotificationHTML(data: ApprovalNotificationData): strin
 /**
  * Test email configuration
  */
+/**
+ * Send rejection notification email using direct SMTP
+ */
+export const sendRejectionNotificationEmail = async (data: RejectionNotificationData): Promise<boolean> => {
+  try {
+    const emailHtml = generateRejectionNotificationHTML(data);
+    
+    const emailData: EmailData = {
+      to: data.userEmail,
+      subject: "Important Information About Your Musa Account Application",
+      html: emailHtml,
+      from: `"Musa Security" <${SMTP_CONFIG.auth.user}>`
+    };
+
+    // Send via API route
+    const response = await fetch('/api/send-email', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        emailData,
+        smtpConfig: SMTP_CONFIG
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Email API responded with status: ${response.status}`);
+    }
+
+    const result = await response.json();
+    console.log('✅ Rejection notification email sent successfully:', result);
+    return true;
+
+  } catch (error) {
+    console.error('❌ Error sending rejection notification email:', error);
+    return false;
+  }
+};
+
+/**
+ * Generate HTML template for rejection notification
+ */
+export function generateRejectionNotificationHTML(data: RejectionNotificationData): string {
+  return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Application Status - Musa Security</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f8fafc;
+        }
+        .container {
+            background: white;
+            border-radius: 12px;
+            padding: 40px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .logo {
+            width: 100px;
+            height: 100px;
+            margin: 0 auto 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #fef3c7, #fbbf24);
+            border-radius: 50%;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .title {
+            color: #1f2937;
+            font-size: 28px;
+            font-weight: 700;
+            margin: 10px 0;
+        }
+        .subtitle {
+            color: #6b7280;
+            font-size: 18px;
+        }
+        .content {
+            margin: 30px 0;
+        }
+        .rejection-card {
+            background-color: #fee2e2;
+            border: 1px solid #fecaca;
+            padding: 20px;
+            border-radius: 12px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        .rejection-card h2 {
+            color: #b91c1c;
+            margin-top: 0;
+        }
+        .rejection-card p {
+            color: #991b1b;
+            margin-bottom: 0;
+        }
+        .role-badge {
+            display: inline-block;
+            padding: 5px 10px;
+            background-color: #f3f4f6;
+            color: #4b5563;
+            border-radius: 9999px;
+            font-size: 14px;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+        .reason-section {
+            background-color: #f9fafb;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+            border-left: 4px solid #d1d5db;
+        }
+        .support-section {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e5e7eb;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #e5e7eb;
+            font-size: 14px;
+            color: #6b7280;
+        }
+        .footer p {
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">
+                <!-- Updated Musa Character - Email Compatible Version -->
+    <!-- Email-friendly Musa Mascot -->
+    <table cellpadding="0" cellspacing="0" border="0" align="center" width="100px" style="margin: 0 auto;">
+      <tr>
+        <td align="center">
+          <table cellpadding="0" cellspacing="0" border="0">
+            <tr>
+              <td bgcolor="#DAA520" style="background-color: #DAA520; width: 90px; height: 90px; border-radius: 45px; border: 4px solid #FFD700; text-align: center; vertical-align: middle;">
+                <span style="font-size: 45px; line-height: 90px;">🏠</span>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  
+            </div>
+            <h1 class="title">Application Status Update</h1>
+            <p class="subtitle">Musa Security Account Information</p>
+        </div>
+
+        <div class="content">
+            <p>Hello ${data.userName},</p>
+            
+            <div class="rejection-card">
+                <h2>Your application requires additional information</h2>
+                <p>We are unable to approve your account at this time</p>
+                <div class="role-badge">${data.userRole}</div>
+            </div>
+
+            <p>Thank you for your interest in using the Musa Security platform. After reviewing your application, our team is unable to approve your account request at this time.</p>
+
+            <div class="reason-section">
+                <strong>Reason for decision:</strong>
+                <p>${data.reason || 'Your information could not be verified'}</p>
+            </div>
+
+            <div class="support-section">
+                <p>If you believe this decision was made in error or would like to provide additional information, please contact our support team at ${data.supportEmail || 'support@musa-security.com'}.</p>
+                <p>You can also submit a new application with updated information if you'd like to try again.</p>
+            </div>
+
+            <p>The Musa Security Team</p>
+        </div>
+
+        <div class="footer">
+            <p>This email was sent by Musa Security System</p>
+            <p>© ${new Date().getFullYear()} Musa Security. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>
+  `;
+}
+
 export const testEmailConfiguration = async (): Promise<boolean> => {
   try {
     const testData: HouseholdInviteData = {

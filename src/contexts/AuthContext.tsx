@@ -547,6 +547,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Remove from pending list
       await set(pendingUserRef, null);
       
+      // Send rejection notification email
+      try {
+        // Get admin user data for the "rejected by" field
+        const adminRef = ref(db, `users/${adminUid}`);
+        const adminSnapshot = await get(adminRef);
+        const adminData = adminSnapshot.val() as User;
+        
+        // Import the email service dynamically to avoid circular dependencies
+        const { sendRejectionNotificationEmail } = await import('@/services/smtpEmailService');
+        
+        const emailSent = await sendRejectionNotificationEmail({
+          userName: userData.displayName || userData.email,
+          userEmail: userData.email,
+          userRole: userData.role,
+          rejectedBy: adminData?.displayName || adminData?.email || 'Administrator',
+          reason: reason || 'Your information could not be verified'
+        });
+        
+        if (emailSent) {
+          console.log(`✅ Rejection email sent to ${userData.email}`);
+        } else {
+          console.warn(`⚠️ Failed to send rejection email to ${userData.email}`);
+        }
+      } catch (emailError) {
+        console.error('❌ Error sending rejection email:', emailError);
+        // Don't throw - rejection should succeed even if email fails
+      }
+      
       console.log(`User ${uid} rejected by admin ${adminUid} for reason: ${reason}`);
     } catch (error) {
       console.error('Error rejecting user:', error);

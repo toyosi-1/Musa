@@ -165,11 +165,29 @@ export default function CreateHouseholdForm({ onCreateHousehold, disabled = fals
           setSuccess('');
         }, 3000);
       } else {
-        setError('Could not create household. Check console for details.');
+        setError('Could not create household. Please try again.');
       }
     } catch (err) {
       console.error('Error creating household:', err);
-      setError(`Failed to create household: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      
+      // Convert technical error messages to user-friendly ones
+      let userFriendlyMessage = 'Could not create household. Please try again.';
+      
+      if (err instanceof Error) {
+        const errorMessage = err.message;
+        
+        if (errorMessage.includes('permission-denied') || errorMessage.includes('permission denied')) {
+          userFriendlyMessage = 'You do not have permission to create a household.';
+        } else if (errorMessage.includes('name-already-exists') || errorMessage.includes('already exists')) {
+          userFriendlyMessage = 'A household with this name already exists. Please choose another name.';
+        } else if (errorMessage.includes('network') || errorMessage.includes('connection')) {
+          userFriendlyMessage = 'Network error. Please check your internet connection and try again.';
+        } else if (errorMessage.includes('already-in-household') || errorMessage.includes('already in a household')) {
+          userFriendlyMessage = 'You are already a member of a household. Please leave your current household first.';
+        }
+      }
+      
+      setError(userFriendlyMessage);
     } finally {
       setIsLoading(false);
     }

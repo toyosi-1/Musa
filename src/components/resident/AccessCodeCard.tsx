@@ -41,9 +41,39 @@ export default function AccessCodeCard({ accessCode, onDeactivate }: AccessCodeC
     if (!navigator.share) return;
     
     try {
+      // Format expiration date for sharing
+      const expiry = accessCode.expiresAt ? 
+        new Date(accessCode.expiresAt).toLocaleString(undefined, {
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric',
+          hour: 'numeric',
+          minute: '2-digit'
+        }) : 'never expires';
+      
+      // Get current user and household details
+      const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+      const household = JSON.parse(localStorage.getItem('household') || '{}');
+      const userName = currentUser?.displayName || 'Resident';
+      const recipientName = accessCode.description || 'Guest'; // Use description as recipient name
+      const address = household?.address || '';
+      const addressLine2 = household?.addressLine2 || '';
+      const fullAddress = [address, addressLine2].filter(Boolean).join(', ');
+      
+      // Create formatted message
+      const messageText = `Good day ${recipientName},
+
+You have been invited to ${fullAddress}.
+
+Your access code: ${accessCode.code}
+
+When you arrive at the Estate gate, please give the above code to the Security team. Your code ${accessCode.expiresAt ? `expires on ${expiry}` : 'never expires'}
+
+Powered By Musa Security`;
+      
       await navigator.share({
         title: 'Musa Access Code',
-        text: `Here's my access code for the estate: ${accessCode.code}`,
+        text: messageText,
       });
     } catch (err) {
       console.error('Error sharing:', err);

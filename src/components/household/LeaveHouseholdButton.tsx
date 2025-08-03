@@ -38,7 +38,23 @@ export default function LeaveHouseholdButton({ household, onLeave }: LeaveHouseh
       
     } catch (error) {
       console.error('Error leaving household:', error);
-      setError(error instanceof Error ? error.message : 'Failed to leave household');
+      
+      // Convert technical error messages to user-friendly ones
+      let userFriendlyMessage = 'Failed to leave household. Please try again.';
+      
+      if (error instanceof Error) {
+        const errorMessage = error.message;
+        
+        if (errorMessage.includes('permission-denied') || errorMessage.includes('permission denied')) {
+          userFriendlyMessage = 'You do not have permission to leave this household.';
+        } else if (errorMessage.includes('household-head') || errorMessage.includes('household head')) {
+          userFriendlyMessage = 'As the household head, you cannot leave. Please transfer ownership first or delete the household.';
+        } else if (errorMessage.includes('network') || errorMessage.includes('connection')) {
+          userFriendlyMessage = 'Network error. Please check your internet connection and try again.';
+        }
+      }
+      
+      setError(userFriendlyMessage);
     } finally {
       setIsLeaving(false);
       setShowConfirmation(false);

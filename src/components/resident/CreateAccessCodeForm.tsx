@@ -69,11 +69,27 @@ export default function CreateAccessCodeForm({ onCreateCode, disabled, noHouseho
         console.log('Access code created successfully with QR code');
       } else {
         console.error('No result returned from onCreateCode');
-        setError('Could not create access code. Check console for details.');
+        setError('Could not create access code. Please try again.');
       }
     } catch (err) {
       console.error('Error creating code:', err);
-      setError(`Failed to create access code: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      
+      // Convert technical error messages to user-friendly ones
+      let userFriendlyMessage = 'Could not create access code. Please try again.';
+      
+      if (err instanceof Error) {
+        const errorMessage = err.message;
+        
+        if (errorMessage.includes('permission-denied') || errorMessage.includes('permission denied')) {
+          userFriendlyMessage = 'You do not have permission to create access codes.';
+        } else if (errorMessage.includes('quota-exceeded') || errorMessage.includes('quota exceeded')) {
+          userFriendlyMessage = 'You have reached the maximum number of access codes allowed.';
+        } else if (errorMessage.includes('network') || errorMessage.includes('connection')) {
+          userFriendlyMessage = 'Network error. Please check your internet connection and try again.';
+        }
+      }
+      
+      setError(userFriendlyMessage);
     } finally {
       setIsLoading(false);
     }
@@ -135,9 +151,36 @@ export default function CreateAccessCodeForm({ onCreateCode, disabled, noHouseho
             {navigator.share && (
               <button
                 onClick={() => {
+                  const expiry = expiration === 'never' ? 'never expires' : 
+                    new Date(calculateExpirationTimestamp() || 0).toLocaleString(undefined, {
+                      month: 'short',
+                      day: 'numeric',
+                      year: 'numeric',
+                      hour: 'numeric',
+                      minute: '2-digit'
+                    });
+                  
+                  // Format message with the user's household details
+                  const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+                  const household = JSON.parse(localStorage.getItem('household') || '{}');
+                  const userName = currentUser?.displayName || 'Resident';
+                  const address = household?.address || '';
+                  const addressLine2 = household?.addressLine2 || '';
+                  const fullAddress = [address, addressLine2].filter(Boolean).join(', ');
+                  
+                  const messageText = `Good day,
+
+You have been invited to ${fullAddress}.
+
+Your access code: ${newCode.code}
+
+When you arrive at the Estate gate, please give the above code to the Security team. Your code ${expiration === 'never' ? 'never expires' : `expires on ${expiry}`}
+
+Powered By Musa Security`;
+                  
                   navigator.share({
                     title: 'Musa Access Code',
-                    text: `Here's my access code for the estate: ${newCode.code}`,
+                    text: messageText,
                   });
                 }}
                 className="text-primary hover:text-primary-dark flex items-center"

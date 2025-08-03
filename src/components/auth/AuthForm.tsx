@@ -269,7 +269,39 @@ export default function AuthForm({ mode, defaultRole }: AuthFormProps) {
       }
     } catch (err) {
       console.error('Authentication error:', err);
-      setError(err instanceof Error ? err.message : 'Authentication failed');
+      
+      // Convert Firebase error messages to user-friendly messages
+      let userFriendlyMessage = 'Authentication failed';
+      
+      if (err instanceof Error) {
+        const errorMessage = err.message;
+        
+        // Registration-specific errors
+        if (mode === 'register') {
+          if (errorMessage.includes('auth/email-already-in-use') || errorMessage.includes('email-already-in-use')) {
+            userFriendlyMessage = 'Email already has been used';
+          } else if (errorMessage.includes('auth/weak-password') || errorMessage.includes('weak-password')) {
+            userFriendlyMessage = 'Password is too weak. Please use a stronger password';
+          } else if (errorMessage.includes('auth/invalid-email') || errorMessage.includes('invalid-email')) {
+            userFriendlyMessage = 'Invalid email address format';
+          }
+        }
+        // Login-specific errors are already handled above in the login block
+        
+        // General errors for both login and registration
+        if (errorMessage.includes('auth/network-request-failed') || errorMessage.includes('network-request-failed')) {
+          userFriendlyMessage = 'Network connection error. Please check your internet connection';
+        } else if (errorMessage.includes('auth/too-many-requests') || errorMessage.includes('too-many-requests')) {
+          userFriendlyMessage = 'Too many attempts. Please try again later';
+        } else if (errorMessage.includes('auth/user-disabled') || errorMessage.includes('user-disabled')) {
+          userFriendlyMessage = 'This account has been disabled';
+        } else if (userFriendlyMessage === 'Authentication failed' && !errorMessage.includes('Firebase')) {
+          // If we don't have a specific handler but the error is not a raw Firebase message
+          userFriendlyMessage = errorMessage;
+        }
+      }
+      
+      setError(userFriendlyMessage);
     } finally {
       setLoading(false);
     }
