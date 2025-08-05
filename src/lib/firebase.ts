@@ -175,19 +175,41 @@ export async function getFirebaseAuth(): Promise<Auth> {
   // Ensure the app is initialized first
   const app = await getFirebaseApp();
   
-  // Initialize Auth with aggressive optimization
+  // Initialize Auth with enhanced persistence for iOS PWA
   try {
     auth = getAuth(app);
     
-    // Enable offline persistence asynchronously for speed
-    // Don't wait for this to complete
-    setPersistence(auth!, indexedDBLocalPersistence)
-      .then(() => console.log('✅ Auth persistence set to IndexedDB'))
-      .catch(() => 
-        setPersistence(auth!, browserLocalPersistence)
-          .then(() => console.log('✅ Auth persistence set to localStorage'))
-          .catch((e: any) => console.warn('⚠️ Auth persistence not available:', e))
-      );
+    // Enhanced persistence configuration for iOS PWA mode
+    // Wait for persistence to be set before continuing for PWA mode
+    const isPWA = typeof window !== 'undefined' && 
+      (window.matchMedia('(display-mode: standalone)').matches || 
+       (window.navigator as any).standalone === true);
+    
+    if (isPWA) {
+      console.log('📱 PWA mode detected, setting enhanced auth persistence...');
+      try {
+        // For iOS PWA, we need to ensure persistence is set synchronously
+        await setPersistence(auth!, indexedDBLocalPersistence);
+        console.log('✅ Auth persistence set to IndexedDB for PWA');
+      } catch (indexedDBError) {
+        console.warn('⚠️ IndexedDB persistence failed, falling back to localStorage:', indexedDBError);
+        try {
+          await setPersistence(auth!, browserLocalPersistence);
+          console.log('✅ Auth persistence set to localStorage for PWA');
+        } catch (localStorageError) {
+          console.error('❌ All persistence methods failed for PWA:', localStorageError);
+        }
+      }
+    } else {
+      // For non-PWA mode, use async persistence for speed
+      setPersistence(auth!, indexedDBLocalPersistence)
+        .then(() => console.log('✅ Auth persistence set to IndexedDB'))
+        .catch(() => 
+          setPersistence(auth!, browserLocalPersistence)
+            .then(() => console.log('✅ Auth persistence set to localStorage'))
+            .catch((e: any) => console.warn('⚠️ Auth persistence not available:', e))
+        );
+    }
     
     // Connect to emulator in development (async)
     if (process.env.NODE_ENV === 'development' && 

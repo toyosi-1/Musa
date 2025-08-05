@@ -704,7 +704,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let unsubscribe: () => void;
     let authTimeout: NodeJS.Timeout;
     let authStateTimeout: NodeJS.Timeout;
-    let sessionRefreshInterval: NodeJS.Timer;
+    let sessionRefreshInterval: NodeJS.Timeout | undefined;
     let connectedListener = () => {}; // Empty function as default
     let pwaRecoveryListener: () => void = () => {}; // Session recovery event listener
 
@@ -887,20 +887,48 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
           unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
             try {
-              console.log('👤 Auth state changed:', firebaseUser ? 'User signed in' : 'No user');
+              console.log('🔄 Auth state changed:', firebaseUser ? `User: ${firebaseUser.email}` : 'No user');
+              
               if (firebaseUser) {
+                // User is signed in
                 const user = await formatUser(firebaseUser);
-                setCurrentUser(user);
-                
-                // Create a backup of the session for PWA resilience with all user data
-                if (user) { // Add null check
-                  backupSession(user.uid, user.email, user.role, user.displayName);
+                if (user) {
+                  console.log('✅ User formatted successfully:', user.displayName);
+                  setCurrentUser(user);
+                  
+                  // Enhanced PWA session backup with more frequent updates
+                  if (isPwaMode()) {
+                    backupSession(user.uid, user.email, user.role, user.displayName);
+                    console.log('💾 Session backed up for PWA');
+                    
+                    // Set up periodic session refresh for PWA mode
+                    if (sessionRefreshInterval) {
+                      clearInterval(sessionRefreshInterval);
+                    }
+                    sessionRefreshInterval = setInterval(() => {
+                      refreshSessionBackup();
+                      console.log('🔄 PWA session backup refreshed');
+                    }, 30000); // Refresh every 30 seconds for PWA
+                  }
+                } else {
+                  console.warn('⚠️ User formatting failed');
+                  setCurrentUser(null);
                 }
               } else {
+                // User is signed out
+                console.log('👋 User signed out');
                 setCurrentUser(null);
-                clearSessionBackup();
+                
+                // Clear session backup and intervals on sign out
+                if (isPwaMode()) {
+                  clearSessionBackup();
+                  if (sessionRefreshInterval) {
+                    clearInterval(sessionRefreshInterval);
+                    sessionRefreshInterval = undefined;
+                  }
+                  console.log('🗑️ Session backup and intervals cleared');
+                }
               }
-              setInitError(null);
             } catch (error) {
               console.error('Auth state change error:', error);
               setCurrentUser(null);
@@ -925,9 +953,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           console.log(isConnected ? '✅ Database connected' : '❌ Database disconnected');
         });
         
-        // Register PWA session recovery event listener
+        // Enhanced PWA session recovery and lifecycle management
         if (isPwaMode()) {
-          console.log('📱 Setting up PWA session recovery listener');
+          console.log('📱 Setting up enhanced PWA session management...');
+          
+          // Register PWA lifecycle events for iOS session persistence
+          registerPwaLifecycleEvents();
+          
           const recoveryEventHandler = async (event: Event) => {
             const customEvent = event as CustomEvent;
             if (customEvent.detail?.userId) {
@@ -945,6 +977,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     // Use backup role if not in user data
                     user.role = sessionBackup.role as UserRole;
                   }
+                  
+                  // Restart session backup for recovered user
+                  backupSession(user.uid, user.email, user.role, user.displayName);
                 }
               } catch (e) {
                 console.error('Failed to recover PWA session:', e);
@@ -954,12 +989,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             }
           };
           
-          // Add the event listener
+          // Add iOS-specific PWA event listeners
+          const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+              console.log('🔄 PWA became visible, refreshing auth state...');
+              refreshSessionBackup();
+              // Force auth state check when app becomes visible
+              if (currentUser) {
+                backupSession(currentUser.uid, currentUser.email, currentUser.role, currentUser.displayName);
+              }
+            } else {
+              console.log('😴 PWA became hidden, backing up session...');
+              if (currentUser) {
+                backupSession(currentUser.uid, currentUser.email, currentUser.role, currentUser.displayName);
+              }
+            }
+          };
+          
+          const handlePageShow = (event: PageTransitionEvent) => {
+            if (event.persisted) {
+              console.log('🔄 PWA restored from cache, checking session...');
+              const sessionBackup = getSessionBackup();
+              if (sessionBackup?.userId && !currentUser) {
+                recoveryEventHandler(new CustomEvent('pwa-session-recovery', {
+                  detail: { userId: sessionBackup.userId }
+                }));
+              }
+            }
+          };
+          
+          // Add event listeners
+          document.addEventListener('visibilitychange', handleVisibilityChange);
           document.addEventListener('pwa-session-recovery', recoveryEventHandler);
+          window.addEventListener('pageshow', handlePageShow);
+          window.addEventListener('focus', handleVisibilityChange);
           
           // Store removal function
           pwaRecoveryListener = () => {
             document.removeEventListener('pwa-session-recovery', recoveryEventHandler);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            window.removeEventListener('pageshow', handlePageShow);
+            window.removeEventListener('focus', handleVisibilityChange);
           };
           
           // Trigger an initial check for session recovery
