@@ -90,60 +90,67 @@ export default function DashboardLayout({
       </main>
 
       {/* Bottom Navigation - Mobile Only */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border-t border-gray-200 dark:border-gray-700 shadow-lg z-50 h-16 safe-area-inset-bottom">
-        <div className={`flex items-center justify-center h-full px-2 ${currentUser?.role === 'guard' ? 'justify-between' : 'justify-around'}`}>
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border-t border-gray-200 dark:border-gray-700 shadow-lg z-50 pb-safe">
+        <nav className="h-[60px] flex items-center justify-around px-2">
           <Link
             href="/dashboard"
-            className={`flex flex-col items-center justify-center flex-1 max-w-[100px] py-1 px-2 rounded-lg transition-all ${
+            className={`flex flex-col items-center justify-center flex-1 max-w-[80px] rounded-lg transition-all ${
               pathname === '/dashboard'
                 ? 'text-blue-600 dark:text-blue-400 bg-blue-50/80 dark:bg-blue-900/20'
                 : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50'
             }`}
             aria-label="Home"
           >
-            <HomeIcon className="w-6 h-6 mb-1" />
-            <span className="text-xs font-medium leading-tight">Home</span>
+            <div className="flex flex-col items-center justify-center">
+              <HomeIcon className="w-6 h-6 mb-1" />
+              <span className="text-xs font-medium">Home</span>
+            </div>
           </Link>
           
           {/* Show QR Scanner for Guards */}
           {currentUser?.role === 'guard' && (
             <Link
               href="/dashboard/scan"
-              className={`flex flex-col items-center justify-center flex-1 max-w-[100px] py-1 px-2 rounded-lg transition-all ${
-                pathname === '/dashboard/scan'
-                  ? 'text-blue-600 dark:text-blue-400 bg-blue-50/80 dark:bg-blue-900/20'
-                  : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50'
+              className={`flex flex-col items-center justify-center flex-1 max-w-[80px] rounded-lg transition-all ${isActive('/dashboard/scan')
+                ? 'text-blue-600 dark:text-blue-400 bg-blue-50/80 dark:bg-blue-900/20'
+                : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50'
               }`}
               aria-label="Scan QR Codes"
             >
-              <QrCodeIcon className="w-6 h-6 mb-1" />
-              <span className="text-xs font-medium leading-tight">Scan</span>
+              <div className="flex flex-col items-center justify-center">
+                <QrCodeIcon className="w-6 h-6 mb-1" />
+                <span className="text-xs font-medium">Scan</span>
+              </div>
             </Link>
           )}
           
           <Link
             href="/dashboard/history"
-            className={`flex flex-col items-center justify-center flex-1 max-w-[100px] py-1 px-2 rounded-lg transition-all ${
+            className={`flex flex-col items-center justify-center flex-1 max-w-[80px] rounded-lg transition-all ${
               pathname === '/dashboard/history'
                 ? 'text-blue-600 dark:text-blue-400 bg-blue-50/80 dark:bg-blue-900/20'
                 : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50'
             }`}
             aria-label="History"
           >
-            <ClockIcon className="w-6 h-6 mb-1" />
-            <span className="text-xs font-medium leading-tight">History</span>
+            <div className="flex flex-col items-center justify-center">
+              <ClockIcon className="w-6 h-6 mb-1" />
+              <span className="text-xs font-medium">History</span>
+            </div>
           </Link>
           
           <button
             onClick={() => setShowUserDialog(true)}
-            className={`flex flex-col items-center justify-center flex-1 max-w-[100px] py-1 px-2 rounded-lg transition-all text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50`}
+            className={`flex flex-col items-center justify-center flex-1 max-w-[80px] rounded-lg transition-all text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50`}
             aria-label="Account"
           >
-            <UserIcon className="w-6 h-6 mb-1" />
-            <span className="text-xs font-medium leading-tight">Account</span>
+            <div className="flex flex-col items-center justify-center">
+              <UserIcon className="w-6 h-6 mb-1" />
+              <span className="text-xs font-medium">Account</span>
+            </div>
           </button>
-        </div>
-      </nav>
+        </nav>
+      </div>
       
       {/* User Profile Dialog */}
       {currentUser && (
