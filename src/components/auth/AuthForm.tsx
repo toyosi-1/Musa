@@ -386,9 +386,9 @@ export default function AuthForm({ mode, defaultRole }: AuthFormProps) {
               Password
             </label>
             {mode === 'login' && (
-              <a href="#" className="text-sm text-primary hover:underline">
+              <Link href="/auth/forgot-password" className="text-sm text-primary hover:underline">
                 Forgot password?
-              </a>
+              </Link>
             )}
           </div>
           <div className="relative">
