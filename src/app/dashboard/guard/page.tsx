@@ -37,8 +37,11 @@ export default function GuardDashboardPage() {
             // If not a guard, redirect to the appropriate dashboard
             if (currentUser.role === 'admin') {
               router.push('/admin/dashboard');
-            } else {
+            } else if (currentUser.role === 'resident') {
               router.push('/dashboard/resident');
+            } else {
+              console.error('SECURITY ERROR: Unknown user role in guard page:', currentUser.role);
+              router.push('/auth/login');
             }
             return;
           }
@@ -49,8 +52,11 @@ export default function GuardDashboardPage() {
             console.log('Database role verification failed. Redirecting to correct dashboard.');
             if (freshUserData.role === 'admin') {
               router.push('/admin/dashboard');
-            } else {
+            } else if (freshUserData.role === 'resident') {
               router.push('/dashboard/resident');
+            } else {
+              console.error('SECURITY ERROR: Unknown database role in guard page:', freshUserData.role);
+              router.push('/auth/login');
             }
           }
         } catch (error) {

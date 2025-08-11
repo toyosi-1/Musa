@@ -54,7 +54,8 @@ export default function StatusGuard({
             router.push('/dashboard/resident');
             break;
           default:
-            router.push('/dashboard');
+            console.error('SECURITY ERROR: Unknown user role in StatusGuard:', currentUser.role);
+            router.push('/auth/login');
         }
         return;
       }

@@ -226,9 +226,13 @@ export default function AuthForm({ mode, defaultRole }: AuthFormProps) {
             } else if (user.role === 'admin') {
               console.log('Redirecting to admin dashboard...');
               router.push('/admin/dashboard');
-            } else {
+            } else if (user.role === 'resident') {
               console.log('Redirecting to resident dashboard...');
               router.push('/dashboard/resident');
+            } else {
+              console.error('SECURITY ERROR: Unknown user role after login:', user.role);
+              console.log('Forcing re-authentication for security');
+              router.push('/auth/login');
             }
           }, 500); // Reduced from 800ms to 500ms for faster experience
         } catch (loginError) {
