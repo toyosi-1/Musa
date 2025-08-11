@@ -128,77 +128,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         
         return formattedUser;
       } else {
-        // User not found in our database, create a new entry
-        console.log(`User ${firebaseUser.uid} not found in database, creating new entry`);
-        
-        const newUser: User = {
-          uid: firebaseUser.uid,
-          email: firebaseUser.email || '',
-          displayName: firebaseUser.displayName || 'User',
-          role: 'resident', // Default role
-          status: 'pending', // New users need approval
-          isEmailVerified: firebaseUser.emailVerified,
-          createdAt: Date.now()
-        };
-        
-        // Save user to database with timeout
-        try {
-          const savePromise = set(userRef, newUser);
-          const saveTimeoutPromise = new Promise<null>((_, reject) => {
-            setTimeout(() => reject(new Error('Save operation timed out')), 5000);
-          });
-          
-          await Promise.race([savePromise, saveTimeoutPromise]);
-          console.log(`New user saved to database: ${newUser.uid}`);
-          
-          // Add to pending users for admin approval - skip if timed out above
-          const pendingUserRef = ref(db, `pendingUsers/${firebaseUser.uid}`);
-          await set(pendingUserRef, true).catch(err => {
-            console.warn('Failed to add user to pending list:', err);
-            // Continue anyway as the user object is created
-          });
-        } catch (saveError) {
-          logError('Failed to save new user to database', saveError);
-          // Continue and return the user object anyway
-        }
-        
-        // Cache the user data
-        try {
-          userProfileCache.set(firebaseUser.uid, {
-            user: newUser,
-            timestamp: Date.now()
-          });
-        } catch (cacheError) {
-          console.warn('Failed to cache new user data:', cacheError);
-          // Non-critical error, continue
-        }
-        
-        console.log(`New user created in ${performance.now() - startTime}ms:`, {
-          uid: newUser.uid,
-          email: newUser.email,
-          role: newUser.role,
-          status: newUser.status
-        });
-        return newUser;
+        // SECURITY: User not found in database during formatUser
+        console.error('SECURITY ERROR: User not found in database during formatUser:', firebaseUser.uid);
+        console.error('This should not happen - users should be created via signUp with explicit roles');
+        throw new Error('User not found in database and role unknown');
       }
     } catch (error) {
       logError('Error formatting user', error);
       
-      // If we time out or have database errors, return a basic user object anyway so the user isn't locked out
-      if (error instanceof Error) {
-        console.log('Creating fallback user due to error:', error.message);
-        const fallbackUser: User = {
-          uid: firebaseUser.uid,
-          email: firebaseUser.email || '',
-          displayName: firebaseUser.displayName || 'User',
-          role: 'resident' as UserRole, // Default role with type assertion
-          status: 'approved' as UserStatus, // Assume approved for error cases
-          isEmailVerified: firebaseUser.emailVerified,
-          createdAt: Date.now()
-        };
-        
-        return fallbackUser;
-      }
+      // SECURITY: Never create fallback users with assumed roles - this causes guard misrouting
+      console.error('SECURITY ERROR: Database error in formatUser, refusing to create fallback user');
+      console.error('Error details:', error);
+      throw error; // Force re-authentication instead of assuming roles
       
       return null;
     }
