@@ -63,21 +63,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const db = await getFirebaseDatabase();
       const userRef = ref(db, `users/${firebaseUser.uid}`);
       
-      // Create a promise with timeout
-      const fetchPromise = get(userRef);
-      const timeoutPromise = new Promise<null>((_, reject) => {
-        setTimeout(() => reject(new Error('Database operation timed out')), 5000);
-      });
-      
-      // Race the fetch against the timeout
-      let snapshot;
-      try {
-        snapshot = await Promise.race([fetchPromise, timeoutPromise]) as any;
-      } catch (dbError) {
-        logError('Database fetch error', dbError);
-        throw dbError;
+      // New-user race condition guard: when a user has just registered,
+      // the auth state may update before their profile is written to the DB.
+      // Retry a few short times if the record isn't found yet (no role assumptions).
+      const maxRetries = 5;
+      const retryDelayMs = 300;
+      let snapshot: any = null;
+      for (let attempt = 0; attempt < maxRetries; attempt++) {
+        try {
+          const fetchPromise = get(userRef);
+          // Shorter per-attempt timeout to keep overall wait bounded
+          const timeoutPromise = new Promise<null>((_, reject) => {
+            setTimeout(() => reject(new Error('Database operation timed out')), 1500);
+          });
+          snapshot = await Promise.race([fetchPromise, timeoutPromise]) as any;
+        } catch (dbError) {
+          logError('Database fetch error', dbError);
+          // For transient errors, allow a few retries
+          if (attempt < maxRetries - 1) {
+            await new Promise((res) => setTimeout(res, retryDelayMs));
+            continue;
+          }
+          throw dbError;
+        }
+
+        if (snapshot && snapshot.exists()) {
+          break;
+        }
+
+        // Not found yet – likely immediately after registration, try again briefly
+        if (attempt < maxRetries - 1) {
+          console.warn(`User record not found yet, retrying (${attempt + 1}/${maxRetries - 1})...`);
+          await new Promise((res) => setTimeout(res, retryDelayMs));
+        }
       }
-      
+
       if (snapshot && snapshot.exists()) {
         // User exists in our database, return with role and other metadata
         console.log(`User database lookup completed in ${performance.now() - startTime}ms`);
@@ -873,7 +893,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             } catch (error) {
               console.error('Auth state change error:', error);
               setCurrentUser(null);
-              setInitError('Error processing authentication. Please try again.');
+              
+              // iOS PWA specific error handling - don't show generic error immediately
+              const isIosPwa = navigator.userAgent.match(/iPad|iPhone|iPod/) && 
+                              window.matchMedia('(display-mode: standalone)').matches;
+              
+              if (isIosPwa) {
+                console.warn('iOS PWA auth state error - attempting recovery...');
+                // For iOS PWA, try to recover gracefully without showing error immediately
+                // The error might be transient due to iOS Safari PWA limitations
+                setTimeout(() => {
+                  // Only show error if we still don't have a user after a brief delay
+                  if (!currentUser && loading) {
+                    setInitError('Authentication initialization failed. Please close and reopen the app.');
+                  }
+                }, 2000);
+              } else {
+                setInitError('Error processing authentication. Please try again.');
+              }
             } finally {
               if (!authStateResolved) {
                 authStateResolved = true;
@@ -897,6 +934,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Enhanced PWA session recovery and lifecycle management
         if (isPwaMode()) {
           console.log('📱 Setting up enhanced PWA session management...');
+          
+          // iOS PWA specific initialization recovery
+          const isIosPwa = navigator.userAgent.match(/iPad|iPhone|iPod/) && 
+                          window.matchMedia('(display-mode: standalone)').matches;
+          
+          if (isIosPwa) {
+            console.log('🍎 iOS PWA detected - applying iOS-specific auth recovery');
+            
+            // Clear any existing error state that might have been set prematurely
+            setInitError(null);
+            
+            // iOS PWA often has delayed Firebase initialization, give it more time
+            setTimeout(() => {
+              if (!currentUser && loading) {
+                console.log('🔄 iOS PWA delayed auth check - attempting session recovery');
+                const sessionBackup = getSessionBackup();
+                if (sessionBackup?.userId) {
+                  console.log('📱 Found iOS PWA session backup, attempting recovery');
+                  // Trigger session recovery
+                  window.dispatchEvent(new CustomEvent('pwa-session-recovery', {
+                    detail: { userId: sessionBackup.userId }
+                  }));
+                }
+              }
+            }, 1000);
+          }
           
           // Register PWA lifecycle events for iOS session persistence
           registerPwaLifecycleEvents();
