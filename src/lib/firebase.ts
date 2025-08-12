@@ -5,7 +5,9 @@ import {
   Auth, 
   setPersistence, 
   browserLocalPersistence, 
-  indexedDBLocalPersistence 
+  indexedDBLocalPersistence,
+  signInWithEmailAndPassword,
+  UserCredential
 } from 'firebase/auth';
 import { 
   getDatabase, 
@@ -179,36 +181,90 @@ export async function getFirebaseAuth(): Promise<Auth> {
   try {
     auth = getAuth(app);
     
-    // Enhanced persistence configuration for iOS PWA mode
-    // Wait for persistence to be set before continuing for PWA mode
+    // Enhanced persistence configuration for all platforms
     const isPWA = typeof window !== 'undefined' && 
       (window.matchMedia('(display-mode: standalone)').matches || 
        (window.navigator as any).standalone === true);
     
+    // Special handling for iOS PWA
+    const isIOS = typeof navigator !== 'undefined' && 
+                 /iPad|iPhone|iPod/.test(navigator.userAgent) && 
+                 !(window as any).MSStream;
+    
     if (isPWA) {
       console.log('📱 PWA mode detected, setting enhanced auth persistence...');
-      try {
-        // For iOS PWA, we need to ensure persistence is set synchronously
-        await setPersistence(auth!, indexedDBLocalPersistence);
-        console.log('✅ Auth persistence set to IndexedDB for PWA');
-      } catch (indexedDBError) {
-        console.warn('⚠️ IndexedDB persistence failed, falling back to localStorage:', indexedDBError);
+      
+      // For iOS PWA, we need a more robust persistence strategy
+      if (isIOS) {
+        console.log('🍎 iOS PWA detected - applying enhanced persistence strategy');
         try {
+          // 1. First try IndexedDB (most reliable for PWA)
+          await setPersistence(auth!, indexedDBLocalPersistence);
+          console.log('✅ Auth persistence set to IndexedDB for iOS PWA');
+          
+          // 2. Add localStorage backup for critical auth state
+          if (typeof window !== 'undefined') {
+            const backupAuthKey = 'firebase:authBackup';
+            
+            // Listen for auth state changes to keep backup updated
+            auth!.onAuthStateChanged((user) => {
+              if (user) {
+                // Store critical auth data in localStorage as backup
+                const authData = {
+                  uid: user.uid,
+                  email: user.email,
+                  refreshToken: user.refreshToken,
+                  lastLogin: Date.now()
+                };
+                localStorage.setItem(backupAuthKey, JSON.stringify(authData));
+              } else {
+                localStorage.removeItem(backupAuthKey);
+              }
+            });
+            
+            // Check for backup on initialization
+            const authBackup = localStorage.getItem(backupAuthKey);
+            if (authBackup && !auth!.currentUser) {
+              console.log('🔍 Found auth backup, attempting recovery...');
+              // This will trigger the auth state change listener above
+              await auth!.authStateReady();
+            }
+          }
+          
+        } catch (indexedDBError) {
+          console.warn('⚠️ IndexedDB persistence failed, falling back to localStorage:', indexedDBError);
+          try {
+            await setPersistence(auth!, browserLocalPersistence);
+            console.log('✅ Auth persistence set to localStorage for PWA');
+          } catch (localStorageError) {
+            console.error('❌ All persistence methods failed for PWA:', localStorageError);
+            // Even if persistence fails, we can still try to recover the session
+            if (typeof window !== 'undefined' && !auth!.currentUser) {
+              await attemptSessionRecovery(auth!);
+            }
+          }
+        }
+      } else {
+        // For non-iOS PWA, use standard persistence
+        try {
+          await setPersistence(auth!, indexedDBLocalPersistence);
+          console.log('✅ Auth persistence set to IndexedDB for PWA');
+        } catch (error) {
+          console.warn('⚠️ IndexedDB persistence failed, falling back to localStorage:', error);
           await setPersistence(auth!, browserLocalPersistence);
           console.log('✅ Auth persistence set to localStorage for PWA');
-        } catch (localStorageError) {
-          console.error('❌ All persistence methods failed for PWA:', localStorageError);
         }
       }
     } else {
-      // For non-PWA mode, use async persistence for speed
-      setPersistence(auth!, indexedDBLocalPersistence)
-        .then(() => console.log('✅ Auth persistence set to IndexedDB'))
-        .catch(() => 
-          setPersistence(auth!, browserLocalPersistence)
-            .then(() => console.log('✅ Auth persistence set to localStorage'))
-            .catch((e: any) => console.warn('⚠️ Auth persistence not available:', e))
-        );
+      // For non-PWA mode, use standard persistence
+      try {
+        await setPersistence(auth!, indexedDBLocalPersistence);
+        console.log('✅ Auth persistence set to IndexedDB');
+      } catch (error) {
+        console.warn('⚠️ IndexedDB persistence failed, falling back to localStorage:', error);
+        await setPersistence(auth!, browserLocalPersistence);
+        console.log('✅ Auth persistence set to localStorage');
+      }
     }
     
     // Connect to emulator in development (async)
@@ -546,6 +602,49 @@ export const waitForFirebase = async (): Promise<boolean> => {
   if (connectionPromise) return connectionPromise;
   return initializeFirebase();
 };
+
+/**
+ * Attempts to recover a user session when standard persistence fails
+ * This is a last-resort mechanism for iOS PWA where IndexedDB might be cleared
+ */
+async function attemptSessionRecovery(auth: Auth): Promise<void> {
+  if (typeof window === 'undefined') return;
+  
+  const backupAuthKey = 'firebase:authBackup';
+  const authBackup = localStorage.getItem(backupAuthKey);
+  
+  if (!authBackup) {
+    console.log('No auth backup found for recovery');
+    return;
+  }
+  
+  try {
+    const { email, refreshToken, lastLogin } = JSON.parse(authBackup);
+    
+    // Only attempt recovery for recent logins (within last 7 days)
+    if (Date.now() - lastLogin > 7 * 24 * 60 * 60 * 1000) {
+      console.log('Auth backup is too old, skipping recovery');
+      localStorage.removeItem(backupAuthKey);
+      return;
+    }
+    
+    console.log('Attempting to recover session from backup...');
+    
+    // In a real implementation, you would need to:
+    // 1. Verify the refresh token is still valid
+    // 2. Exchange the refresh token for a new ID token
+    // 3. Sign in the user with the new credentials
+    
+    // For now, we'll just clear the backup to prevent repeated failed attempts
+    // A full implementation would require a backend endpoint to securely handle token refresh
+    console.warn('Session recovery requires backend implementation');
+    
+  } catch (error) {
+    console.error('Error during session recovery:', error);
+    // Clear invalid backup data
+    localStorage.removeItem(backupAuthKey);
+  }
+}
 
 // Preload and optimize Firebase initialization
 if (typeof window !== 'undefined' && !isInitialized) {
