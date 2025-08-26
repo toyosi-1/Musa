@@ -212,7 +212,7 @@ export default function HouseholdManager({ user, household, onCreateHousehold, r
 
   if (!household) {
     return (
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 sm:p-6">
         <h2 className="text-lg font-semibold mb-4">Create a Household</h2>
         
         {error && (
@@ -258,8 +258,8 @@ export default function HouseholdManager({ user, household, onCreateHousehold, r
   }
 
   return (
-    <div className="space-y-6">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+    <div className="space-y-4 sm:space-y-6 max-w-full overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 sm:p-6">
         {error && (
           <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
             {error}
@@ -272,8 +272,8 @@ export default function HouseholdManager({ user, household, onCreateHousehold, r
           </div>
         )}
       
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg font-semibold">Household Details</h2>
+        <div className="flex justify-between items-center mb-4 gap-2">
+          <h2 className="text-base sm:text-lg font-semibold">Household Details</h2>
           <span className={`px-2 py-1 text-xs rounded-full ${
             user.isHouseholdHead 
               ? 'bg-primary/10 text-primary' 
@@ -340,7 +340,7 @@ export default function HouseholdManager({ user, household, onCreateHousehold, r
                     value={address}
                     onChange={(e) => setAddress(e.target.value)}
                     placeholder="123 Main St"
-                    className="input w-full"
+                    className="input w-full text-sm sm:text-base"
                     disabled={isLoading}
                     required
                   />
@@ -356,12 +356,12 @@ export default function HouseholdManager({ user, household, onCreateHousehold, r
                     value={addressLine2}
                     onChange={(e) => setAddressLine2(e.target.value)}
                     placeholder="Apt, Suite, Unit, etc."
-                    className="input w-full"
+                    className="input w-full text-sm sm:text-base"
                     disabled={isLoading}
                   />
                 </div>
                 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label htmlFor="city" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       City*
@@ -372,7 +372,7 @@ export default function HouseholdManager({ user, household, onCreateHousehold, r
                       value={city}
                       onChange={(e) => setCity(e.target.value)}
                       placeholder="City"
-                      className="input w-full"
+                      className="input w-full text-sm sm:text-base"
                       disabled={isLoading}
                       required
                     />
@@ -388,14 +388,14 @@ export default function HouseholdManager({ user, household, onCreateHousehold, r
                       value={state}
                       onChange={(e) => setState(e.target.value)}
                       placeholder="State/Province"
-                      className="input w-full"
+                      className="input w-full text-sm sm:text-base"
                       disabled={isLoading}
                       required
                     />
                   </div>
                 </div>
                 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label htmlFor="postalCode" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       Postal Code*
@@ -406,7 +406,7 @@ export default function HouseholdManager({ user, household, onCreateHousehold, r
                       value={postalCode}
                       onChange={(e) => setPostalCode(e.target.value)}
                       placeholder="Postal/Zip Code"
-                      className="input w-full"
+                      className="input w-full text-sm sm:text-base"
                       disabled={isLoading}
                       required
                     />
@@ -422,7 +422,7 @@ export default function HouseholdManager({ user, household, onCreateHousehold, r
                       value={country}
                       onChange={(e) => setCountry(e.target.value)}
                       placeholder="Country"
-                      className="input w-full"
+                      className="input w-full text-sm sm:text-base"
                       disabled={isLoading}
                       required
                     />
@@ -479,7 +479,7 @@ export default function HouseholdManager({ user, household, onCreateHousehold, r
       </div>
       
       {household && (
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 sm:p-6">
           <h2 className="text-lg font-semibold mb-4 flex items-center">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />

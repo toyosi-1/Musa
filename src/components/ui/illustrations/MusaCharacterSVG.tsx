@@ -20,15 +20,14 @@ export default function MusaCharacterSVG({
   return (
     <svg 
       className={cn(
-        'drop-shadow-lg transition-all duration-300', 
+        'drop-shadow-lg transition-all duration-300 w-full h-full max-w-[200px] max-h-[240px]', 
         animated && 'hover:scale-105', 
         isDarkMode && 'filter brightness-110 contrast-110',
         className
       )}
-      width={size} 
-      height={size} 
       viewBox="0 0 200 240" 
       xmlns="http://www.w3.org/2000/svg"
+      preserveAspectRatio="xMidYMid meet"
     >
       <defs>
         <linearGradient id="backgroundGradient" x1="0%" y1="0%" x2="100%" y2="100%">

@@ -24,8 +24,8 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   minimumScale: 1,
-  maximumScale: 1, // Disable zooming for better mobile experience
-  userScalable: false,
+  maximumScale: 5, // Allow zooming for accessibility
+  userScalable: true,
   
   // PWA and theme settings
   themeColor: [

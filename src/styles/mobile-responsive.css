@@ -20,30 +20,30 @@
 @media (max-width: 480px) {
   /* Card padding adjustments for mobile */
   .card {
-    padding: 16px !important;
-    margin-bottom: 16px !important;
+    padding: 16px;
+    margin-bottom: 16px;
   }
   
   /* Tab font size adjustments */
   .tabs {
-    font-size: 14px !important;
+    font-size: 14px;
   }
   
   /* Ensure full width on mobile */
   .mobile-full-width {
-    width: 100% !important;
-    max-width: 100% !important;
+    width: 100%;
+    max-width: 100%;
   }
   
   /* Reduce spacing between elements on mobile */
   .mobile-spacing {
-    gap: 12px !important;
+    gap: 12px;
   }
   
   /* Improve touch targets on mobile */
   .mobile-touch-target {
-    min-height: 44px !important;
-    min-width: 44px !important;
+    min-height: 44px;
+    min-width: 44px;
   }
   
   /* Better text wrapping on mobile */
@@ -57,22 +57,22 @@
 /* Tablet breakpoints */
 @media (min-width: 481px) and (max-width: 768px) {
   .card {
-    padding: 20px !important;
+    padding: 20px;
   }
   
   .tabs {
-    font-size: 15px !important;
+    font-size: 15px;
   }
 }
 
 /* Desktop breakpoints */
 @media (min-width: 769px) {
   .card {
-    padding: 24px !important;
+    padding: 24px;
   }
   
   .tabs {
-    font-size: 16px !important;
+    font-size: 16px;
   }
 }
 
