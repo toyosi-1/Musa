@@ -48,7 +48,7 @@ export default function GuardDashboard({ user }: GuardDashboardProps) {
     
     try {
       console.log('Calling verifyAccessCode...');
-      const result = await verifyAccessCode(manualCode);
+      const result = await verifyAccessCode(manualCode, { estateId: user.estateId });
       console.log('Verification result:', result);
       setScanResult(result);
       

@@ -168,6 +168,7 @@ export default function ScanPage() {
                   isActive={isCameraActive}
                   onScanResult={handleScanResult}
                   onScanningStateChange={handleScanningStateChange}
+                  estateId={currentUser?.estateId}
                 />
               </div>
             ) : (

@@ -9,6 +9,8 @@ export interface User {
   role: UserRole;
   status: UserStatus;
   isEmailVerified: boolean;
+  // Each user belongs to a specific estate (multi-tenant boundary)
+  estateId?: string;
   householdId?: string;
   isHouseholdHead?: boolean;
   createdAt: number;
@@ -25,6 +27,8 @@ export interface Household {
   name: string;
   headId: string; // The family head's user ID
   members: Record<string, boolean>; // User IDs of household members
+  // The estate this household belongs to
+  estateId?: string;
   address?: string;
   addressLine2?: string;
   city?: string;
@@ -40,6 +44,8 @@ export interface AccessCode {
   code: string;
   userId: string;
   householdId: string;
+  // The estate this code belongs to (enforces cross-estate isolation)
+  estateId?: string;
   description?: string;
   qrCode?: string;
   createdAt: number;
@@ -56,4 +62,11 @@ export interface HouseholdInvite {
   status: 'pending' | 'accepted' | 'rejected';
   createdAt: number;
   expiresAt: number;
+}
+
+export interface Estate {
+  id: string;
+  name: string;
+  createdAt: number;
+  updatedAt: number;
 }

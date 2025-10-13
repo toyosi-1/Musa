@@ -2,6 +2,97 @@ import { getFirebaseDatabase } from '@/lib/firebase';
 import { ref, push, set, get, query, orderByChild, equalTo, update, remove } from 'firebase/database';
 import * as QRCodeLib from 'qrcode';
 import { AccessCode } from '@/types/user';
+import { verifyHouseholdMembership } from './householdService';
+
+// Rate limiting constants
+const MAX_CODES_PER_HOUR = 10;
+const MAX_CODES_PER_DAY = 50;
+const RATE_LIMIT_RESET_HOUR = 60 * 60 * 1000; // 1 hour in milliseconds
+const RATE_LIMIT_RESET_DAY = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+
+// Security logging function
+const logSecurityEvent = async (event: string, userId: string, details: Record<string, any> = {}) => {
+  try {
+    const db = await getFirebaseDatabase();
+    const securityLogRef = ref(db, 'securityLogs');
+    const newLogRef = push(securityLogRef);
+
+    if (newLogRef.key) {
+      const logEntry = {
+        id: newLogRef.key,
+        event,
+        userId,
+        timestamp: Date.now(),
+        details,
+        userAgent: typeof window !== 'undefined' ? window.navigator?.userAgent : 'Server',
+      };
+
+      await set(newLogRef, logEntry);
+      console.log(`🔐 Security Event Logged: ${event} for user ${userId}`);
+    }
+  } catch (error) {
+    console.error('Failed to log security event:', error);
+    // Don't throw error - logging failure shouldn't break the main functionality
+  }
+};
+
+// Check rate limits for access code creation
+const checkRateLimit = async (userId: string): Promise<{ allowed: boolean; message?: string }> => {
+  const db = await getFirebaseDatabase();
+  const now = Date.now();
+
+  try {
+    // Get user's recent access codes
+    const userCodesRef = ref(db, `accessCodesByUser/${userId}`);
+    const snapshot = await get(userCodesRef);
+
+    if (!snapshot.exists()) {
+      return { allowed: true }; // No codes yet, allow creation
+    }
+
+    const codeIds = Object.keys(snapshot.val());
+    const codes: AccessCode[] = [];
+
+    // Fetch all codes to check timestamps
+    for (const codeId of codeIds) {
+      const codeRef = ref(db, `accessCodes/${codeId}`);
+      const codeSnapshot = await get(codeRef);
+      if (codeSnapshot.exists()) {
+        codes.push(codeSnapshot.val() as AccessCode);
+      }
+    }
+
+    // Check hourly limit
+    const oneHourAgo = now - RATE_LIMIT_RESET_HOUR;
+    const codesInLastHour = codes.filter(code => code.createdAt > oneHourAgo);
+
+    if (codesInLastHour.length >= MAX_CODES_PER_HOUR) {
+      const resetTime = new Date(oneHourAgo + RATE_LIMIT_RESET_HOUR).toLocaleTimeString();
+      return {
+        allowed: false,
+        message: `Rate limit exceeded. You can create up to ${MAX_CODES_PER_HOUR} codes per hour. Try again after ${resetTime}.`
+      };
+    }
+
+    // Check daily limit
+    const oneDayAgo = now - RATE_LIMIT_RESET_DAY;
+    const codesInLastDay = codes.filter(code => code.createdAt > oneDayAgo);
+
+    if (codesInLastDay.length >= MAX_CODES_PER_DAY) {
+      const resetTime = new Date(oneDayAgo + RATE_LIMIT_RESET_DAY).toLocaleTimeString();
+      return {
+        allowed: false,
+        message: `Daily limit exceeded. You can create up to ${MAX_CODES_PER_DAY} codes per day. Try again tomorrow.`
+      };
+    }
+
+    return { allowed: true };
+  } catch (error) {
+    console.error('Error checking rate limit:', error);
+    // On error, allow creation but log the issue
+    return { allowed: true };
+  }
+};
 
 // Generate a random access code
 export const generateAccessCode = (): string => {
@@ -22,14 +113,109 @@ export const createAccessCode = async (
   userId: string,
   householdId: string,
   description?: string,
-  expiresAt?: number
+  expiresAt?: number,
+  estateId?: string
 ): Promise<{ code: string; qrCode: string }> => {
   // Ensure the database is initialized via lazy loading
   const db = await getFirebaseDatabase();
 
   try {
-    console.log('Creating access code for user:', userId, 'household:', householdId);
-    
+    console.log('Creating access code for user:', userId, 'household:', householdId, 'estate:', estateId);
+
+    // Enhanced Security: Verify household membership before proceeding
+    console.log('🔒 Verifying household membership for security...');
+    const isValidMember = await verifyHouseholdMembership(userId, householdId);
+    if (!isValidMember) {
+      console.error('❌ Security violation: User is not a valid household member');
+
+      // Log security violation
+      await logSecurityEvent('HOUSEHOLD_MEMBERSHIP_VIOLATION', userId, {
+        attemptedHouseholdId: householdId,
+        reason: 'User is not a valid household member'
+      });
+
+      throw new Error('Unauthorized: You must be a member of the household to create access codes');
+    }
+    console.log('✅ Household membership verified successfully');
+
+    // Enhanced Estate Security: Verify estate boundaries
+    if (estateId) {
+      console.log('🔒 Verifying estate boundaries for security...');
+
+      // Get user data to verify their estate
+      const userRef = ref(db, `users/${userId}`);
+      const userSnapshot = await get(userRef);
+      if (!userSnapshot.exists()) {
+        throw new Error('User not found');
+      }
+      const user = userSnapshot.val();
+
+      // Get household data to verify its estate
+      const householdRef = ref(db, `households/${householdId}`);
+      const householdSnapshot = await get(householdRef);
+      if (!householdSnapshot.exists()) {
+        throw new Error('Household not found');
+      }
+      const household = householdSnapshot.val();
+
+      // Verify estate consistency
+      if (user.estateId !== estateId) {
+        console.error('❌ Estate violation: User estate mismatch', { userEstate: user.estateId, providedEstate: estateId });
+
+        await logSecurityEvent('ESTATE_BOUNDARY_VIOLATION', userId, {
+          userEstateId: user.estateId,
+          providedEstateId: estateId,
+          householdId,
+          reason: 'User does not belong to the specified estate'
+        });
+
+        throw new Error('Unauthorized: You do not have access to create codes for this estate');
+      }
+
+      if (household.estateId !== estateId) {
+        console.error('❌ Estate violation: Household estate mismatch', { householdEstate: household.estateId, providedEstate: estateId });
+
+        await logSecurityEvent('ESTATE_BOUNDARY_VIOLATION', userId, {
+          householdEstateId: household.estateId,
+          providedEstateId: estateId,
+          householdId,
+          reason: 'Household does not belong to the specified estate'
+        });
+
+        throw new Error('Unauthorized: Household does not belong to the specified estate');
+      }
+
+      console.log('✅ Estate boundaries verified successfully');
+    } else {
+      // If no estateId provided, try to get it from user or household
+      const userRef = ref(db, `users/${userId}`);
+      const userSnapshot = await get(userRef);
+      if (userSnapshot.exists()) {
+        const user = userSnapshot.val();
+        estateId = user.estateId;
+      }
+
+      if (!estateId) {
+        throw new Error('Estate ID is required for access code creation');
+      }
+    }
+
+    // Check rate limits
+    console.log('🔒 Checking rate limits...');
+    const rateLimitCheck = await checkRateLimit(userId);
+    if (!rateLimitCheck.allowed) {
+      console.error('❌ Rate limit exceeded for user:', userId);
+
+      // Log rate limit violation
+      await logSecurityEvent('RATE_LIMIT_VIOLATION', userId, {
+        limitType: 'access_code_creation',
+        message: rateLimitCheck.message
+      });
+
+      throw new Error(rateLimitCheck.message || 'Rate limit exceeded');
+    }
+    console.log('✅ Rate limit check passed');
+
     // Generate a unique code
     const code = generateAccessCode();
     console.log('Generated unique code:', code);
@@ -56,6 +242,7 @@ export const createAccessCode = async (
       code,
       userId,
       householdId,
+      estateId, // Include estate ID for proper isolation
       description,
       qrCode,
       createdAt: now,
@@ -75,9 +262,21 @@ export const createAccessCode = async (
     updates[`accessCodesByCode/${code}`] = newCodeRef.key;
     updates[`accessCodesByUser/${userId}/${newCodeRef.key}`] = true;
     updates[`accessCodesByHousehold/${householdId}/${newCodeRef.key}`] = true;
+    if (estateId) {
+      updates[`accessCodesByEstate/${estateId}/${newCodeRef.key}`] = true;
+    }
     await update(ref(db), updates);
     console.log('Index entries created successfully');
-    
+
+    // Log successful access code creation
+    await logSecurityEvent('ACCESS_CODE_CREATED', userId, {
+      accessCodeId: newCodeRef.key,
+      householdId,
+      estateId,
+      description,
+      expiresAt
+    });
+
     // Explicitly log and construct the return value
     const result = { code, qrCode };
     console.log('Returning result:', { code, qrCodeLength: qrCode?.length || 0 });
@@ -93,12 +292,16 @@ import { getHousehold } from './householdService';
 import { Household } from '@/types/user';
 
 // Verify if an access code is valid
-export const verifyAccessCode = async (code: string): Promise<{ 
+export const verifyAccessCode = async (
+  code: string,
+  options?: { estateId?: string }
+): Promise<{ 
   isValid: boolean; 
   message?: string; 
   household?: Household;
   destinationAddress?: string;
   accessCodeId?: string;
+  estateId?: string;
 }> => {
   // Ensure the database is initialized
   const db = await getFirebaseDatabase();
@@ -143,8 +346,41 @@ export const verifyAccessCode = async (code: string): Promise<{
       id: accessCode.id,
       isActive: accessCode.isActive,
       expiresAt: accessCode.expiresAt,
+      estateId: accessCode.estateId,
       currentTime: Date.now()
     });
+
+    // Enhanced Estate Security: Verify estate boundaries
+    if (options?.estateId && accessCode.estateId) {
+      if (accessCode.estateId !== options.estateId) {
+        console.error('❌ Estate boundary violation: Code belongs to different estate', {
+          codeEstate: accessCode.estateId,
+          guardEstate: options.estateId
+        });
+
+        // Log estate boundary violation
+        await logSecurityEvent('ESTATE_BOUNDARY_VIOLATION', 'system', {
+          accessCodeId: accessCode.id,
+          codeEstateId: accessCode.estateId,
+          guardEstateId: options.estateId,
+          reason: 'Access code does not belong to guard\'s estate'
+        });
+
+        return { 
+          isValid: false, 
+          message: 'Access code does not belong to this estate. Cross-estate access is not permitted.',
+          estateId: accessCode.estateId
+        };
+      }
+    } else if (!accessCode.estateId) {
+      // Legacy codes without estate ID - this should be flagged for security review
+      console.warn('⚠️ Legacy access code without estate ID detected:', accessCode.id);
+
+      await logSecurityEvent('LEGACY_CODE_DETECTED', 'system', {
+        accessCodeId: accessCode.id,
+        reason: 'Access code created before estate isolation was implemented'
+      });
+    }
 
     // Check if code is expired
     if (accessCode.expiresAt && accessCode.expiresAt < Date.now()) {
@@ -207,7 +443,8 @@ export const verifyAccessCode = async (code: string): Promise<{
       message: 'Access granted', 
       household, 
       destinationAddress,
-      accessCodeId: accessCode.id
+      accessCodeId: accessCode.id,
+      estateId: accessCode.estateId
     };
   } catch (error) {
     console.error('Error verifying access code:', error);

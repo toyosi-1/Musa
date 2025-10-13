@@ -82,7 +82,8 @@ export default function ResidentDashboard({ user }: ResidentDashboardProps) {
         user.uid,
         household?.id || '',
         description,
-        expiresAt
+        expiresAt,
+        user.estateId || household?.estateId
       );
       // Refresh access codes after creating new one
       await loadData();
@@ -108,7 +109,7 @@ export default function ResidentDashboard({ user }: ResidentDashboardProps) {
   }) => {
     try {
       setLoading(true);
-      const newHousehold = await createHousehold(user.uid, name, addressData);
+      const newHousehold = await createHousehold(user.uid, name, addressData, user.estateId);
       setHousehold(newHousehold);
       return newHousehold;
     } catch (err) {

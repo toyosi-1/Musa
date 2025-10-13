@@ -11,13 +11,15 @@ type QrScannerProps = {
     household?: Household;
     destinationAddress?: string;
     accessCodeId?: string;
+    estateId?: string;
     guestCommunicationUrl?: string;
   }) => void;
   isActive: boolean;
   onScanningStateChange: (isScanning: boolean) => void;
+  estateId?: string; // Add estateId for proper estate boundary enforcement
 };
 
-export default function QrScanner({ onScanResult, isActive, onScanningStateChange }: QrScannerProps) {
+export default function QrScanner({ onScanResult, isActive, onScanningStateChange, estateId }: QrScannerProps) {
   const scannerRef = useRef<HTMLDivElement>(null);
   const scanner = useRef<any>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -101,7 +103,7 @@ export default function QrScanner({ onScanResult, isActive, onScanningStateChang
       stopScanner();
       
       console.log('QR Code detected:', decodedText);
-      const result = await verifyAccessCode(decodedText);
+      const result = await verifyAccessCode(decodedText, { estateId });
       
       // Log the destination address if available
       if (result.isValid && result.destinationAddress) {
