@@ -116,6 +116,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           status: userData.status || 'approved',
           isEmailVerified: firebaseUser.emailVerified,
           createdAt: userData.createdAt || Date.now(),
+          // Include estate information
+          ...(userData.estateId && { estateId: userData.estateId }),
           // Include household information
           ...(userData.householdId && { householdId: userData.householdId }),
           ...(userData.isHouseholdHead && { isHouseholdHead: userData.isHouseholdHead }),
@@ -170,7 +172,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     email: string, 
     password: string, 
     displayName: string,
-    role: UserRole
+    role: UserRole,
+    estateId?: string
   ): Promise<User> => {
     try {
       const auth = await getFirebaseAuth();
@@ -186,7 +189,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         role,
         status: 'pending', // New users need approval
         isEmailVerified: result.user.emailVerified,
-        createdAt: Date.now()
+        createdAt: Date.now(),
+        ...(estateId && { estateId }) // Add estateId if provided
       };
       
       // Save user to database
@@ -196,7 +200,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const pendingUserRef = ref(db, `pendingUsers/${result.user.uid}`);
       await set(pendingUserRef, true);
       
-      console.log('New user signed up and added to pending list:', newUser.uid);
+      console.log('New user signed up and added to pending list:', newUser.uid, estateId ? `for estate: ${estateId}` : '');
       return newUser;
     } catch (error) {
       console.error('Error signing up:', error);

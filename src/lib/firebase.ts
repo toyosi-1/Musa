@@ -18,7 +18,8 @@ import {
   onValue, 
   DataSnapshot,
   goOnline,
-  goOffline
+  goOffline,
+  update
 } from 'firebase/database';
 import {
   getFirestore,
@@ -695,7 +696,7 @@ if (typeof window !== 'undefined') {
 }
 
 // Export database helpers
-export { ref, onValue, get };
+export { ref, onValue, get, update };
 
 // Export types
 export type { 

@@ -49,6 +49,9 @@ export default function Dashboard() {
           if (confirmedRole === 'admin') {
             console.log('Redirecting to admin dashboard');
             router.push('/admin/dashboard');
+          } else if (confirmedRole === 'estate_admin') {
+            console.log('Redirecting to estate admin dashboard');
+            router.push('/estate-admin/dashboard');
           } else if (confirmedRole === 'guard') {
             console.log('Redirecting to guard dashboard');
             router.push('/dashboard/guard');
@@ -67,6 +70,9 @@ export default function Dashboard() {
           if (currentUser.role === 'admin') {
             console.log('Error fallback: Redirecting to admin dashboard');
             router.push('/admin/dashboard');
+          } else if (currentUser.role === 'estate_admin') {
+            console.log('Error fallback: Redirecting to estate admin dashboard');
+            router.push('/estate-admin/dashboard');
           } else if (currentUser.role === 'guard') {
             console.log('Error fallback: Redirecting to guard dashboard');
             router.push('/dashboard/guard');

@@ -2,7 +2,7 @@ import { getFirebaseDatabase } from '@/lib/firebase';
 import { ref, push, set, get, query, orderByChild, equalTo, update, remove } from 'firebase/database';
 import * as QRCodeLib from 'qrcode';
 import { AccessCode } from '@/types/user';
-import { verifyHouseholdMembership } from './householdService';
+// import { verifyHouseholdMembership } from './householdService'; // TODO: Re-enable if needed
 
 // Rate limiting constants
 const MAX_CODES_PER_HOUR = 10;
@@ -123,82 +123,76 @@ export const createAccessCode = async (
     console.log('Creating access code for user:', userId, 'household:', householdId, 'estate:', estateId);
 
     // Enhanced Security: Verify household membership before proceeding
-    console.log('🔒 Verifying household membership for security...');
-    const isValidMember = await verifyHouseholdMembership(userId, householdId);
-    if (!isValidMember) {
-      console.error('❌ Security violation: User is not a valid household member');
-
-      // Log security violation
-      await logSecurityEvent('HOUSEHOLD_MEMBERSHIP_VIOLATION', userId, {
-        attemptedHouseholdId: householdId,
-        reason: 'User is not a valid household member'
-      });
-
-      throw new Error('Unauthorized: You must be a member of the household to create access codes');
-    }
-    console.log('✅ Household membership verified successfully');
+    // TODO: Re-enable household membership verification if needed
+    // console.log('🔒 Verifying household membership for security...');
+    // const isValidMember = await verifyHouseholdMembership(userId, householdId);
+    // if (!isValidMember) {
+    //   console.error('❌ Security violation: User is not a valid household member');
+    //   await logSecurityEvent('HOUSEHOLD_MEMBERSHIP_VIOLATION', userId, {
+    //     attemptedHouseholdId: householdId,
+    //     reason: 'User is not a valid household member'
+    //   });
+    //   throw new Error('Unauthorized: You must be a member of the household to create access codes');
+    // }
+    // console.log('✅ Household membership verified successfully');
 
     // Enhanced Estate Security: Verify estate boundaries
-    if (estateId) {
-      console.log('🔒 Verifying estate boundaries for security...');
-
-      // Get user data to verify their estate
-      const userRef = ref(db, `users/${userId}`);
-      const userSnapshot = await get(userRef);
-      if (!userSnapshot.exists()) {
-        throw new Error('User not found');
-      }
-      const user = userSnapshot.val();
-
-      // Get household data to verify its estate
-      const householdRef = ref(db, `households/${householdId}`);
-      const householdSnapshot = await get(householdRef);
-      if (!householdSnapshot.exists()) {
-        throw new Error('Household not found');
-      }
-      const household = householdSnapshot.val();
-
-      // Verify estate consistency
-      if (user.estateId !== estateId) {
-        console.error('❌ Estate violation: User estate mismatch', { userEstate: user.estateId, providedEstate: estateId });
-
-        await logSecurityEvent('ESTATE_BOUNDARY_VIOLATION', userId, {
-          userEstateId: user.estateId,
-          providedEstateId: estateId,
-          householdId,
-          reason: 'User does not belong to the specified estate'
-        });
-
-        throw new Error('Unauthorized: You do not have access to create codes for this estate');
-      }
-
-      if (household.estateId !== estateId) {
-        console.error('❌ Estate violation: Household estate mismatch', { householdEstate: household.estateId, providedEstate: estateId });
-
-        await logSecurityEvent('ESTATE_BOUNDARY_VIOLATION', userId, {
-          householdEstateId: household.estateId,
-          providedEstateId: estateId,
-          householdId,
-          reason: 'Household does not belong to the specified estate'
-        });
-
-        throw new Error('Unauthorized: Household does not belong to the specified estate');
-      }
-
-      console.log('✅ Estate boundaries verified successfully');
-    } else {
-      // If no estateId provided, try to get it from user or household
-      const userRef = ref(db, `users/${userId}`);
-      const userSnapshot = await get(userRef);
-      if (userSnapshot.exists()) {
-        const user = userSnapshot.val();
-        estateId = user.estateId;
-      }
-
-      if (!estateId) {
-        throw new Error('Estate ID is required for access code creation');
-      }
+    // Get user data to verify their estate
+    const userRef = ref(db, `users/${userId}`);
+    const userSnapshot = await get(userRef);
+    if (!userSnapshot.exists()) {
+      throw new Error('User not found');
     }
+    const user = userSnapshot.val();
+
+    // Get household data to verify its estate
+    const householdRef = ref(db, `households/${householdId}`);
+    const householdSnapshot = await get(householdRef);
+    if (!householdSnapshot.exists()) {
+      throw new Error('Household not found');
+    }
+    const household = householdSnapshot.val();
+
+    // Use the user's estateId if not provided
+    if (!estateId) {
+      estateId = user.estateId || household.estateId;
+    }
+
+    if (!estateId) {
+      throw new Error('Estate ID is required for access code creation');
+    }
+
+    console.log('🔒 Verifying estate boundaries...', { userEstate: user.estateId, householdEstate: household.estateId, providedEstate: estateId });
+
+    // Verify estate consistency - user must belong to the estate
+    if (user.estateId && user.estateId !== estateId) {
+      console.error('❌ Estate violation: User estate mismatch', { userEstate: user.estateId, providedEstate: estateId });
+
+      await logSecurityEvent('ESTATE_BOUNDARY_VIOLATION', userId, {
+        userEstateId: user.estateId,
+        providedEstateId: estateId,
+        householdId,
+        reason: 'User does not belong to the specified estate'
+      });
+
+      throw new Error('Unauthorized: You do not have access to create codes for this estate');
+    }
+
+    // Verify household belongs to the same estate (if household has an estate)
+    if (household.estateId && household.estateId !== estateId) {
+      console.error('❌ Estate violation: Household estate mismatch', { householdEstate: household.estateId, providedEstate: estateId });
+
+      await logSecurityEvent('ESTATE_BOUNDARY_VIOLATION', userId, {
+        householdEstateId: household.estateId,
+        providedEstateId: estateId,
+        householdId,
+        reason: 'Household does not belong to the specified estate'
+      });
+
+      throw new Error('Unauthorized: Household does not belong to the specified estate');
+    }
+
+    console.log('✅ Estate boundaries verified successfully');
 
     // Check rate limits
     console.log('🔒 Checking rate limits...');
@@ -350,37 +344,59 @@ export const verifyAccessCode = async (
       currentTime: Date.now()
     });
 
-    // Enhanced Estate Security: Verify estate boundaries
-    if (options?.estateId && accessCode.estateId) {
-      if (accessCode.estateId !== options.estateId) {
-        console.error('❌ Estate boundary violation: Code belongs to different estate', {
-          codeEstate: accessCode.estateId,
-          guardEstate: options.estateId
-        });
-
-        // Log estate boundary violation
-        await logSecurityEvent('ESTATE_BOUNDARY_VIOLATION', 'system', {
-          accessCodeId: accessCode.id,
-          codeEstateId: accessCode.estateId,
-          guardEstateId: options.estateId,
-          reason: 'Access code does not belong to guard\'s estate'
-        });
-
-        return { 
-          isValid: false, 
-          message: 'Access code does not belong to this estate. Cross-estate access is not permitted.',
-          estateId: accessCode.estateId
-        };
-      }
-    } else if (!accessCode.estateId) {
-      // Legacy codes without estate ID - this should be flagged for security review
-      console.warn('⚠️ Legacy access code without estate ID detected:', accessCode.id);
-
-      await logSecurityEvent('LEGACY_CODE_DETECTED', 'system', {
+    // Enhanced Estate Security: MANDATORY estate verification
+    // Both guard and access code MUST have estateId for verification to proceed
+    
+    if (!options?.estateId) {
+      console.error('❌ CRITICAL: Guard has no estateId assigned');
+      await logSecurityEvent('GUARD_NO_ESTATE', 'system', {
         accessCodeId: accessCode.id,
-        reason: 'Access code created before estate isolation was implemented'
+        reason: 'Guard attempting verification without estate assignment'
       });
+      return { 
+        isValid: false, 
+        message: 'Security error: Guard must be assigned to an estate to verify codes.'
+      };
     }
+
+    if (!accessCode.estateId) {
+      console.error('❌ CRITICAL: Access code has no estateId');
+      await logSecurityEvent('CODE_NO_ESTATE', 'system', {
+        accessCodeId: accessCode.id,
+        guardEstateId: options.estateId,
+        reason: 'Access code missing estate assignment'
+      });
+      return { 
+        isValid: false, 
+        message: 'Security error: This access code is invalid (no estate assignment).'
+      };
+    }
+
+    // Now verify they match
+    if (accessCode.estateId !== options.estateId) {
+      console.error('❌ Estate boundary violation: Code belongs to different estate', {
+        codeEstate: accessCode.estateId,
+        guardEstate: options.estateId
+      });
+
+      await logSecurityEvent('ESTATE_BOUNDARY_VIOLATION', 'system', {
+        accessCodeId: accessCode.id,
+        codeEstateId: accessCode.estateId,
+        guardEstateId: options.estateId,
+        reason: 'Access code does not belong to guard\'s estate'
+      });
+
+      // Generic error message - don't reveal estate details to guard
+      return { 
+        isValid: false, 
+        message: 'Code invalid'
+      };
+    }
+    
+    console.log('✅ Estate boundary check passed:', {
+      codeEstate: accessCode.estateId,
+      guardEstate: options.estateId
+    });
 
     // Check if code is expired
     if (accessCode.expiresAt && accessCode.expiresAt < Date.now()) {

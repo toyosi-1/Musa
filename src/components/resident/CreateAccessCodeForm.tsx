@@ -12,6 +12,7 @@ interface CreateAccessCodeFormProps {
 export default function CreateAccessCodeForm({ onCreateCode, disabled, noHouseholdMessage }: CreateAccessCodeFormProps) {
   const [description, setDescription] = useState('');
   const [expiration, setExpiration] = useState<string>('24h');
+  const [customDateTime, setCustomDateTime] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [newCode, setNewCode] = useState<{ code: string; qrCode: string } | null>(null);
   const [error, setError] = useState('');
@@ -19,6 +20,13 @@ export default function CreateAccessCodeForm({ onCreateCode, disabled, noHouseho
   // Calculate expiration timestamp based on selected option
   const calculateExpirationTimestamp = (): number | undefined => {
     if (expiration === 'never') return undefined;
+    
+    // If custom date/time is selected, use that
+    if (expiration === 'custom') {
+      if (!customDateTime) return undefined;
+      const customTime = new Date(customDateTime).getTime();
+      return customTime;
+    }
     
     const now = Date.now();
     switch (expiration) {
@@ -50,6 +58,19 @@ export default function CreateAccessCodeForm({ onCreateCode, disabled, noHouseho
     if (!description.trim()) {
       setError('Please provide a description for this code');
       return;
+    }
+    
+    // Validate custom date/time if selected
+    if (expiration === 'custom') {
+      if (!customDateTime) {
+        setError('Please select a date and time for expiration');
+        return;
+      }
+      const customTime = new Date(customDateTime).getTime();
+      if (customTime <= Date.now()) {
+        setError('Expiration time must be in the future');
+        return;
+      }
     }
     
     setIsLoading(true);
@@ -242,12 +263,42 @@ Powered By Musa Security`;
         >
           <option value="1h">1 hour</option>
           <option value="6h">6 hours</option>
-          <option value="24h">24 hours</option>
+          <option value="24h">24 hours (Default)</option>
           <option value="48h">2 days</option>
           <option value="7d">7 days</option>
+          <option value="custom">Custom Date & Time</option>
           <option value="never">Never expires</option>
         </select>
       </div>
+      
+      {expiration === 'custom' && (
+        <div>
+          <label htmlFor="customDateTime" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Select Expiration Date & Time
+          </label>
+          <input
+            id="customDateTime"
+            type="datetime-local"
+            value={customDateTime}
+            onChange={(e) => setCustomDateTime(e.target.value)}
+            min={new Date().toISOString().slice(0, 16)}
+            className="input w-full"
+            disabled={isLoading || disabled}
+          />
+          {customDateTime && (
+            <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+              Code will expire: {new Date(customDateTime).toLocaleString(undefined, {
+                weekday: 'short',
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+                hour: 'numeric',
+                minute: '2-digit'
+              })}
+            </p>
+          )}
+        </div>
+      )}
       
       <div className="pt-2">
         <button

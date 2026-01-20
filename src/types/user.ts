@@ -1,4 +1,4 @@
-export type UserRole = 'guard' | 'resident' | 'admin';
+export type UserRole = 'guard' | 'resident' | 'admin' | 'estate_admin';
 
 export type UserStatus = 'pending' | 'approved' | 'rejected';
 
@@ -20,6 +20,10 @@ export interface User {
   rejectedBy?: string; // UID of admin who rejected
   rejectedAt?: number; // Timestamp of rejection
   rejectionReason?: string; // Reason if rejected
+  // Estate admin specific fields
+  canApproveUsers?: boolean; // For estate_admin role
+  canAssignHoH?: boolean; // For estate_admin role
+  createdBy?: string; // UID of admin who created this user
 }
 
 export interface Household {
@@ -69,4 +73,8 @@ export interface Estate {
   name: string;
   createdAt: number;
   updatedAt: number;
+  // Admin who created the estate
+  createdBy?: string;
+  // If true, estate is locked for new approvals/creations depending on policy
+  isLocked?: boolean;
 }

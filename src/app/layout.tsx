@@ -9,6 +9,7 @@ import LoadingScreen from '@/components/ui/LoadingScreen';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import { getPublicEnvScript } from '@/utils/env';
 import MobileInitializer from '@/components/layout/MobileInitializer';
+import DeviceApprovalNotice from '@/components/auth/DeviceApprovalNotice';
 
 const inter = Inter({ 
   subsets: ['latin'], 
@@ -215,6 +216,7 @@ export default function RootLayout({
                 {children}
               </div>
             </Suspense>
+            <DeviceApprovalNotice />
           </AuthWrapper>
         </ThemeProvider>
       </body>

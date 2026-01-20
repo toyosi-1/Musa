@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from 'react';
-import { User, AccessCode, Household } from '@/types/user';
+import { User, AccessCode, Household, Estate } from '@/types/user';
 import { getResidentAccessCodes, createAccessCode, deactivateAccessCode } from '@/services/accessCodeService';
 import { getHousehold, createHousehold } from '@/services/householdService';
 import AccessCodeCard from './AccessCodeCard';
@@ -9,6 +9,9 @@ import CreateAccessCodeForm from './CreateAccessCodeForm';
 import HouseholdManager from './HouseholdManager';
 import CreateHouseholdForm from './CreateHouseholdForm';
 import PendingInvitations from './PendingInvitations';
+import { useDeviceAuthorization } from '@/hooks/useDeviceAuthorization';
+import { getFirebaseDatabase } from '@/lib/firebase';
+import { ref, get } from 'firebase/database';
 
 interface ResidentDashboardProps {
   user: User;
@@ -17,9 +20,13 @@ interface ResidentDashboardProps {
 export default function ResidentDashboard({ user }: ResidentDashboardProps) {
   const [accessCodes, setAccessCodes] = useState<AccessCode[]>([]);
   const [household, setHousehold] = useState<Household | null>(null);
+  const [estate, setEstate] = useState<Estate | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   // Removed activeTab state since we now show both sections simultaneously
+
+  // Device authorization for HoH accounts
+  const { needsApproval, isChecking: isCheckingDevice } = useDeviceAuthorization();
 
   // Reference to track if we've already attempted householdId refresh
   const householdIdCheckedRef = useRef(false);
@@ -51,6 +58,20 @@ export default function ResidentDashboard({ user }: ResidentDashboardProps) {
           }
         }
       }
+
+      // Load estate data if user has estateId
+      if (user.estateId) {
+        try {
+          const db = await getFirebaseDatabase();
+          const estateRef = ref(db, `estates/${user.estateId}`);
+          const snapshot = await get(estateRef);
+          if (snapshot.exists()) {
+            setEstate(snapshot.val() as Estate);
+          }
+        } catch (estateError) {
+          console.error('Error loading estate:', estateError);
+        }
+      }
     } catch (err) {
       console.error('Error loading dashboard data:', err);
       setError('Failed to load dashboard data. Please try refreshing the page.');
@@ -78,6 +99,14 @@ export default function ResidentDashboard({ user }: ResidentDashboardProps) {
   ) => {
     try {
       setError('');
+
+      // Device authorization check for Head of Household accounts
+      if (user.isHouseholdHead && needsApproval) {
+        const errorMessage = 'Device authorization required. Please check your email and authorize this device before creating access codes.';
+        setError(errorMessage);
+        throw new Error(errorMessage);
+      }
+
       const newCode = await createAccessCode(
         user.uid,
         household?.id || '',
@@ -109,7 +138,7 @@ export default function ResidentDashboard({ user }: ResidentDashboardProps) {
   }) => {
     try {
       setLoading(true);
-      const newHousehold = await createHousehold(user.uid, name, addressData, user.estateId);
+      const newHousehold = await createHousehold(user.uid, name, addressData);
       setHousehold(newHousehold);
       return newHousehold;
     } catch (err) {
@@ -154,7 +183,20 @@ export default function ResidentDashboard({ user }: ResidentDashboardProps) {
 
   return (
     <div className="w-full">
-      <h1 className="text-3xl font-bold mb-8 text-gray-800 dark:text-white">Resident Dashboard</h1>
+      <div className="flex items-center justify-between mb-8">
+        <h1 className="text-3xl font-bold text-gray-800 dark:text-white">Resident Dashboard</h1>
+        {estate && (
+          <div className="flex items-center gap-2 px-4 py-2 bg-blue-50 dark:bg-blue-900/30 rounded-lg border border-blue-200 dark:border-blue-800">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+            </svg>
+            <div className="text-sm">
+              <span className="text-gray-600 dark:text-gray-400">Estate: </span>
+              <span className="font-semibold text-gray-800 dark:text-white">{estate.name}</span>
+            </div>
+          </div>
+        )}
+      </div>
       
       {error && (
         <div className="bg-red-50 dark:bg-red-900/30 border-l-4 border-red-500 text-red-700 dark:text-red-300 px-6 py-4 rounded-xl shadow-card mb-8">

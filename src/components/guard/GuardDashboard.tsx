@@ -1,11 +1,13 @@
 "use client";
 
 import { useState, useEffect, useRef } from 'react';
-import { User, Household } from '@/types/user';
+import { User, Household, Estate } from '@/types/user';
 import { verifyAccessCode } from '@/services/accessCodeService';
 import { MapPinIcon, ClockIcon, CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/solid';
 import { getGuardVerificationHistory, getGuardActivityStats, logVerificationAttempt, VerificationRecord } from '@/services/guardActivityService';
 import { format, formatDistanceToNow } from 'date-fns';
+import { getFirebaseDatabase } from '@/lib/firebase';
+import { ref, get } from 'firebase/database';
 
 interface GuardDashboardProps {
   user: User;
@@ -34,7 +36,28 @@ export default function GuardDashboard({ user }: GuardDashboardProps) {
     averagePerDay: 0
   });
   const [isLoadingStats, setIsLoadingStats] = useState(true);
+  const [estate, setEstate] = useState<Estate | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Load estate data
+  useEffect(() => {
+    const loadEstate = async () => {
+      if (!user.estateId) return;
+      
+      try {
+        const db = await getFirebaseDatabase();
+        const estateRef = ref(db, `estates/${user.estateId}`);
+        const snapshot = await get(estateRef);
+        if (snapshot.exists()) {
+          setEstate(snapshot.val() as Estate);
+        }
+      } catch (error) {
+        console.error('Error loading estate:', error);
+      }
+    };
+    
+    loadEstate();
+  }, [user.estateId]);
 
   // Function removed: QR code scanning has been moved to the dedicated Scan page
 
@@ -202,9 +225,22 @@ export default function GuardDashboard({ user }: GuardDashboardProps) {
 
   return (
     <div className="w-full h-full flex flex-col">
-      <h1 className="text-2xl md:text-3xl font-bold mb-6 text-gray-800 dark:text-white">
-        Guard Dashboard
-      </h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-800 dark:text-white">
+          Guard Dashboard
+        </h1>
+        {estate && (
+          <div className="flex items-center gap-2 px-4 py-2 bg-blue-50 dark:bg-blue-900/30 rounded-lg border border-blue-200 dark:border-blue-800">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+            </svg>
+            <div className="text-sm">
+              <span className="text-gray-600 dark:text-gray-400">Estate: </span>
+              <span className="font-semibold text-gray-800 dark:text-white">{estate.name}</span>
+            </div>
+          </div>
+        )}
+      </div>
       
       {/* Comprehensive Security Statistics */}
       <div className="mb-6 animate-fade-in">

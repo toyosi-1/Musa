@@ -134,6 +134,19 @@ export const createHousehold = async (
     // Get Firebase database
     const db = await getFirebaseDatabase();
 
+    // Get user's estateId first
+    const userRef = ref(db, `users/${userId}`);
+    const userSnapshot = await get(userRef);
+    if (!userSnapshot.exists()) {
+      throw new Error('User not found');
+    }
+    const userData = userSnapshot.val();
+    const estateId = userData.estateId;
+
+    if (!estateId) {
+      throw new Error('User must be assigned to an estate before creating a household');
+    }
+
     // Create the household record
     const householdsRef = ref(db, 'households');
     const newHouseholdRef = push(householdsRef);
@@ -147,6 +160,7 @@ export const createHousehold = async (
       id: newHouseholdRef.key,
       name,
       headId: userId,
+      estateId, // Include estate ID
       members: { [userId]: true }, // Add head as a member
       createdAt: now,
       updatedAt: now,

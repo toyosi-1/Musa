@@ -209,11 +209,29 @@ const deleteFromIndexedDB = (key: string): void => {
   try {
     const dbPromise = window.indexedDB.open('MusaAuthStorage', 1);
     
+    dbPromise.onupgradeneeded = (event) => {
+      const db = (event.target as IDBOpenDBRequest).result;
+      if (!db.objectStoreNames.contains('authData')) {
+        db.createObjectStore('authData');
+      }
+    };
+    
     dbPromise.onsuccess = (event) => {
       const db = (event.target as IDBOpenDBRequest).result;
+      
+      // Check if object store exists
+      if (!db.objectStoreNames.contains('authData')) {
+        console.warn('authData object store does not exist');
+        return;
+      }
+      
       const transaction = db.transaction(['authData'], 'readwrite');
       const store = transaction.objectStore('authData');
       store.delete(key);
+    };
+    
+    dbPromise.onerror = (event) => {
+      console.error('IndexedDB error:', event);
     };
   } catch (error) {
     console.error('Failed to delete from IndexedDB:', error);

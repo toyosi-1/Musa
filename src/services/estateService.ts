@@ -1,15 +1,15 @@
 import { getFirebaseDatabase } from '@/lib/firebase';
 import { ref, push, set, get, update, remove } from 'firebase/database';
-import type { Estate, User } from '@/types/user';
+import type { Estate } from '@/types/user';
 
 // Create a new estate
-export async function createEstate(name: string): Promise<Estate> {
+export async function createEstate(name: string, createdBy: string): Promise<Estate> {
   const db = await getFirebaseDatabase();
   const estatesRef = ref(db, 'estates');
   const newRef = push(estatesRef);
   if (!newRef.key) throw new Error('Failed to create estate ID');
   const now = Date.now();
-  const estate: Estate = { id: newRef.key, name, createdAt: now, updatedAt: now };
+  const estate: Estate = { id: newRef.key, name, createdAt: now, updatedAt: now, createdBy, isLocked: false };
   await set(newRef, estate);
   return estate;
 }
@@ -33,6 +33,13 @@ export async function deleteEstate(estateId: string): Promise<void> {
   const db = await getFirebaseDatabase();
   const estateRef = ref(db, `estates/${estateId}`);
   await remove(estateRef);
+}
+
+// Lock or unlock an estate
+export async function toggleEstateLock(estateId: string, isLocked: boolean): Promise<void> {
+  const db = await getFirebaseDatabase();
+  const estateRef = ref(db, `estates/${estateId}`);
+  await update(estateRef, { isLocked, updatedAt: Date.now() });
 }
 
 // Assign a user to an estate (writes to users/{uid}/estateId and creates index usersByEstate/{estateId}/{uid}=true)

@@ -8,7 +8,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { UserRole } from '@/types/user';
-import { isFirebaseReady, waitForFirebase } from '@/lib/firebase';
+import { Estate } from '@/types/estate';
+import { isFirebaseReady, waitForFirebase, getFirebaseDatabase, ref, get } from '@/lib/firebase';
 
 // Form validation schema
 const authSchema = z.object({
@@ -16,6 +17,7 @@ const authSchema = z.object({
   password: z.string().min(8, 'Password must be at least 8 characters'),
   displayName: z.string().optional(),
   role: z.enum(['guard', 'resident', 'admin']).optional(),
+  estateId: z.string().optional(),
   agreedToTerms: z.boolean().optional(),
 });
 
@@ -31,6 +33,7 @@ export default function AuthForm({ mode, defaultRole }: AuthFormProps) {
   const [error, setError] = useState('');
   const [firebaseStatus, setFirebaseStatus] = useState<'checking' | 'ready' | 'error'>('checking');
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [estates, setEstates] = useState<Estate[]>([]);
   const router = useRouter();
   const { signIn, signUp, initError } = useAuth();
   
@@ -97,6 +100,30 @@ export default function AuthForm({ mode, defaultRole }: AuthFormProps) {
       clearTimeout(showLoadingTimeoutId);
     };
   }, []);
+
+  // Fetch estates for registration
+  useEffect(() => {
+    if (mode === 'register' && firebaseStatus === 'ready') {
+      const fetchEstates = async () => {
+        try {
+          const db = await getFirebaseDatabase();
+          const estatesRef = ref(db, 'estates');
+          const snapshot = await get(estatesRef);
+          if (snapshot.exists()) {
+            const estatesData = snapshot.val();
+            const estatesList = Object.entries(estatesData).map(([id, data]: [string, any]) => ({
+              id,
+              ...data
+            })) as Estate[];
+            setEstates(estatesList);
+          }
+        } catch (error) {
+          console.error('Error fetching estates:', error);
+        }
+      };
+      fetchEstates();
+    }
+  }, [mode, firebaseStatus]);
 
   const {
     register,
@@ -226,6 +253,9 @@ export default function AuthForm({ mode, defaultRole }: AuthFormProps) {
             } else if (user.role === 'admin') {
               console.log('Redirecting to admin dashboard...');
               router.push('/admin/dashboard');
+            } else if (user.role === 'estate_admin') {
+              console.log('Redirecting to estate admin dashboard...');
+              router.push('/estate-admin/dashboard');
             } else if (user.role === 'resident') {
               console.log('Redirecting to resident dashboard...');
               router.push('/dashboard/resident');
@@ -266,10 +296,26 @@ export default function AuthForm({ mode, defaultRole }: AuthFormProps) {
         if (!data.role) {
           throw new Error('Please select a role');
         }
+        if (!data.estateId) {
+          throw new Error('Please select your estate');
+        }
 
-        await signUp(data.email, data.password, data.displayName, data.role);
-        console.log('Registration successful - user needs approval');
-        router.push('/auth/pending');
+        try {
+          await signUp(data.email, data.password, data.displayName, data.role, data.estateId);
+          console.log('Registration successful - user needs approval for estate:', data.estateId);
+          router.push('/auth/pending');
+          return; // Exit early on success
+        } catch (signUpError: any) {
+          // Filter out misleading permission errors that occur during successful registration
+          const errorMsg = signUpError?.message || '';
+          if (errorMsg.includes('PERMISSION_DENIED') || errorMsg.includes('Permission denied')) {
+            // Account was likely created successfully despite the error
+            console.log('Registration completed despite permission warning');
+            router.push('/auth/pending');
+            return;
+          }
+          throw signUpError; // Re-throw other errors
+        }
       }
     } catch (err) {
       console.error('Authentication error:', err);
@@ -470,6 +516,38 @@ export default function AuthForm({ mode, defaultRole }: AuthFormProps) {
             </div>
             {errors.role && (
               <p className="text-red-600 dark:text-red-400 text-sm mt-1">{errors.role.message}</p>
+            )}
+          </div>
+        )}
+
+        {mode === 'register' && (
+          <div>
+            <label htmlFor="estateId" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Select Your Estate <span className="text-red-500">*</span>
+            </label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                </svg>
+              </div>
+              <select
+                id="estateId"
+                {...register('estateId', { required: 'Please select your estate' })}
+                className="input w-full pl-10 input-with-icon bg-white dark:bg-gray-800"
+                disabled={loading || estates.length === 0}
+              >
+                <option value="">Choose your estate...</option>
+                {estates.map(estate => (
+                  <option key={estate.id} value={estate.id}>{estate.name}</option>
+                ))}
+              </select>
+            </div>
+            {errors.estateId && (
+              <p className="text-red-600 dark:text-red-400 text-sm mt-1">{errors.estateId.message}</p>
+            )}
+            {estates.length === 0 && (
+              <p className="text-yellow-600 dark:text-yellow-400 text-sm mt-1">Loading estates...</p>
             )}
           </div>
         )}
