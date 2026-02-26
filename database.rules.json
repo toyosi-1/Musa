@@ -120,6 +120,39 @@
         ".write": "auth != null",
         ".read": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'"
       }
+    },
+    "estateFeed": {
+      "$estateId": {
+        "posts": {
+          ".read": "auth != null && root.child('users').child(auth.uid).child('estateId').val() === $estateId",
+          ".indexOn": ["createdAt", "authorId"],
+          "$postId": {
+            ".write": "auth != null && root.child('users').child(auth.uid).child('estateId').val() === $estateId && root.child('users').child(auth.uid).child('status').val() === 'approved' && (!data.exists() || data.child('authorId').val() === auth.uid || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'estate_admin')",
+            "likes": {
+              "$uid": {
+                ".write": "auth != null && auth.uid === $uid && root.child('users').child(auth.uid).child('estateId').val() === $estateId"
+              }
+            },
+            "dislikes": {
+              "$uid": {
+                ".write": "auth != null && auth.uid === $uid && root.child('users').child(auth.uid).child('estateId').val() === $estateId"
+              }
+            },
+            "commentCount": {
+              ".write": "auth != null && root.child('users').child(auth.uid).child('estateId').val() === $estateId"
+            }
+          }
+        },
+        "comments": {
+          "$postId": {
+            ".read": "auth != null && root.child('users').child(auth.uid).child('estateId').val() === $estateId",
+            ".indexOn": ["createdAt"],
+            "$commentId": {
+              ".write": "auth != null && root.child('users').child(auth.uid).child('estateId').val() === $estateId && root.child('users').child(auth.uid).child('status').val() === 'approved' && (!data.exists() || data.child('authorId').val() === auth.uid || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'estate_admin')"
+            }
+          }
+        }
+      }
     }
   }
 }

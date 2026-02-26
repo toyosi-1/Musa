@@ -78,3 +78,28 @@ export interface Estate {
   // If true, estate is locked for new approvals/creations depending on policy
   isLocked?: boolean;
 }
+
+export interface FeedPost {
+  id: string;
+  estateId: string;
+  authorId: string;
+  authorName: string;
+  authorRole: UserRole;
+  content: string;
+  imageUrl?: string;
+  likes: Record<string, boolean>;
+  dislikes: Record<string, boolean>;
+  commentCount: number;
+  createdAt: number;
+  updatedAt?: number;
+}
+
+export interface FeedComment {
+  id: string;
+  postId: string;
+  authorId: string;
+  authorName: string;
+  authorRole: UserRole;
+  content: string;
+  createdAt: number;
+}

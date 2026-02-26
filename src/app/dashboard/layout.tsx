@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Dialog } from '@/components/ui/Dialog';
 import Link from 'next/link';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
-import { HomeIcon, ClockIcon, UserIcon, QrCodeIcon } from '@heroicons/react/24/outline';
+import { HomeIcon, ClockIcon, UserIcon, QrCodeIcon, NewspaperIcon } from '@heroicons/react/24/outline';
 import NotificationBell from '@/components/notifications/NotificationBell';
 
 export default function DashboardLayout({
@@ -124,6 +124,20 @@ export default function DashboardLayout({
             </Link>
           )}
           
+          <Link
+            href="/dashboard/feed"
+            className={`flex flex-col items-center justify-center flex-1 max-w-[80px] rounded-lg transition-all ${isActive('/dashboard/feed')
+              ? 'text-blue-600 dark:text-blue-400 bg-blue-50/80 dark:bg-blue-900/20'
+              : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50'
+            }`}
+            aria-label="Feed"
+          >
+            <div className="flex flex-col items-center justify-center">
+              <NewspaperIcon className="w-6 h-6 mb-1" />
+              <span className="text-xs font-medium">Feed</span>
+            </div>
+          </Link>
+
           <Link
             href="/dashboard/history"
             className={`flex flex-col items-center justify-center flex-1 max-w-[80px] rounded-lg transition-all ${
