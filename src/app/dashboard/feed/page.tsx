@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { FeedPost, FeedComment } from '@/types/user';
@@ -36,6 +36,9 @@ export default function FeedPage() {
   const [showSearch, setShowSearch] = useState(false);
   const [deletingPost, setDeletingPost] = useState<string | null>(null);
   const [menuOpenPost, setMenuOpenPost] = useState<string | null>(null);
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const estateId = currentUser?.estateId;
 
@@ -80,9 +83,12 @@ export default function FeedPage() {
         currentUser.uid,
         currentUser.displayName || 'Anonymous',
         currentUser.role,
-        newPostContent.trim()
+        newPostContent.trim(),
+        selectedImage
       );
       setNewPostContent('');
+      setSelectedImage(null);
+      setImagePreview(null);
       setShowCreateModal(false);
       if (activeTab === 'my') {
         await loadMyPosts();
@@ -93,6 +99,29 @@ export default function FeedPage() {
     } finally {
       setCreating(false);
     }
+  };
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file.');
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      alert('Image must be less than 10MB.');
+      return;
+    }
+    setSelectedImage(file);
+    const reader = new FileReader();
+    reader.onload = (ev) => setImagePreview(ev.target?.result as string);
+    reader.readAsDataURL(file);
+  };
+
+  const removeSelectedImage = () => {
+    setSelectedImage(null);
+    setImagePreview(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const handleDeletePost = async (postId: string) => {
@@ -356,11 +385,24 @@ export default function FeedPage() {
               </div>
 
               {/* Post Content */}
-              <div className="px-4 pb-3">
+              <div className="px-4 pb-2">
                 <p className="text-gray-800 dark:text-gray-200 text-sm leading-relaxed whitespace-pre-wrap">
                   {post.content}
                 </p>
               </div>
+
+              {/* Post Image */}
+              {post.imageUrl && (
+                <div className="px-4 pb-3">
+                  <img
+                    src={post.imageUrl}
+                    alt="Post image"
+                    className="w-full rounded-xl object-cover max-h-[400px] bg-gray-100 dark:bg-gray-700 cursor-pointer"
+                    onClick={() => window.open(post.imageUrl, '_blank')}
+                    loading="lazy"
+                  />
+                </div>
+              )}
 
               {/* Action Buttons */}
               <div className="flex items-center border-t border-gray-100 dark:border-gray-700 px-2 py-1">
@@ -552,19 +594,67 @@ export default function FeedPage() {
                 value={newPostContent}
                 onChange={(e) => setNewPostContent(e.target.value)}
                 placeholder="What's on your mind? Share updates, announcements, or anything with your estate..."
-                className="w-full min-h-[150px] p-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none text-sm"
+                className="w-full min-h-[120px] p-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none text-sm"
                 autoFocus
+              />
+
+              {/* Image Preview */}
+              {imagePreview && (
+                <div className="relative mt-3">
+                  <img
+                    src={imagePreview}
+                    alt="Selected image"
+                    className="w-full max-h-[200px] object-cover rounded-xl"
+                  />
+                  <button
+                    onClick={removeSelectedImage}
+                    className="absolute top-2 right-2 w-7 h-7 bg-black/60 text-white rounded-full flex items-center justify-center hover:bg-black/80 transition-colors"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              )}
+
+              {/* Hidden file input */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleImageSelect}
+                className="hidden"
               />
             </div>
 
             {/* Modal Footer */}
-            <div className="p-4 border-t border-gray-100 dark:border-gray-700">
+            <div className="p-4 border-t border-gray-100 dark:border-gray-700 flex items-center gap-3">
+              {/* Add Photo Button */}
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                Photo
+              </button>
+
+              {/* Post Button */}
               <button
                 onClick={handleCreatePost}
                 disabled={creating || !newPostContent.trim()}
-                className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl disabled:opacity-50 transition-colors"
+                className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl disabled:opacity-50 transition-colors"
               >
-                {creating ? 'Posting...' : 'Post'}
+                {creating ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    {selectedImage ? 'Uploading...' : 'Posting...'}
+                  </span>
+                ) : 'Post'}
               </button>
             </div>
           </div>

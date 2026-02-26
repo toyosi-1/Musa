@@ -1,6 +1,61 @@
-import { getFirebaseDatabase } from '@/lib/firebase';
+import { getFirebaseDatabase, getFirebaseStorage } from '@/lib/firebase';
 import { ref, push, set, get, update, remove, query, orderByChild, limitToLast, onValue, off, DataSnapshot } from 'firebase/database';
+import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { FeedPost, FeedComment, UserRole } from '@/types/user';
+
+// Compress an image file before upload
+const compressImage = (file: File, maxWidth: number = 1200, quality: number = 0.7): Promise<Blob> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+
+        if (width > maxWidth) {
+          height = (height * maxWidth) / width;
+          width = maxWidth;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          reject(new Error('Failed to get canvas context'));
+          return;
+        }
+        ctx.drawImage(img, 0, 0, width, height);
+        canvas.toBlob(
+          (blob) => {
+            if (blob) resolve(blob);
+            else reject(new Error('Failed to compress image'));
+          },
+          'image/jpeg',
+          quality
+        );
+      };
+      img.onerror = () => reject(new Error('Failed to load image'));
+      img.src = e.target?.result as string;
+    };
+    reader.onerror = () => reject(new Error('Failed to read file'));
+    reader.readAsDataURL(file);
+  });
+};
+
+// Upload an image to Firebase Storage
+export const uploadFeedImage = async (
+  estateId: string,
+  postId: string,
+  file: File
+): Promise<string> => {
+  const storage = await getFirebaseStorage();
+  const compressed = await compressImage(file);
+  const imageRef = storageRef(storage, `estateFeed/${estateId}/${postId}/${Date.now()}.jpg`);
+  await uploadBytes(imageRef, compressed, { contentType: 'image/jpeg' });
+  return getDownloadURL(imageRef);
+};
 
 // Create a new post
 export const createPost = async (
@@ -9,7 +64,7 @@ export const createPost = async (
   authorName: string,
   authorRole: UserRole,
   content: string,
-  imageUrl?: string
+  imageFile?: File | null
 ): Promise<FeedPost> => {
   const db = await getFirebaseDatabase();
   const postsRef = ref(db, `estateFeed/${estateId}/posts`);
@@ -19,6 +74,11 @@ export const createPost = async (
     throw new Error('Failed to generate post ID');
   }
 
+  let imageUrl: string | undefined;
+  if (imageFile) {
+    imageUrl = await uploadFeedImage(estateId, newPostRef.key, imageFile);
+  }
+
   const post: FeedPost = {
     id: newPostRef.key,
     estateId,
@@ -26,7 +86,7 @@ export const createPost = async (
     authorName,
     authorRole,
     content,
-    imageUrl: imageUrl || undefined,
+    imageUrl,
     likes: {},
     dislikes: {},
     commentCount: 0,

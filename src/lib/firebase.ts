@@ -128,6 +128,7 @@ let app: FirebaseApp | undefined;
 let auth: Auth | undefined;
 let rtdb: Database | undefined;
 let firestore: Firestore | undefined;
+let firebaseStorageInstance: any | undefined;
 let firebaseInitialized = false;
 let initPromise: Promise<boolean> | null = null;
 
@@ -460,6 +461,24 @@ export async function getFirebaseFirestore(): Promise<Firestore> {
   }
   
   return firestore as Firestore;
+}
+
+/**
+ * Gets the Firebase Storage instance, initializing app if necessary
+ */
+export async function getFirebaseStorage() {
+  if (typeof window === 'undefined') {
+    return {} as any;
+  }
+
+  if (!firebaseStorageInstance) {
+    const { getStorage } = await import('firebase/storage');
+    const app = await getFirebaseApp();
+    firebaseStorageInstance = getStorage(app);
+    console.log('✅ Firebase Storage initialized');
+  }
+
+  return firebaseStorageInstance;
 }
 
 /**
