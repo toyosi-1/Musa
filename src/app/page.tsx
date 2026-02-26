@@ -10,7 +10,7 @@ export default function Home() {
         <div className="container mx-auto flex justify-between items-center">
           <h1 className="text-2xl font-bold text-white dark:text-white">Musa</h1>
           <div className="space-x-4">
-            <Link href="/auth/login" className="hover:underline">Login</Link>
+            <Link href="/auth/login" className="px-4 py-2 rounded-md font-medium hover:bg-white/10 transition-colors">Login</Link>
             <Link href="/auth/register" className="bg-white text-primary px-4 py-2 rounded-md font-semibold hover:bg-gray-100">
               Register
             </Link>
@@ -93,7 +93,7 @@ export default function Home() {
               <p className="text-gray-400">Estate Access Control System</p>
             </div>
             <div className="text-center md:text-right">
-              <p className="text-gray-400"> {new Date().getFullYear()} Musa. All rights reserved.</p>
+              <p className="text-gray-400">&copy; {new Date().getFullYear()} Musa. All rights reserved.</p>
             </div>
           </div>
         </div>

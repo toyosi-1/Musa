@@ -50,3 +50,14 @@ service-account.json
 
 # Local Netlify folder
 .netlify
+
+# Android signing
+*.keystore
+*.jks
+android/gradle.properties
+
+# Capacitor native build artifacts
+android/app/release/
+android/app/build/
+ios/App/Pods/
+ios/DerivedData/

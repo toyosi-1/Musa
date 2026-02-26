@@ -66,15 +66,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // New-user race condition guard: when a user has just registered,
       // the auth state may update before their profile is written to the DB.
       // Retry a few short times if the record isn't found yet (no role assumptions).
-      const maxRetries = 5;
-      const retryDelayMs = 300;
+      const maxRetries = 6;
+      const retryDelayMs = 500;
       let snapshot: any = null;
       for (let attempt = 0; attempt < maxRetries; attempt++) {
         try {
           const fetchPromise = get(userRef);
           // Shorter per-attempt timeout to keep overall wait bounded
           const timeoutPromise = new Promise<null>((_, reject) => {
-            setTimeout(() => reject(new Error('Database operation timed out')), 1500);
+            setTimeout(() => reject(new Error('Database operation timed out')), 5000);
           });
           snapshot = await Promise.race([fetchPromise, timeoutPromise]) as any;
         } catch (dbError) {
@@ -896,6 +896,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               }
             } catch (error) {
               console.error('Auth state change error:', error);
+              
+              // Auto-retry once after a short delay for transient network issues
+              if (firebaseUser) {
+                console.log('🔄 Retrying authentication after transient error...');
+                try {
+                  await new Promise(res => setTimeout(res, 1500));
+                  const retryUser = await formatUser(firebaseUser);
+                  if (retryUser) {
+                    console.log('✅ Auth retry succeeded');
+                    setCurrentUser(retryUser);
+                    // Skip error display since retry worked
+                    return;
+                  }
+                } catch (retryError) {
+                  console.error('Auth retry also failed:', retryError);
+                }
+              }
+              
               setCurrentUser(null);
               
               // iOS PWA specific error handling - don't show generic error immediately
@@ -904,16 +922,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               
               if (isIosPwa) {
                 console.warn('iOS PWA auth state error - attempting recovery...');
-                // For iOS PWA, try to recover gracefully without showing error immediately
-                // The error might be transient due to iOS Safari PWA limitations
                 setTimeout(() => {
-                  // Only show error if we still don't have a user after a brief delay
                   if (!currentUser && loading) {
                     setInitError('Authentication initialization failed. Please close and reopen the app.');
                   }
                 }, 2000);
               } else {
-                setInitError('Error processing authentication. Please try again.');
+                setInitError('Error processing authentication. Please refresh the page and try again.');
               }
             } finally {
               if (!authStateResolved) {

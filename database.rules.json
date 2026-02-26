@@ -84,6 +84,7 @@
       }
     },
     "householdInvites": {
+      ".read": "auth != null",
       ".indexOn": ["email", "householdId"],
       "$inviteId": {
         ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || data.child('invitedBy').val() === auth.uid || data.child('email').val() === root.child('users').child(auth.uid).child('email').val())",

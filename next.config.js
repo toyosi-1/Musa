@@ -101,10 +101,14 @@ const withPWA = require('next-pwa')({
   ],
 });
 
+const isMobileExport = process.env.NEXT_EXPORT === 'true';
+
 const nextConfig = {
   // Core Next.js configurations
   reactStrictMode: true,
   swcMinify: true,
+  // Enable static export for Capacitor mobile builds
+  ...(isMobileExport && { output: 'export' }),
   
   // TypeScript and ESLint configurations
   typescript: {

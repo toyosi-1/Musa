@@ -9,13 +9,25 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "netlify-build": "npm install && npm run build"
+    "netlify-build": "npm install && npm run build",
+    "build:mobile": "NEXT_EXPORT=true next build",
+    "cap:sync": "npx cap sync",
+    "cap:android": "npx cap open android",
+    "cap:ios": "npx cap open ios",
+    "mobile:android": "npm run build:mobile && npx cap sync android && npx cap open android",
+    "mobile:ios": "npm run build:mobile && npx cap sync ios && npx cap open ios"
   },
   "engines": {
     "node": ">=18.17.0",
     "npm": "9.x"
   },
   "dependencies": {
+    "@capacitor/android": "^8.1.0",
+    "@capacitor/cli": "^8.1.0",
+    "@capacitor/core": "^8.1.0",
+    "@capacitor/ios": "^8.1.0",
+    "@capacitor/splash-screen": "^8.0.1",
+    "@capacitor/status-bar": "^8.0.1",
     "@heroicons/react": "^2.2.0",
     "@hookform/resolvers": "^3.3.2",
     "@sendgrid/mail": "^8.1.5",

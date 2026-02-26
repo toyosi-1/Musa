@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import { useRouter } from 'next/navigation';
@@ -8,7 +7,6 @@ import { ArrowLeftIcon } from '@heroicons/react/24/solid';
 
 export default function ProfilePage() {
   const { currentUser, signOut } = useAuth();
-  const [isEditing, setIsEditing] = useState(false);
   const router = useRouter();
 
   const handleSignOut = async () => {
@@ -29,18 +27,20 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-6 max-w-md relative">
-      <button 
-        onClick={() => router.back()} 
-        className="absolute top-0 left-0 flex items-center text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-all duration-200 rounded-full p-1 hover:bg-gray-100 dark:hover:bg-gray-800"
-      >
-        <ArrowLeftIcon className="h-5 w-5 mr-1" />
-        <span className="font-medium">Back</span>
-      </button>
+    <div className="container mx-auto px-4 py-6 max-w-md">
+      <div className="flex items-center justify-between mb-6">
+        <button 
+          onClick={() => router.back()} 
+          className="flex items-center text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-all duration-200 rounded-lg px-2 py-1.5 hover:bg-gray-100 dark:hover:bg-gray-800"
+        >
+          <ArrowLeftIcon className="h-5 w-5 mr-1" />
+          <span className="font-medium text-sm">Back</span>
+        </button>
+        <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Your Profile</h1>
+        <div className="w-16" />
+      </div>
       
-      <h1 className="text-2xl font-bold mb-6 text-center text-gray-800 dark:text-white">Your Profile</h1>
-      
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden mb-6">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden mb-6">
         {/* Profile header with avatar */}
         <div className="bg-blue-500 text-white p-6 text-center">
           <div className="w-24 h-24 rounded-full bg-white text-blue-500 flex items-center justify-center text-3xl font-bold mx-auto mb-4">
@@ -57,16 +57,16 @@ export default function ProfilePage() {
         
         {/* Profile details */}
         <div className="p-4">
-          <h3 className="font-semibold text-lg mb-3">Account Information</h3>
+          <h3 className="font-semibold text-lg mb-3 text-gray-800 dark:text-white">Account Information</h3>
           
           <div className="space-y-3">
             <div className="flex justify-between py-2 border-b border-gray-200 dark:border-gray-700">
-              <span className="text-gray-500 dark:text-gray-300">Account ID</span>
-              <span className="font-medium">{currentUser.uid.slice(0, 8)}...</span>
+              <span className="text-gray-500 dark:text-gray-400">Account ID</span>
+              <span className="font-medium text-gray-800 dark:text-gray-200">{currentUser.uid.slice(0, 8)}...</span>
             </div>
             
             <div className="flex justify-between py-2 border-b border-gray-200 dark:border-gray-700">
-              <span className="text-gray-500 dark:text-gray-300">Status</span>
+              <span className="text-gray-500 dark:text-gray-400">Status</span>
               <span className={`font-medium ${
                 currentUser.status === 'approved' 
                   ? 'text-green-600 dark:text-green-400' 
@@ -79,15 +79,15 @@ export default function ProfilePage() {
             </div>
             
             <div className="flex justify-between py-2 border-b border-gray-200 dark:border-gray-700">
-              <span className="text-gray-500 dark:text-gray-300">Email Verified</span>
-              <span className="font-medium">
+              <span className="text-gray-500 dark:text-gray-400">Email Verified</span>
+              <span className="font-medium text-gray-800 dark:text-gray-200">
                 {currentUser.isEmailVerified ? 'Yes' : 'No'}
               </span>
             </div>
             
             <div className="flex justify-between py-2 border-b border-gray-200 dark:border-gray-700">
-              <span className="text-gray-500 dark:text-gray-300">Joined</span>
-              <span className="font-medium">
+              <span className="text-gray-500 dark:text-gray-400">Joined</span>
+              <span className="font-medium text-gray-800 dark:text-gray-200">
                 {new Date(currentUser.createdAt).toLocaleDateString()}
               </span>
             </div>
@@ -98,34 +98,15 @@ export default function ProfilePage() {
       {/* Actions */}
       <div className="space-y-3">
         <button 
-          onClick={() => setIsEditing(!isEditing)}
-          className="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-4 rounded-lg shadow transition"
-        >
-          Edit Profile
-        </button>
-        
-        <button 
           onClick={handleSignOut}
-          className="w-full bg-white hover:bg-gray-100 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-white font-semibold py-3 px-4 rounded-lg shadow transition"
+          className="w-full flex items-center justify-center gap-2 bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 font-semibold py-3 px-4 rounded-xl border border-red-200 dark:border-red-800 transition-colors"
         >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+          </svg>
           Sign Out
         </button>
       </div>
-      
-      {isEditing && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 w-full max-w-md">
-            <h3 className="text-xl font-bold mb-4">Edit Profile</h3>
-            <p className="text-gray-500 dark:text-gray-300 mb-6">Profile editing functionality will be implemented in a future update.</p>
-            <button 
-              onClick={() => setIsEditing(false)}
-              className="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-4 rounded-lg"
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
