@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import { useRouter } from 'next/navigation';
@@ -9,10 +10,76 @@ export default function ProfilePage() {
   const { currentUser, signOut } = useAuth();
   const router = useRouter();
 
+  // Notification settings state
+  const [pushEnabled, setPushEnabled] = useState(false);
+  const [pushSupported, setPushSupported] = useState(false);
+  const [pushPermission, setPushPermission] = useState<NotificationPermission>('default');
+  const [notifCodeScans, setNotifCodeScans] = useState(true);
+  const [notifCommunity, setNotifCommunity] = useState(true);
+  const [notifSecurity, setNotifSecurity] = useState(true);
+  const [enablingPush, setEnablingPush] = useState(false);
+
+  // Check push notification support on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      setPushSupported(true);
+      setPushPermission(Notification.permission);
+      setPushEnabled(Notification.permission === 'granted');
+    }
+
+    // Load saved preferences from localStorage
+    const savedPrefs = localStorage.getItem('musa_notif_prefs');
+    if (savedPrefs) {
+      try {
+        const prefs = JSON.parse(savedPrefs);
+        setNotifCodeScans(prefs.codeScans ?? true);
+        setNotifCommunity(prefs.community ?? true);
+        setNotifSecurity(prefs.security ?? true);
+      } catch {}
+    }
+  }, []);
+
+  // Save preferences when they change
+  const savePrefs = (codeScans: boolean, community: boolean, security: boolean) => {
+    localStorage.setItem('musa_notif_prefs', JSON.stringify({ codeScans, community, security }));
+  };
+
+  const handleTogglePush = async () => {
+    if (!pushSupported) return;
+
+    if (pushEnabled) {
+      // Already enabled — user wants to disable
+      setPushEnabled(false);
+      // Note: We can't revoke browser permission, but we can stop sending locally
+      localStorage.setItem('musa_push_disabled', 'true');
+      return;
+    }
+
+    // Request permission
+    setEnablingPush(true);
+    try {
+      const permission = await Notification.requestPermission();
+      setPushPermission(permission);
+      if (permission === 'granted') {
+        setPushEnabled(true);
+        localStorage.removeItem('musa_push_disabled');
+
+        // Show a test notification
+        new Notification('Musa Notifications Enabled', {
+          body: 'You will now receive alerts when your access codes are scanned.',
+          icon: '/images/icon-192x192.png',
+        });
+      }
+    } catch (err) {
+      console.error('Error requesting notification permission:', err);
+    } finally {
+      setEnablingPush(false);
+    }
+  };
+
   const handleSignOut = async () => {
     try {
       await signOut();
-      // Redirect happens automatically due to auth listener
     } catch (error) {
       console.error('Error signing out:', error);
     }
@@ -95,6 +162,108 @@ export default function ProfilePage() {
         </div>
       </div>
       
+      {/* Notification Settings */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden mb-6">
+        <div className="p-4">
+          <h3 className="font-semibold text-lg mb-3 text-gray-800 dark:text-white flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+            </svg>
+            Notifications
+          </h3>
+
+          <div className="space-y-4">
+            {/* Push Notification Master Toggle */}
+            <div className="flex items-center justify-between py-2 border-b border-gray-200 dark:border-gray-700">
+              <div>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Push Notifications</span>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  {!pushSupported
+                    ? 'Not supported on this browser'
+                    : pushPermission === 'denied'
+                    ? 'Blocked — enable in browser settings'
+                    : pushEnabled
+                    ? 'Receiving notifications'
+                    : 'Tap to enable'}
+                </p>
+              </div>
+              <label className="inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="sr-only peer"
+                  checked={pushEnabled}
+                  disabled={!pushSupported || pushPermission === 'denied' || enablingPush}
+                  onChange={handleTogglePush}
+                />
+                <div className={`relative w-11 h-6 rounded-full peer after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 ${
+                  !pushSupported || pushPermission === 'denied'
+                    ? 'bg-gray-300 dark:bg-gray-600 cursor-not-allowed'
+                    : 'bg-gray-200 dark:bg-gray-700 peer-checked:bg-blue-600 peer-checked:after:translate-x-full peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800'
+                }`}></div>
+              </label>
+            </div>
+
+            {/* Notification Categories */}
+            <div className="flex items-center justify-between py-2 border-b border-gray-200 dark:border-gray-700">
+              <div>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Access Code Alerts</span>
+                <p className="text-xs text-gray-500 dark:text-gray-400">When your codes are scanned at the gate</p>
+              </div>
+              <label className="inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="sr-only peer"
+                  checked={notifCodeScans}
+                  onChange={(e) => {
+                    setNotifCodeScans(e.target.checked);
+                    savePrefs(e.target.checked, notifCommunity, notifSecurity);
+                  }}
+                />
+                <div className="relative w-11 h-6 bg-gray-200 peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+              </label>
+            </div>
+
+            <div className="flex items-center justify-between py-2 border-b border-gray-200 dark:border-gray-700">
+              <div>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Community Updates</span>
+                <p className="text-xs text-gray-500 dark:text-gray-400">New posts and announcements in the feed</p>
+              </div>
+              <label className="inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="sr-only peer"
+                  checked={notifCommunity}
+                  onChange={(e) => {
+                    setNotifCommunity(e.target.checked);
+                    savePrefs(notifCodeScans, e.target.checked, notifSecurity);
+                  }}
+                />
+                <div className="relative w-11 h-6 bg-gray-200 peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+              </label>
+            </div>
+
+            <div className="flex items-center justify-between py-2">
+              <div>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Security Alerts</span>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Account activity and security notices</p>
+              </div>
+              <label className="inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="sr-only peer"
+                  checked={notifSecurity}
+                  onChange={(e) => {
+                    setNotifSecurity(e.target.checked);
+                    savePrefs(notifCodeScans, notifCommunity, e.target.checked);
+                  }}
+                />
+                <div className="relative w-11 h-6 bg-gray-200 peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Actions */}
       <div className="space-y-3">
         <button 
