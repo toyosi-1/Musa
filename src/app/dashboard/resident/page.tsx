@@ -4,7 +4,6 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import ResidentDashboard from '@/components/resident/ResidentDashboard';
-import AppLayout from '@/components/layout/AppLayout';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 
 export default function ResidentDashboardPage() {
@@ -75,9 +74,5 @@ export default function ResidentDashboardPage() {
     return null; // Will be handled by the useEffect redirect
   }
 
-  return (
-    <AppLayout requireStatus="approved" requireRole="resident">
-      <ResidentDashboard user={currentUser} />
-    </AppLayout>
-  );
+  return <ResidentDashboard user={currentUser} />;
 }

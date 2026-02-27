@@ -4,7 +4,6 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import GuardDashboard from '@/components/guard/GuardDashboard';
-import AppLayout from '@/components/layout/AppLayout';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 
 export default function GuardDashboardPage() {
@@ -81,9 +80,5 @@ export default function GuardDashboardPage() {
     return null; // Will be handled by the useEffect redirect
   }
 
-  return (
-    <AppLayout requireStatus="approved" requireRole="guard">
-      <GuardDashboard user={currentUser} />
-    </AppLayout>
-  );
+  return <GuardDashboard user={currentUser} />;
 }
