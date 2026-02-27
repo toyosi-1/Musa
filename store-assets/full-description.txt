@@ -1,0 +1,51 @@
+Musa – Modern Estate Access Control
+
+Say goodbye to manual gatehouse logs, lost visitor slips, and long queues at the gate. Musa is a smart, fast, and secure access control system built for residential estates. Whether you're a resident expecting a guest or a guard verifying entry, Musa makes the entire process seamless.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+FOR RESIDENTS
+
+• Generate Access Codes – Create unique text-based or QR access codes for your guests in seconds. Each code is tied to your household and can be set to expire automatically.
+
+• Share Instantly – Send codes directly to your visitors via any messaging app. They simply present the code at the gate.
+
+• Household Management – Add family members and housemates to your household. Everyone can generate and manage access codes under one roof.
+
+• Real-Time Notifications – Get instant alerts when your access code is scanned at the gate, so you always know when your guest arrives.
+
+• Activity History – View a complete log of all access events linked to your household — who came, when, and which gate.
+
+• Community Feed – Stay connected with your neighbours. Post updates, share announcements, and discuss estate matters in a built-in community feed.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+FOR SECURITY GUARDS
+
+• Verify Codes Instantly – Enter a text code or scan a QR code to verify visitor access in seconds. No paperwork, no delays.
+
+• QR Scanner – Use the built-in camera scanner to read QR codes directly — fast, accurate, and hands-free.
+
+• Verification Dashboard – See your shift stats at a glance: approved entries, denied attempts, and total verifications for the day.
+
+• Activity Log – Keep a detailed record of every verification you perform for accountability and audit purposes.
+
+• Privacy First – Guards verify access without seeing the resident's personal details. The system confirms validity without exposing who generated the code.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+WHY MUSA?
+
+✓ No hardware required — works on any smartphone
+✓ Secure and private — codes expire automatically
+✓ Beautiful, intuitive interface — no training needed
+✓ Dark mode support for comfortable night shifts
+✓ Works offline-ready as a Progressive Web App
+✓ Built for African estates and gated communities
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Musa is designed to bring modern, digital security to every estate — from luxury gated communities to everyday residential compounds. Download now and upgrade your estate's access control.
+
+For support or enquiries: toyosiajibola@musa-security.com
+Website: www.musa-security.com
