@@ -5,12 +5,14 @@ import { useAuth } from '@/contexts/AuthContext';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import { useRouter } from 'next/navigation';
 import { ArrowLeftIcon } from '@heroicons/react/24/solid';
+import { getUserNotifications, NotificationData } from '@/services/notificationService';
+import { getGuardVerificationHistory, VerificationRecord } from '@/services/guardActivityService';
 
 type HistoryEntry = {
   id: string;
   date: Date;
   type: 'entry' | 'exit' | 'guest';
-  location?: string; // Optional location field
+  location?: string;
   details: string;
 };
 
@@ -21,44 +23,55 @@ export default function HistoryPage() {
   const router = useRouter();
 
   useEffect(() => {
-    // Simulate loading history data
-    const timer = setTimeout(() => {
-      // Mock data for demonstration
-      setHistory([
-        {
-          id: '1',
-          date: new Date(Date.now() - 1 * 60 * 60 * 1000),
-          type: 'entry',
-          location: 'Main Gate',
-          details: 'Self entry'
-        },
-        {
-          id: '2',
-          date: new Date(Date.now() - 5 * 60 * 60 * 1000),
-          type: 'exit',
-          location: 'Main Gate',
-          details: 'Self exit'
-        },
-        {
-          id: '3',
-          date: new Date(Date.now() - 24 * 60 * 60 * 1000),
-          type: 'guest',
-          location: 'Visitor Gate',
-          details: 'Guest: John Smith'
-        },
-        {
-          id: '4',
-          date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
-          type: 'entry',
-          location: 'Main Gate',
-          details: 'Self entry'
-        }
-      ]);
-      setLoading(false);
-    }, 1000);
+    const fetchHistory = async () => {
+      if (!currentUser?.uid) {
+        setLoading(false);
+        return;
+      }
 
-    return () => clearTimeout(timer);
-  }, []);
+      try {
+        const entries: HistoryEntry[] = [];
+
+        if (currentUser.role === 'guard') {
+          // Guards: fetch their verification history
+          const records = await getGuardVerificationHistory(currentUser.uid, 50);
+          records.forEach((record: VerificationRecord) => {
+            entries.push({
+              id: record.id,
+              date: new Date(record.timestamp),
+              type: record.isValid ? 'entry' : 'exit',
+              location: record.destinationAddress || 'Gate',
+              details: record.isValid
+                ? `Approved: ${record.code}`
+                : `Denied: ${record.code}${record.message ? ' — ' + record.message : ''}`,
+            });
+          });
+        } else {
+          // Residents: fetch their notifications (code scans, etc.)
+          const notifications = await getUserNotifications(currentUser.uid);
+          notifications.forEach((notif: NotificationData) => {
+            entries.push({
+              id: notif.id,
+              date: new Date(notif.timestamp),
+              type: notif.type === 'access_code_scan' ? 'guest' : 'entry',
+              location: '',
+              details: notif.message || notif.type,
+            });
+          });
+        }
+
+        // Sort newest first
+        entries.sort((a, b) => b.date.getTime() - a.date.getTime());
+        setHistory(entries);
+      } catch (error) {
+        console.error('Error fetching activity history:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchHistory();
+  }, [currentUser]);
 
   if (loading) {
     return (
