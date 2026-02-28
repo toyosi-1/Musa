@@ -137,12 +137,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           status: formattedUser.status
         });
         
-        // Cache the user data
+        // Cache the user data in memory and localStorage
         try {
           userProfileCache.set(firebaseUser.uid, {
             user: formattedUser,
             timestamp: Date.now()
           });
+          persistUserProfile(formattedUser);
         } catch (cacheError) {
           console.warn('Failed to cache user data:', cacheError);
           // Non-critical error, continue
@@ -211,6 +212,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Cache for user profiles to reduce database reads - declare at the top of AuthProvider
   const userProfileCache = new Map<string, {user: User, timestamp: number}>();
   const CACHE_EXPIRY = 10 * 60 * 1000; // 10 minutes in milliseconds
+  const PERSISTENT_CACHE_KEY = 'musa_user_profile_cache';
+  const PERSISTENT_CACHE_EXPIRY = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+  // Save user profile to localStorage for persistence across app restarts
+  const persistUserProfile = (user: User) => {
+    if (typeof window === 'undefined') return;
+    try {
+      localStorage.setItem(PERSISTENT_CACHE_KEY, JSON.stringify({
+        user,
+        timestamp: Date.now()
+      }));
+    } catch (e) {
+      console.warn('Failed to persist user profile:', e);
+    }
+  };
+
+  // Get cached user profile from localStorage
+  const getPersistedUserProfile = (uid: string): User | null => {
+    if (typeof window === 'undefined') return null;
+    try {
+      const cached = localStorage.getItem(PERSISTENT_CACHE_KEY);
+      if (!cached) return null;
+      const { user, timestamp } = JSON.parse(cached);
+      if (user?.uid === uid && (Date.now() - timestamp) < PERSISTENT_CACHE_EXPIRY) {
+        return user as User;
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
+  };
+
+  // Clear persisted profile on sign out
+  const clearPersistedUserProfile = () => {
+    if (typeof window === 'undefined') return;
+    try {
+      localStorage.removeItem(PERSISTENT_CACHE_KEY);
+    } catch (e) { /* ignore */ }
+  };
   
   // Add debug function to log errors with more detail
   const logError = (message: string, error: any) => {
@@ -861,19 +901,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                   console.log('✅ User formatted successfully:', user.displayName);
                   setCurrentUser(user);
                   
-                  // Enhanced PWA session backup with more frequent updates
+                  // Always backup session for persistence (TWA, PWA, and browser)
+                  backupSession(user.uid, user.email, user.role, user.displayName);
+                  persistUserProfile(user);
+                  
                   if (isPwaMode()) {
-                    backupSession(user.uid, user.email, user.role, user.displayName);
-                    console.log('💾 Session backed up for PWA');
-                    
                     // Set up periodic session refresh for PWA mode
                     if (sessionRefreshInterval) {
                       clearInterval(sessionRefreshInterval);
                     }
                     sessionRefreshInterval = setInterval(() => {
                       refreshSessionBackup();
-                      console.log('🔄 PWA session backup refreshed');
-                    }, 30000); // Refresh every 30 seconds for PWA
+                    }, 30000);
                   }
                 } else {
                   console.warn('⚠️ User formatting failed');
@@ -884,14 +923,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 console.log('👋 User signed out');
                 setCurrentUser(null);
                 
-                // Clear session backup and intervals on sign out
-                if (isPwaMode()) {
-                  clearSessionBackup();
-                  if (sessionRefreshInterval) {
-                    clearInterval(sessionRefreshInterval);
-                    sessionRefreshInterval = undefined;
-                  }
-                  console.log('🗑️ Session backup and intervals cleared');
+                // Clear all session data on sign out
+                clearSessionBackup();
+                clearPersistedUserProfile();
+                if (sessionRefreshInterval) {
+                  clearInterval(sessionRefreshInterval);
+                  sessionRefreshInterval = undefined;
                 }
               }
             } catch (error) {
@@ -906,11 +943,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                   if (retryUser) {
                     console.log('✅ Auth retry succeeded');
                     setCurrentUser(retryUser);
-                    // Skip error display since retry worked
+                    persistUserProfile(retryUser);
                     return;
                   }
                 } catch (retryError) {
                   console.error('Auth retry also failed:', retryError);
+                }
+                
+                // Last resort: use persisted profile from localStorage
+                const cachedUser = getPersistedUserProfile(firebaseUser.uid);
+                if (cachedUser) {
+                  console.log('📦 Using persisted profile as fallback for:', cachedUser.displayName);
+                  setCurrentUser(cachedUser);
+                  
+                  // Retry DB fetch in background to get fresh data
+                  setTimeout(async () => {
+                    try {
+                      const freshUser = await formatUser(firebaseUser);
+                      if (freshUser) {
+                        console.log('✅ Background refresh succeeded, updating user');
+                        setCurrentUser(freshUser);
+                        persistUserProfile(freshUser);
+                      }
+                    } catch (e) {
+                      console.warn('Background profile refresh failed, keeping cached data');
+                    }
+                  }, 5000);
+                  return;
                 }
               }
               
