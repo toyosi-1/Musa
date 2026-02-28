@@ -628,7 +628,7 @@ export default function FeedPage() {
             </div>
 
             {/* Modal Footer */}
-            <div className="p-4 border-t border-gray-100 dark:border-gray-700 flex items-center gap-3">
+            <div className="p-4 pb-6 mb-16 sm:mb-0 border-t border-gray-100 dark:border-gray-700 flex items-center gap-3">
               {/* Add Photo Button */}
               <button
                 onClick={() => fileInputRef.current?.click()}
