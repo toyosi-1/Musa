@@ -8,7 +8,7 @@ android {
         applicationId "com.musasecurity.app"
         minSdk 23
         targetSdk 35
-        versionCode 4
+        versionCode 100
         versionName "1.0.0"
 
         // TWA meta-data

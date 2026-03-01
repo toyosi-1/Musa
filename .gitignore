@@ -56,6 +56,8 @@ service-account.json
 *.jks
 android/gradle.properties
 
+musa-release.aab
+
 # Capacitor native build artifacts
 android/app/release/
 android/app/build/

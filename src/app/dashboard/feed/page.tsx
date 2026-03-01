@@ -399,7 +399,7 @@ export default function FeedPage() {
                     src={post.imageUrl}
                     alt="Post image"
                     className="w-full rounded-xl object-cover max-h-[400px] bg-gray-100 dark:bg-gray-700 cursor-pointer"
-                    onClick={() => window.open(post.imageUrl, '_blank')}
+                    onClick={() => {}}
                     loading="lazy"
                   />
                 </div>

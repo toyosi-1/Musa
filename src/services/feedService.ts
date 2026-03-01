@@ -86,7 +86,7 @@ export const createPost = async (
     authorName,
     authorRole,
     content,
-    imageUrl,
+    ...(imageUrl ? { imageUrl } : {}),
     likes: {},
     dislikes: {},
     commentCount: 0,
