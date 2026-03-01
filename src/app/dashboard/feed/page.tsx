@@ -84,7 +84,7 @@ export default function FeedPage() {
         currentUser.displayName || 'Anonymous',
         currentUser.role,
         newPostContent.trim(),
-        selectedImage
+        selectedImage || null
       );
       setNewPostContent('');
       setSelectedImage(null);
@@ -93,9 +93,10 @@ export default function FeedPage() {
       if (activeTab === 'my') {
         await loadMyPosts();
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error creating post:', err);
-      alert('Failed to create post. Please try again.');
+      const errorMessage = err?.message || 'Failed to create post. Please try again.';
+      alert(errorMessage);
     } finally {
       setCreating(false);
     }

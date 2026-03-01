@@ -95,6 +95,7 @@ export default function DashboardLayout({
   const isActivityPage = pathname?.startsWith('/dashboard/history');
   const isScanPage = pathname?.startsWith('/dashboard/scan');
   const isProfilePage = pathname?.startsWith('/dashboard/profile');
+  const isUtilitiesPage = pathname?.startsWith('/dashboard/utilities');
 
   // Desktop nav active helper
   const desktopNavClass = (active: boolean) =>
@@ -225,7 +226,7 @@ export default function DashboardLayout({
             </Link>
           )}
 
-          {/* Tab 4: Activity (guards) or Profile (residents) */}
+          {/* Tab 4: Activity (guards) or Utilities (residents) */}
           {isGuard ? (
             <Link href="/dashboard/history" className="flex-1 relative" aria-label="Activity">
               <div className={`flex flex-col items-center justify-center h-full transition-colors ${
@@ -237,13 +238,21 @@ export default function DashboardLayout({
               </div>
             </Link>
           ) : (
-            <Link href="/dashboard/profile" className="flex-1 relative" aria-label="Profile">
+            <Link href="/dashboard/utilities" className="flex-1 relative" aria-label="Utilities">
               <div className={`flex flex-col items-center justify-center h-full transition-colors ${
-                isProfilePage ? 'text-primary dark:text-primary-300' : 'text-gray-400 dark:text-gray-500'
+                isUtilitiesPage ? 'text-primary dark:text-primary-300' : 'text-gray-400 dark:text-gray-500'
               }`}>
-                {isProfilePage && <div className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-primary rounded-full" />}
-                {isProfilePage ? <UserIconSolid className="w-6 h-6" /> : <UserIcon className="w-6 h-6" />}
-                <span className={`text-[10px] mt-0.5 ${isProfilePage ? 'font-semibold' : 'font-medium'}`}>Profile</span>
+                {isUtilitiesPage && <div className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-primary rounded-full" />}
+                {isUtilitiesPage ? (
+                  <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                  </svg>
+                ) : (
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                  </svg>
+                )}
+                <span className={`text-[10px] mt-0.5 ${isUtilitiesPage ? 'font-semibold' : 'font-medium'}`}>Utilities</span>
               </div>
             </Link>
           )}
