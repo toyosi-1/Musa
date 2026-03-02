@@ -155,10 +155,14 @@ export default function UtilitiesPage() {
       setErrorMessage('Minimum purchase amount is ₦500');
       return;
     }
-    if (!phoneNumber || phoneNumber.length < 11) {
-      setErrorMessage('Please enter a valid phone number');
+    
+    // Validate Nigerian phone number format (080XXXXXXXX or +234XXXXXXXXXX)
+    const phoneRegex = /^(\+234|0)[789]\d{9}$/;
+    if (!phoneNumber || !phoneRegex.test(phoneNumber.replace(/\s/g, ''))) {
+      setErrorMessage('Please enter a valid Nigerian phone number (e.g., 08012345678)');
       return;
     }
+    
     setErrorMessage('');
     setStep('confirm');
   };
@@ -391,10 +395,16 @@ export default function UtilitiesPage() {
             <input
               type="text"
               value={meterNumber}
-              onChange={(e) => setMeterNumber(e.target.value)}
+              onChange={(e) => {
+                // Only allow numeric input
+                const value = e.target.value.replace(/\D/g, '');
+                setMeterNumber(value);
+              }}
               placeholder="Enter your meter number"
+              maxLength={20}
               className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent"
             />
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Numbers only, 10-20 digits</p>
           </div>
 
           <div>
@@ -404,11 +414,19 @@ export default function UtilitiesPage() {
             <input
               type="number"
               value={amount}
-              onChange={(e) => setAmount(e.target.value)}
+              onChange={(e) => {
+                const value = e.target.value;
+                // Prevent negative values
+                if (value === '' || parseFloat(value) >= 0) {
+                  setAmount(value);
+                }
+              }}
               placeholder="Minimum ₦500"
               min="500"
+              step="100"
               className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent"
             />
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Minimum: ₦500</p>
           </div>
 
           <div>
