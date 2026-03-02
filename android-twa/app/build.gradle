@@ -1,5 +1,11 @@
 apply plugin: 'com.android.application'
 
+def keystorePropertiesFile = rootProject.file("keystore.properties")
+def keystoreProperties = new Properties()
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+}
+
 android {
     namespace 'com.musasecurity.app'
     compileSdk 35
@@ -22,10 +28,10 @@ android {
 
     signingConfigs {
         release {
-            storeFile file("../musa-keystore.jks")
-            storePassword "musaapp2024"
-            keyAlias "musa"
-            keyPassword "musaapp2024"
+            storeFile file(keystoreProperties['storeFile'] ?: '../musa-keystore.jks')
+            storePassword keystoreProperties['storePassword'] ?: ''
+            keyAlias keystoreProperties['keyAlias'] ?: 'musa'
+            keyPassword keystoreProperties['keyPassword'] ?: ''
         }
     }
 
