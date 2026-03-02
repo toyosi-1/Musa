@@ -377,7 +377,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       // Create backup of the authentication session for PWA resilience
       try {
-        backupSession(formattedUser.uid);
+        backupSession(formattedUser.uid, formattedUser.email, formattedUser.role, formattedUser.displayName);
         console.log('Created session backup for PWA persistence');
       } catch (backupError) {
         console.warn('Failed to create session backup:', backupError);
@@ -820,6 +820,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         
         console.log('🔒 Setting up auth state listener...');
         let authStateResolved = false;
+        let isInitialAuthState = true; // Track first onAuthStateChanged call
         
         // Set up auth state change listener with its own timeout
         await new Promise<void>((resolve) => {
@@ -895,6 +896,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               console.log('🔄 Auth state changed:', firebaseUser ? `User: ${firebaseUser.email}` : 'No user');
               
               if (firebaseUser) {
+                isInitialAuthState = false; // Real user arrived
                 // User is signed in
                 const user = await formatUser(firebaseUser);
                 if (user) {
@@ -919,16 +921,49 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                   setCurrentUser(null);
                 }
               } else {
-                // User is signed out
-                console.log('👋 User signed out');
-                setCurrentUser(null);
-                
-                // Clear all session data on sign out
-                clearSessionBackup();
-                clearPersistedUserProfile();
-                if (sessionRefreshInterval) {
-                  clearInterval(sessionRefreshInterval);
-                  sessionRefreshInterval = undefined;
+                // Firebase says no user — but on cold start this fires BEFORE
+                // Firebase restores the session from IndexedDB. Don't destroy
+                // backup data on the first null; only clear on genuine sign-out.
+                if (isInitialAuthState) {
+                  console.log('🔄 Initial auth state is null — attempting persisted profile recovery...');
+                  isInitialAuthState = false;
+
+                  // Try localStorage profile first (instant, no network)
+                  const sessionBackup = getSessionBackup();
+                  if (sessionBackup?.userId) {
+                    const cachedUser = getPersistedUserProfile(sessionBackup.userId);
+                    if (cachedUser) {
+                      console.log('� Recovered user from persisted profile:', cachedUser.displayName);
+                      setCurrentUser(cachedUser);
+
+                      // Refresh from DB in background
+                      getUserProfile(sessionBackup.userId)
+                        .then(freshUser => {
+                          if (freshUser) {
+                            console.log('✅ Background profile refresh succeeded');
+                            setCurrentUser(freshUser);
+                            persistUserProfile(freshUser);
+                            backupSession(freshUser.uid, freshUser.email, freshUser.role, freshUser.displayName);
+                          }
+                        })
+                        .catch(e => console.warn('Background refresh failed, keeping cached data:', e));
+                      return; // Don't clear anything
+                    }
+                  }
+
+                  // No persisted profile found — genuinely no session
+                  console.log('👋 No persisted session found on cold start');
+                  setCurrentUser(null);
+                } else {
+                  // Subsequent null = real sign-out (explicit or session expiry)
+                  console.log('👋 User signed out');
+                  setCurrentUser(null);
+                  clearSessionBackup();
+                  clearPersistedUserProfile();
+                  if (sessionRefreshInterval) {
+                    clearInterval(sessionRefreshInterval);
+                    sessionRefreshInterval = undefined;
+                  }
                 }
               }
             } catch (error) {

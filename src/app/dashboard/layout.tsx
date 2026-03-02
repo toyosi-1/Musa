@@ -153,7 +153,7 @@ export default function DashboardLayout({
 
       {/* ─── Main Content ─── */}
       <main className="flex-grow overflow-y-auto overflow-x-hidden pb-20 md:pb-0">
-        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8">
+        <div className="w-full max-w-7xl mx-auto px-2 xs:px-3 sm:px-6 lg:px-8 py-4 md:py-8">
           {/* Mobile Top Bar */}
           <div className="md:hidden flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">

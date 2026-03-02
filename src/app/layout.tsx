@@ -165,8 +165,7 @@ export default function RootLayout({
         <meta name="apple-touch-startup-image" content="/splash/launch-750x1334.png" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" />
         <meta name="apple-touch-startup-image" content="/splash/launch-640x1136.png" media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" />
         
-        {/* Prevent text size changes on orientation change in iOS */}
-        <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
+        {/* Viewport is managed by the Next.js `viewport` export above — do NOT add a manual tag */}
         
         {/* Disable auto-zoom on input focus in mobile Safari */}
         <meta name="format-detection" content="telephone=no,date=no,address=no,email=no,url=no" />

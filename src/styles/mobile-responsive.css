@@ -16,6 +16,25 @@
   overflow-x: hidden;
 }
 
+/* Extra-small screens (Samsung Note 4, older Android in TWA, etc.) */
+@media (max-width: 360px) {
+  .card {
+    padding: 12px;
+    margin-bottom: 12px;
+    border-radius: 12px;
+  }
+
+  .tabs {
+    font-size: 13px;
+  }
+
+  /* Tighten horizontal padding so content isn't squeezed by gutters */
+  .container-responsive {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+}
+
 /* Mobile breakpoints and responsive utilities */
 @media (max-width: 480px) {
   /* Card padding adjustments for mobile */
