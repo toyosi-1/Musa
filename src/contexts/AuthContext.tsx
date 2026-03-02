@@ -51,9 +51,27 @@ export function useAuth() {
   return context;
 }
 
+// Synchronously read persisted user from localStorage on module load (before React renders)
+// This ensures TWA/PWA cold starts show the dashboard instantly
+function getInitialUser(): User | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const cached = localStorage.getItem('musa_user_profile_cache');
+    if (!cached) return null;
+    const { user, timestamp } = JSON.parse(cached);
+    const SEVEN_DAYS = 7 * 24 * 60 * 60 * 1000;
+    if (user?.uid && (Date.now() - timestamp) < SEVEN_DAYS) {
+      console.log('⚡ Instant recovery: found persisted user profile for', user.displayName);
+      return user as User;
+    }
+  } catch (e) { /* ignore parse errors */ }
+  return null;
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const initialUser = getInitialUser();
+  const [currentUser, setCurrentUser] = useState<User | null>(initialUser);
+  const [loading, setLoading] = useState(initialUser === null); // Skip loading screen if we have a cached user
   const [initError, setInitError] = useState<string | null>(null);
 
   // Convert Firebase user to our User type with optimized database operations
@@ -925,28 +943,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 // Firebase restores the session from IndexedDB. Don't destroy
                 // backup data on the first null; only clear on genuine sign-out.
                 if (isInitialAuthState) {
-                  console.log('🔄 Initial auth state is null — attempting persisted profile recovery...');
                   isInitialAuthState = false;
 
-                  // Try localStorage profile first (instant, no network)
+                  // If we already recovered a user via getInitialUser() (instant localStorage),
+                  // keep them logged in — don't clear on the initial null.
+                  if (initialUser) {
+                    console.log('🔄 Initial auth null but we have instant-recovered user — keeping:', initialUser.displayName);
+                    // Ensure currentUser is set (it should already be from useState)
+                    setCurrentUser(initialUser);
+                    return; // Don't clear anything
+                  }
+
+                  // No instant recovery — try localStorage backup as fallback
+                  console.log('🔄 Initial auth state is null — attempting persisted profile recovery...');
                   const sessionBackup = getSessionBackup();
                   if (sessionBackup?.userId) {
                     const cachedUser = getPersistedUserProfile(sessionBackup.userId);
                     if (cachedUser) {
-                      console.log('� Recovered user from persisted profile:', cachedUser.displayName);
+                      console.log('📦 Recovered user from persisted profile:', cachedUser.displayName);
                       setCurrentUser(cachedUser);
-
-                      // Refresh from DB in background
-                      getUserProfile(sessionBackup.userId)
-                        .then(freshUser => {
-                          if (freshUser) {
-                            console.log('✅ Background profile refresh succeeded');
-                            setCurrentUser(freshUser);
-                            persistUserProfile(freshUser);
-                            backupSession(freshUser.uid, freshUser.email, freshUser.role, freshUser.displayName);
-                          }
-                        })
-                        .catch(e => console.warn('Background refresh failed, keeping cached data:', e));
                       return; // Don't clear anything
                     }
                   }

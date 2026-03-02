@@ -5,11 +5,18 @@
 
 import { ref, get } from 'firebase/database';
 
-// Check if the app is running in PWA (standalone) mode
+// Check if the app is running in PWA or TWA (standalone) mode
 export const isPwaMode = (): boolean => {
   if (typeof window === 'undefined') return false;
-  return window.matchMedia('(display-mode: standalone)').matches || 
-         (window.navigator as any).standalone === true; // iOS Safari specific property
+  // Standard PWA standalone check
+  if (window.matchMedia('(display-mode: standalone)').matches) return true;
+  // iOS Safari specific property
+  if ((window.navigator as any).standalone === true) return true;
+  // TWA detection: the Android TWA loads with ?source=pwa in the URL
+  if (window.location.search.includes('source=pwa')) return true;
+  // TWA detection: check document referrer for android-app
+  if (document.referrer.includes('android-app://')) return true;
+  return false;
 };
 
 // Store for backup session data
