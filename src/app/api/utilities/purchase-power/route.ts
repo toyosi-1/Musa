@@ -3,26 +3,22 @@ import { NextRequest, NextResponse } from 'next/server';
 const FLUTTERWAVE_SECRET_KEY = process.env.FLUTTERWAVE_SECRET_KEY;
 const FLUTTERWAVE_BASE_URL = 'https://api.flutterwave.com/v3';
 
-// Map disco IDs to Flutterwave biller_code and item_code (prepaid / postpaid)
-const discoMap: Record<string, { biller_code: string; prepaid: string; postpaid: string }> = {
-  'ikeja-electric':          { biller_code: 'BIL099', prepaid: 'UB159', postpaid: 'UB160' },
-  'eko-electric':            { biller_code: 'BIL100', prepaid: 'UB161', postpaid: 'UB162' },
-  'abuja-electric':          { biller_code: 'BIL101', prepaid: 'UB163', postpaid: 'UB164' },
-  'ibadan-electric':         { biller_code: 'BIL102', prepaid: 'UB165', postpaid: 'UB166' },
-  'enugu-electric':          { biller_code: 'BIL103', prepaid: 'UB167', postpaid: 'UB168' },
-  'port-harcourt-electric':  { biller_code: 'BIL104', prepaid: 'UB169', postpaid: 'UB170' },
-  'jos-electric':            { biller_code: 'BIL105', prepaid: 'UB171', postpaid: 'UB172' },
-  'kaduna-electric':         { biller_code: 'BIL106', prepaid: 'UB173', postpaid: 'UB174' },
-  'kano-electric':           { biller_code: 'BIL107', prepaid: 'UB175', postpaid: 'UB176' },
-};
-
+/**
+ * POST /api/utilities/purchase-power
+ *
+ * Creates an electricity bill payment via Flutterwave v3.
+ * The client must supply the item_code obtained from /api/utilities/billers.
+ *
+ * Body: { userId, itemCode, billerCode, meterNumber, amount, phoneNumber?, email? }
+ */
 export async function POST(request: NextRequest) {
   try {
-    const { userId, disco, meterNumber, meterType, amount, phoneNumber, email } = await request.json();
+    const { userId, itemCode, billerCode, meterNumber, amount, phoneNumber, email } =
+      await request.json();
 
-    if (!userId || !disco || !meterNumber || !amount || !phoneNumber) {
+    if (!userId || !itemCode || !meterNumber || !amount) {
       return NextResponse.json(
-        { success: false, message: 'Missing required fields' },
+        { success: false, message: 'Missing required fields (userId, itemCode, meterNumber, amount)' },
         { status: 400 }
       );
     }
@@ -42,38 +38,33 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const discoInfo = discoMap[disco];
-    if (!discoInfo) {
-      return NextResponse.json(
-        { success: false, message: 'Invalid distribution company' },
-        { status: 400 }
-      );
-    }
-
-    // Pick the correct item_code based on meter type
-    const itemCode = meterType === 'postpaid' ? discoInfo.postpaid : discoInfo.prepaid;
-
     // Generate unique transaction reference
     const reference = `MUSA-PWR-${Date.now()}-${userId.substring(0, 8)}`;
 
-    console.log('Processing power purchase:', { disco, meterNumber, meterType, itemCode, amount, reference });
+    console.log('Processing power purchase:', {
+      itemCode,
+      billerCode,
+      meterNumber,
+      amount,
+      reference,
+    });
 
-    // Process payment with Flutterwave Bill Payment API
+    // Flutterwave v3 create bill payment
+    // Docs: https://developer.flutterwave.com/v3.0/reference/create-a-bill-payment
     const response = await fetch(`${FLUTTERWAVE_BASE_URL}/bills`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${FLUTTERWAVE_SECRET_KEY}`,
+        Authorization: `Bearer ${FLUTTERWAVE_SECRET_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
         country: 'NG',
-        customer: meterNumber,
+        customer_id: meterNumber,
         amount: amount,
         type: itemCode,
         reference: reference,
-        phone_number: phoneNumber,
-        email: email || `${userId}@musa-security.com`,
-        recurrence: 'ONCE',
+        ...(phoneNumber ? { phone_number: phoneNumber } : {}),
+        ...(email ? { email } : {}),
       }),
     });
 
@@ -81,13 +72,24 @@ export async function POST(request: NextRequest) {
     console.log('Flutterwave purchase response:', JSON.stringify(data));
 
     if (data.status === 'success') {
+      // For prepaid meters, the token comes in data.extra after async processing.
+      // It may be null initially — the user should poll or we rely on webhooks.
+      const token =
+        data.data?.extra ||
+        data.data?.recharge_token ||
+        data.data?.token ||
+        null;
+
       return NextResponse.json({
         success: true,
-        reference: data.data?.flw_ref || reference,
-        token: data.data?.extra || data.data?.token || 'Processing - check your meter shortly',
-        message: 'Purchase successful',
+        reference: data.data?.flw_ref || data.data?.tx_ref || reference,
+        token: token,
+        message: token
+          ? 'Purchase successful! Your token is ready.'
+          : 'Purchase successful! Your meter will be credited shortly.',
       });
     } else {
+      console.warn('Purchase failed:', data);
       return NextResponse.json({
         success: false,
         message: data.message || 'Transaction failed. Please try again.',
