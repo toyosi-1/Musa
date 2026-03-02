@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
       },
       body: JSON.stringify({
         country: 'NG',
-        customer_id: meterNumber,
+        customer: meterNumber,
         amount: amount,
         type: itemCode,
         reference: reference,
