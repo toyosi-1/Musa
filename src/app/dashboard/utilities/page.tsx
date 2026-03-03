@@ -1,10 +1,20 @@
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import { useRouter } from 'next/navigation';
-import { ArrowLeftIcon, BoltIcon, CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/solid';
+import { ArrowLeftIcon, BoltIcon, CheckCircleIcon, XCircleIcon, BookmarkIcon, TrashIcon } from '@heroicons/react/24/solid';
+import { getFirebaseDatabase } from '@/lib/firebase';
+import { ref, get, set, push, remove } from 'firebase/database';
+
+declare global {
+  interface Window {
+    FlutterwaveCheckout: (config: any) => { close: () => void };
+  }
+}
+
+const FLW_PUBLIC_KEY = process.env.NEXT_PUBLIC_FLUTTERWAVE_PUBLIC_KEY || '';
 
 // Types returned from /api/utilities/billers
 interface BillerItem {
@@ -22,11 +32,39 @@ interface Biller {
   items: BillerItem[];
 }
 
-type PurchaseStep = 'loading' | 'select-disco' | 'select-item' | 'enter-details' | 'confirm' | 'processing' | 'success' | 'error';
+interface SavedMeter {
+  id: string;
+  billerCode: string;
+  billerName: string;
+  itemCode: string;
+  itemName: string;
+  meterNumber: string;
+  customerName: string;
+  savedAt: number;
+}
+
+type PurchaseStep = 'loading' | 'select-disco' | 'select-item' | 'enter-details' | 'confirm' | 'paying' | 'processing' | 'success' | 'error';
+
+function useFlutterwaveScript() {
+  const [loaded, setLoaded] = useState(false);
+  useEffect(() => {
+    if (typeof window !== 'undefined' && typeof window.FlutterwaveCheckout === 'function') {
+      setLoaded(true);
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = 'https://checkout.flutterwave.com/v3.js';
+    script.async = true;
+    script.onload = () => setLoaded(true);
+    document.head.appendChild(script);
+  }, []);
+  return loaded;
+}
 
 export default function UtilitiesPage() {
   const { currentUser } = useAuth();
   const router = useRouter();
+  const flwReady = useFlutterwaveScript();
 
   // Billers fetched from Flutterwave via our API
   const [billers, setBillers] = useState<Biller[]>([]);
@@ -38,6 +76,10 @@ export default function UtilitiesPage() {
   const [selectedBiller, setSelectedBiller] = useState<Biller | null>(null);
   const [selectedItem, setSelectedItem] = useState<BillerItem | null>(null);
 
+  // Saved meters
+  const [savedMeters, setSavedMeters] = useState<SavedMeter[]>([]);
+  const [savedMetersLoading, setSavedMetersLoading] = useState(true);
+
   // Form state
   const [meterNumber, setMeterNumber] = useState('');
   const [amount, setAmount] = useState('');
@@ -47,6 +89,8 @@ export default function UtilitiesPage() {
   const [errorMessage, setErrorMessage] = useState('');
   const [transactionRef, setTransactionRef] = useState('');
   const [purchaseToken, setPurchaseToken] = useState<string | null>(null);
+  const [saveMeterChecked, setSaveMeterChecked] = useState(true);
+  const paymentInProgress = useRef(false);
 
   // Fetch billers on mount
   const fetchBillers = useCallback(async () => {
@@ -71,19 +115,90 @@ export default function UtilitiesPage() {
     }
   }, []);
 
-  useEffect(() => {
-    fetchBillers();
-  }, [fetchBillers]);
+  // Fetch saved meters from Firebase
+  const fetchSavedMeters = useCallback(async () => {
+    if (!currentUser?.uid) { setSavedMetersLoading(false); return; }
+    setSavedMetersLoading(true);
+    try {
+      const db = await getFirebaseDatabase();
+      const metersRef = ref(db, `users/${currentUser.uid}/savedMeters`);
+      const snapshot = await get(metersRef);
+      if (snapshot.exists()) {
+        const data = snapshot.val();
+        const meters: SavedMeter[] = Object.entries(data).map(([id, val]: [string, any]) => ({ id, ...val }));
+        meters.sort((a, b) => b.savedAt - a.savedAt);
+        setSavedMeters(meters);
+      } else {
+        setSavedMeters([]);
+      }
+    } catch (err) {
+      console.error('Failed to load saved meters:', err);
+    } finally {
+      setSavedMetersLoading(false);
+    }
+  }, [currentUser?.uid]);
 
-  // Load saved preferences
+  useEffect(() => { fetchBillers(); }, [fetchBillers]);
+  useEffect(() => { fetchSavedMeters(); }, [fetchSavedMeters]);
+
   useEffect(() => {
-    const savedMeter = localStorage.getItem('musa_saved_meter');
     const savedPhone = localStorage.getItem('musa_saved_phone');
-    if (savedMeter) setMeterNumber(savedMeter);
     if (savedPhone) setPhoneNumber(savedPhone);
   }, []);
 
+  const saveMeterToFirebase = async () => {
+    if (!currentUser?.uid || !selectedBiller || !selectedItem || !meterNumber || !meterInfo) return;
+    try {
+      const db = await getFirebaseDatabase();
+      const metersRef = ref(db, `users/${currentUser.uid}/savedMeters`);
+      const newRef = push(metersRef);
+      await set(newRef, {
+        billerCode: selectedBiller.billerCode,
+        billerName: selectedBiller.name,
+        itemCode: selectedItem.itemCode,
+        itemName: selectedItem.name,
+        meterNumber,
+        customerName: meterInfo.customerName || 'Customer',
+        savedAt: Date.now(),
+      });
+      fetchSavedMeters();
+    } catch (err) {
+      console.error('Failed to save meter:', err);
+    }
+  };
+
+  const deleteSavedMeter = async (meterId: string) => {
+    if (!currentUser?.uid) return;
+    try {
+      const db = await getFirebaseDatabase();
+      await remove(ref(db, `users/${currentUser.uid}/savedMeters/${meterId}`));
+      setSavedMeters((prev) => prev.filter((m) => m.id !== meterId));
+    } catch (err) {
+      console.error('Failed to delete saved meter:', err);
+    }
+  };
+
   // --- Handlers ---
+
+  const handleSavedMeterSelect = (meter: SavedMeter) => {
+    const biller = billers.find((b) => b.billerCode === meter.billerCode);
+    if (biller) {
+      setSelectedBiller(biller);
+      const item = biller.items.find((i) => i.itemCode === meter.itemCode);
+      setSelectedItem(item || biller.items[0] || null);
+    } else {
+      setSelectedBiller({
+        id: meter.billerCode, name: meter.billerName, shortName: meter.billerName,
+        billerCode: meter.billerCode,
+        items: [{ itemCode: meter.itemCode, name: meter.itemName, amount: 0, fee: 100 }],
+      });
+      setSelectedItem({ itemCode: meter.itemCode, name: meter.itemName, amount: 0, fee: 100 });
+    }
+    setMeterNumber(meter.meterNumber);
+    setMeterInfo({ customerName: meter.customerName });
+    setErrorMessage('');
+    setStep('enter-details');
+  };
 
   const handleBillerSelect = (biller: Biller) => {
     setSelectedBiller(biller);
@@ -150,7 +265,7 @@ export default function UtilitiesPage() {
     }
   };
 
-  const handleProceedToPayment = () => {
+  const handleProceedToConfirm = () => {
     if (!amount || parseFloat(amount) < 500) {
       setErrorMessage('Minimum purchase amount is ₦500');
       return;
@@ -167,40 +282,91 @@ export default function UtilitiesPage() {
     setStep('confirm');
   };
 
-  const processPurchase = async () => {
-    setStep('processing');
+  const initiatePayment = () => {
+    if (paymentInProgress.current) return;
+    if (!flwReady || typeof window.FlutterwaveCheckout !== 'function') {
+      setErrorMessage('Payment system is loading. Please wait a moment and try again.');
+      return;
+    }
+    if (!FLW_PUBLIC_KEY) {
+      setErrorMessage('Payment not configured. Please contact support.');
+      return;
+    }
+
+    paymentInProgress.current = true;
+    setStep('paying');
     setErrorMessage('');
 
-    try {
-      const response = await fetch('/api/utilities/purchase-power', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: currentUser?.uid,
-          itemCode: selectedItem?.itemCode,
-          billerCode: selectedBiller?.billerCode,
-          meterNumber,
-          amount: parseFloat(amount),
-          phoneNumber,
-          email: currentUser?.email,
-        }),
-      });
+    const txRef = `MUSA-PWR-${Date.now()}-${currentUser?.uid?.substring(0, 8) || 'anon'}`;
+    const totalAmount = parseFloat(amount);
 
-      const data = await response.json();
-
-      if (data.success) {
-        setTransactionRef(data.reference);
-        setPurchaseToken(data.token || null);
-        setStep('success');
-      } else {
-        setErrorMessage(data.message || 'Transaction failed. Please try again.');
-        setStep('error');
-      }
-    } catch (error) {
-      console.error('Purchase error:', error);
-      setErrorMessage('Network error. Please check your connection and try again.');
-      setStep('error');
-    }
+    window.FlutterwaveCheckout({
+      public_key: FLW_PUBLIC_KEY,
+      tx_ref: txRef,
+      amount: totalAmount,
+      currency: 'NGN',
+      payment_options: 'card,banktransfer,ussd',
+      customer: {
+        email: currentUser?.email || 'customer@musa-security.com',
+        phone_number: phoneNumber,
+        name: currentUser?.displayName || meterInfo?.customerName || 'Musa User',
+      },
+      customizations: {
+        title: 'Musa Electricity',
+        description: `${selectedBiller?.name} - Meter: ${meterNumber}`,
+        logo: 'https://www.musa-security.com/images/icon-192x192.png',
+      },
+      callback: async (response: any) => {
+        console.log('Flutterwave payment callback:', response);
+        if (response.status === 'successful' || response.status === 'completed') {
+          setStep('processing');
+          try {
+            const res = await fetch('/api/utilities/complete-purchase', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                transactionId: response.transaction_id,
+                itemCode: selectedItem?.itemCode,
+                billerCode: selectedBiller?.billerCode,
+                meterNumber,
+                amount: totalAmount,
+                phoneNumber,
+                email: currentUser?.email,
+              }),
+            });
+            const data = await res.json();
+            if (data.success) {
+              setTransactionRef(data.reference || txRef);
+              setPurchaseToken(data.token || null);
+              if (saveMeterChecked && meterInfo) {
+                const alreadySaved = savedMeters.some(
+                  (m) => m.meterNumber === meterNumber && m.itemCode === selectedItem?.itemCode
+                );
+                if (!alreadySaved) saveMeterToFirebase();
+              }
+              setStep('success');
+            } else {
+              setErrorMessage(data.message || 'Electricity purchase failed after payment. Contact support.');
+              setStep('error');
+            }
+          } catch (err) {
+            console.error('Complete purchase error:', err);
+            setErrorMessage('Network error after payment. Your payment was received — contact support if meter is not credited.');
+            setStep('error');
+          }
+        } else {
+          setErrorMessage('Payment was not completed.');
+          setStep('error');
+        }
+        paymentInProgress.current = false;
+      },
+      onclose: () => {
+        if (paymentInProgress.current) {
+          paymentInProgress.current = false;
+          setStep('confirm');
+        }
+      },
+    });
   };
 
   const resetForm = () => {
@@ -280,6 +446,47 @@ export default function UtilitiesPage() {
               Purchase prepaid or postpaid electricity for your meter
             </p>
           </div>
+
+          {/* Saved Meters — quick reorder */}
+          {savedMeters.length > 0 && (
+            <div className="mb-4">
+              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-1.5">
+                <BookmarkIcon className="w-4 h-4 text-primary" />
+                Saved Meters
+              </h3>
+              <div className="space-y-2">
+                {savedMeters.map((meter) => (
+                  <div
+                    key={meter.id}
+                    className="flex items-center gap-2"
+                  >
+                    <button
+                      onClick={() => handleSavedMeterSelect(meter)}
+                      className="flex-1 flex items-center justify-between p-3 bg-primary/5 dark:bg-primary/10 rounded-xl border border-primary/20 dark:border-primary/30 hover:border-primary transition-all"
+                    >
+                      <div className="text-left">
+                        <p className="font-medium text-sm text-gray-800 dark:text-white">{meter.customerName}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          {meter.billerName} &middot; {meter.meterNumber}
+                        </p>
+                      </div>
+                      <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </button>
+                    <button
+                      onClick={() => deleteSavedMeter(meter.id)}
+                      className="p-2 text-gray-400 hover:text-red-500 transition-colors"
+                      title="Remove saved meter"
+                    >
+                      <TrashIcon className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <div className="border-b border-gray-200 dark:border-gray-700 mt-4 mb-2" />
+            </div>
+          )}
 
           {billersError && (
             <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
@@ -475,8 +682,18 @@ export default function UtilitiesPage() {
                 </div>
               </div>
 
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={saveMeterChecked}
+                  onChange={(e) => setSaveMeterChecked(e.target.checked)}
+                  className="w-4 h-4 text-primary rounded border-gray-300 focus:ring-primary"
+                />
+                <span className="text-sm text-gray-600 dark:text-gray-400">Save this meter for quick access next time</span>
+              </label>
+
               <button
-                onClick={handleProceedToPayment}
+                onClick={handleProceedToConfirm}
                 disabled={!amount || !phoneNumber}
                 className="w-full py-3 bg-primary text-white rounded-lg font-medium hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
               >
@@ -526,10 +743,10 @@ export default function UtilitiesPage() {
           </div>
 
           <button
-            onClick={processPurchase}
+            onClick={initiatePayment}
             className="w-full py-3 bg-primary text-white rounded-lg font-medium hover:bg-primary-600 transition-all"
           >
-            Confirm & Pay
+            Pay Now — ₦{parseFloat(amount).toLocaleString()}
           </button>
 
           <button
@@ -541,11 +758,20 @@ export default function UtilitiesPage() {
         </div>
       )}
 
-      {/* Processing */}
+      {/* Paying — Flutterwave popup is open */}
+      {step === 'paying' && (
+        <div className="flex flex-col items-center justify-center py-12">
+          <LoadingSpinner size="lg" />
+          <p className="mt-4 text-gray-600 dark:text-gray-300 font-medium">Complete payment in the popup</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Use your card, bank transfer, or USSD to pay</p>
+        </div>
+      )}
+
+      {/* Processing — verifying payment & purchasing electricity */}
       {step === 'processing' && (
         <div className="flex flex-col items-center justify-center py-12">
           <LoadingSpinner size="lg" />
-          <p className="mt-4 text-gray-600 dark:text-gray-300 font-medium">Processing your purchase...</p>
+          <p className="mt-4 text-gray-600 dark:text-gray-300 font-medium">Payment received! Purchasing electricity...</p>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Please do not close this page</p>
         </div>
       )}
