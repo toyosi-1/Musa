@@ -273,7 +273,9 @@ export default function AuthForm({ mode, defaultRole }: AuthFormProps) {
             const errorMessage = loginError.message || '';
             console.log('Login error message:', errorMessage);
             
-            if (errorMessage.includes('auth/user-not-found') || errorMessage.includes('user-not-found')) {
+            if (errorMessage.includes('NEW_DEVICE_APPROVAL_REQUIRED')) {
+              throw new Error('🔐 New device detected! A verification email has been sent to your inbox. Please approve this device before signing in.');
+            } else if (errorMessage.includes('auth/user-not-found') || errorMessage.includes('user-not-found')) {
               throw new Error('Account not found. Please check your email or register.');
             } else if (errorMessage.includes('auth/wrong-password') || errorMessage.includes('wrong-password')) {
               throw new Error('Incorrect password. Please try again.');

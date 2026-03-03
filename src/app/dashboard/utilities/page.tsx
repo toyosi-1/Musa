@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeftIcon, BoltIcon, CheckCircleIcon, XCircleIcon, BookmarkIcon, TrashIcon } from '@heroicons/react/24/solid';
 import { getFirebaseDatabase } from '@/lib/firebase';
 import { ref, get, set, push, remove } from 'firebase/database';
+import { getDiscoBrand } from '@/utils/discoLogos';
 
 declare global {
   interface Window {
@@ -522,28 +523,34 @@ export default function UtilitiesPage() {
               </h3>
 
               <div className="space-y-2">
-                {billers.map((biller) => (
-                  <button
-                    key={biller.billerCode}
-                    onClick={() => handleBillerSelect(biller)}
-                    className="w-full flex items-center justify-between p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-primary dark:hover:border-primary transition-all"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-primary/10 dark:bg-primary/20 flex items-center justify-center">
-                        <BoltIcon className="w-5 h-5 text-primary" />
+                {billers.map((biller) => {
+                  const brand = getDiscoBrand(biller.billerCode, biller.name);
+                  return (
+                    <button
+                      key={biller.billerCode}
+                      onClick={() => handleBillerSelect(biller)}
+                      className="w-full flex items-center justify-between p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-primary dark:hover:border-primary transition-all"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div
+                          className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs shadow-sm flex-shrink-0"
+                          style={{ backgroundColor: brand.color, color: brand.textColor }}
+                        >
+                          {brand.abbr}
+                        </div>
+                        <div className="text-left">
+                          <p className="font-medium text-gray-800 dark:text-white">{biller.name}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            {biller.items.length} option{biller.items.length !== 1 ? 's' : ''}
+                          </p>
+                        </div>
                       </div>
-                      <div className="text-left">
-                        <p className="font-medium text-gray-800 dark:text-white">{biller.name}</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
-                          {biller.items.length} option{biller.items.length !== 1 ? 's' : ''}
-                        </p>
-                      </div>
-                    </div>
-                    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </button>
-                ))}
+                      <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </button>
+                  );
+                })}
               </div>
             </>
           )}

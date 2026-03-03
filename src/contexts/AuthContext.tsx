@@ -24,6 +24,7 @@ import {
   registerPwaLifecycleEvents,
   optimizePwaPageReload
 } from '@/utils/pwaUtils';
+import { generateDeviceId, getDeviceLabel } from '@/utils/deviceFingerprint';
 
 interface AuthContextType {
   currentUser: User | null;
@@ -391,6 +392,67 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch (cacheError) {
         console.warn('Failed to update user cache:', cacheError);
         // Non-critical error, continue
+      }
+
+      // --- Head of House: new-device security check ---
+      if (formattedUser.isHouseholdHead) {
+        try {
+          const deviceId = generateDeviceId();
+          const deviceLabel = getDeviceLabel();
+
+          // Check if this specific device is approved
+          const checkRes = await fetch('/api/device-approval', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'check', userId: formattedUser.uid, deviceId }),
+          });
+          const checkData = await checkRes.json();
+
+          if (!checkData.approved) {
+            // Check if the user has ANY known devices at all
+            const db = await getFirebaseDatabase();
+            const devicesRef = ref(db, `users/${formattedUser.uid}/knownDevices`);
+            const devicesSnap = await get(devicesRef);
+            const hasKnownDevices = devicesSnap.exists() && Object.keys(devicesSnap.val()).length > 0;
+
+            if (!hasKnownDevices) {
+              // First device ever — auto-approve it (trusted)
+              console.log('🔐 First device for Head of House — auto-approving');
+              const newDeviceRef = ref(db, `users/${formattedUser.uid}/knownDevices/${deviceId}`);
+              await set(newDeviceRef, { label: deviceLabel, approvedAt: Date.now(), autoApproved: true });
+            } else {
+              // Has known devices but this isn't one of them — require approval
+              console.log('🔐 New device detected for Head of House — requesting approval');
+              await fetch('/api/device-approval', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  action: 'send',
+                  userId: formattedUser.uid,
+                  deviceId,
+                  deviceLabel,
+                  email: formattedUser.email,
+                  displayName: formattedUser.displayName,
+                }),
+              });
+
+              // Sign them out — they must approve the device first
+              const auth = await getFirebaseAuth();
+              await firebaseSignOut(auth);
+              setCurrentUser(null);
+
+              throw new Error('NEW_DEVICE_APPROVAL_REQUIRED');
+            }
+          } else {
+            console.log('✅ Device recognised for Head of House');
+          }
+        } catch (deviceError: any) {
+          if (deviceError?.message === 'NEW_DEVICE_APPROVAL_REQUIRED') {
+            throw deviceError;
+          }
+          // Non-critical — if the check fails (e.g. network), allow sign-in
+          console.warn('Device check failed (non-blocking):', deviceError);
+        }
       }
       
       // Create backup of the authentication session for PWA resilience
