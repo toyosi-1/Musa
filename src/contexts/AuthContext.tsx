@@ -71,8 +71,8 @@ function getInitialUser(): User | null {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const initialUser = getInitialUser();
-  const [currentUser, setCurrentUser] = useState<User | null>(initialUser);
-  const [loading, setLoading] = useState(initialUser === null); // Skip loading screen if we have a cached user
+  const [currentUser, setCurrentUser] = useState<User | null>(null); // Don't set user immediately
+  const [loading, setLoading] = useState(true); // Always show loading until Firebase is ready
   const [initError, setInitError] = useState<string | null>(null);
 
   // Convert Firebase user to our User type with optimized database operations
@@ -1015,14 +1015,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     // CRITICAL: Ensure Firebase database is initialized before setting user
                     // This prevents "Failed to load dashboard data" errors
                     console.log('⏳ Ensuring Firebase database is ready before setting user...');
+                    
+                    // Keep loading state active until Firebase is ready
+                    setLoading(true);
+                    
                     waitForFirebase().then(ready => {
                       if (ready) {
                         console.log('✅ Firebase ready, user can now access dashboard');
                         setCurrentUser(initialUser);
+                        setLoading(false);
                       } else {
                         console.error('❌ Firebase failed to initialize, clearing recovered user');
                         setCurrentUser(null);
+                        setLoading(false);
                       }
+                    }).catch(err => {
+                      console.error('❌ Error waiting for Firebase:', err);
+                      setCurrentUser(null);
+                      setLoading(false);
                     });
                     return; // Don't clear anything
                   }
@@ -1037,14 +1047,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                       
                       // CRITICAL: Ensure Firebase database is initialized before setting user
                       console.log('⏳ Ensuring Firebase database is ready before setting user...');
+                      
+                      // Keep loading state active until Firebase is ready
+                      setLoading(true);
+                      
                       waitForFirebase().then(ready => {
                         if (ready) {
                           console.log('✅ Firebase ready, user can now access dashboard');
                           setCurrentUser(cachedUser);
+                          setLoading(false);
                         } else {
                           console.error('❌ Firebase failed to initialize, clearing recovered user');
                           setCurrentUser(null);
+                          setLoading(false);
                         }
+                      }).catch(err => {
+                        console.error('❌ Error waiting for Firebase:', err);
+                        setCurrentUser(null);
+                        setLoading(false);
                       });
                       return; // Don't clear anything
                     }
