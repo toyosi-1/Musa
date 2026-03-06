@@ -2,10 +2,12 @@ import Link from 'next/link';
 import Image from 'next/image';
 import AccessIllustration from '@/components/ui/illustrations/AccessIllustration';
 import LogoAnimation from '@/components/ui/illustrations/LogoAnimation';
+import SessionRedirect from '@/components/auth/SessionRedirect';
 
 export default function Home() {
   return (
-    <main className="min-h-screen flex flex-col">
+    <main id="home-landing" className="min-h-screen flex flex-col transition-opacity duration-200">
+      <SessionRedirect />
       <header className="bg-primary p-4 text-white">
         <div className="container mx-auto flex justify-between items-center">
           <h1 className="text-2xl font-bold text-white dark:text-white">Musa</h1>

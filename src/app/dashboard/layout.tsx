@@ -28,6 +28,7 @@ import {
   NewspaperIcon as NewspaperIconSolid,
 } from '@heroicons/react/24/solid';
 import NotificationBell from '@/components/notifications/NotificationBell';
+import BiometricSetupBanner from '@/components/auth/BiometricSetupBanner';
 import { useTheme } from '@/contexts/ThemeContext';
 
 export default function DashboardLayout({
@@ -162,6 +163,7 @@ export default function DashboardLayout({
             </div>
             <NotificationBell />
           </div>
+          <BiometricSetupBanner />
           {children}
         </div>
       </main>

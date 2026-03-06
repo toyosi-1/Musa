@@ -31,6 +31,8 @@
     "@heroicons/react": "^2.2.0",
     "@hookform/resolvers": "^3.3.2",
     "@sendgrid/mail": "^8.1.5",
+    "@simplewebauthn/browser": "^13.2.2",
+    "@simplewebauthn/server": "^13.2.3",
     "@tailwindcss/nesting": "0.0.0-insiders.565cd3e",
     "@types/nodemailer": "^6.4.17",
     "@types/qrcode": "^1.5.5",

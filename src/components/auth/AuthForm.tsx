@@ -10,6 +10,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { UserRole } from '@/types/user';
 import { Estate } from '@/types/estate';
 import { isFirebaseReady, waitForFirebase, getFirebaseDatabase, ref, get } from '@/lib/firebase';
+import { isBiometricAvailable, hasBiometricRegistered, getBiometricEmail, authenticateWithBiometric } from '@/utils/biometricAuth';
 
 // Form validation schema
 const authSchema = z.object({
@@ -34,8 +35,23 @@ export default function AuthForm({ mode, defaultRole }: AuthFormProps) {
   const [firebaseStatus, setFirebaseStatus] = useState<'checking' | 'ready' | 'error'>('checking');
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [estates, setEstates] = useState<Estate[]>([]);
+  const [biometricSupported, setBiometricSupported] = useState(false);
+  const [biometricReady, setBiometricReady] = useState(false);
+  const [biometricLoading, setBiometricLoading] = useState(false);
   const router = useRouter();
   const { signIn, signUp, initError } = useAuth();
+
+  // Check biometric availability on mount (login mode only)
+  useEffect(() => {
+    if (mode !== 'login') return;
+    (async () => {
+      const available = await isBiometricAvailable();
+      setBiometricSupported(available);
+      if (available && hasBiometricRegistered()) {
+        setBiometricReady(true);
+      }
+    })();
+  }, [mode]);
   
   // Check Firebase status on mount
   useEffect(() => {
@@ -359,6 +375,53 @@ export default function AuthForm({ mode, defaultRole }: AuthFormProps) {
     }
   };
 
+  // Handle biometric (Face ID / Fingerprint) login
+  const handleBiometricLogin = async () => {
+    const email = getBiometricEmail();
+    if (!email) {
+      setError('No biometric credentials found. Please sign in with your password first.');
+      return;
+    }
+    setBiometricLoading(true);
+    setError('');
+    try {
+      const result = await authenticateWithBiometric(email);
+      if (!result.success) {
+        setError(result.message || 'Biometric authentication failed.');
+        return;
+      }
+      if (result.customToken) {
+        // Sign in with the custom token from the server
+        const { getFirebaseAuth } = await import('@/lib/firebase');
+        const { signInWithCustomToken } = await import('firebase/auth');
+        const auth = await getFirebaseAuth();
+        await signInWithCustomToken(auth, result.customToken);
+        // Auth state listener will handle the rest (redirect, etc.)
+        router.push('/dashboard');
+      } else if (result.sessionRecovery && result.userId) {
+        // Firebase Admin not configured — recover from persisted profile
+        const cached = localStorage.getItem('musa_user_profile_cache');
+        if (cached) {
+          const { user } = JSON.parse(cached);
+          if (user?.uid === result.userId) {
+            // Redirect based on role
+            const target = user.role === 'estate_admin' ? '/estate-admin/dashboard'
+              : user.role === 'admin' ? '/admin/dashboard'
+              : user.role === 'guard' ? '/dashboard/guard'
+              : '/dashboard/resident';
+            router.push(target);
+            return;
+          }
+        }
+        setError('Session expired. Please sign in with your password.');
+      }
+    } catch (err: any) {
+      setError(err?.message || 'Biometric login failed.');
+    } finally {
+      setBiometricLoading(false);
+    }
+  };
+
   return (
     <div>
       {firebaseStatus === 'checking' && (
@@ -602,6 +665,39 @@ export default function AuthForm({ mode, defaultRole }: AuthFormProps) {
             'Create Account'
           )}
         </button>
+
+        {/* Biometric Login Button */}
+        {mode === 'login' && biometricReady && (
+          <div className="mt-4">
+            <div className="relative flex items-center justify-center mb-4">
+              <div className="border-t border-gray-200 dark:border-gray-700 w-full"></div>
+              <span className="px-3 text-xs text-gray-400 dark:text-gray-500 bg-white dark:bg-gray-900 absolute">or</span>
+            </div>
+            <button
+              type="button"
+              onClick={handleBiometricLogin}
+              disabled={biometricLoading || loading}
+              className="w-full py-3 px-4 rounded-xl font-medium border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-800 dark:text-white hover:border-primary dark:hover:border-primary transition-colors flex items-center justify-center gap-2"
+            >
+              {biometricLoading ? (
+                <div className="flex items-center">
+                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Verifying...
+                </div>
+              ) : (
+                <>
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 008 4.07M3 15.364c.64-1.319 1-2.8 1-4.364 0-1.457.39-2.823 1.07-4" />
+                  </svg>
+                  Sign in with Face ID / Fingerprint
+                </>
+              )}
+            </button>
+          </div>
+        )}
       </form>
 
       {mode === 'register' && (
