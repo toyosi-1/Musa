@@ -473,11 +473,13 @@ export const verifyAccessCode = async (
 };
 
 // Get all active access codes for a resident
-export const getResidentAccessCodes = async (userId: string): Promise<AccessCode[]> => {
-  // Ensure the database is initialized via lazy loading
-  const db = await getFirebaseDatabase();
-
+export const getResidentAccessCodes = async (userId: string, retryCount = 0): Promise<AccessCode[]> => {
+  const maxRetries = 3;
+  
   try {
+    // Ensure the database is initialized via lazy loading
+    const db = await getFirebaseDatabase();
+
     // Get the code IDs from the index
     const userCodesRef = ref(db, `accessCodesByUser/${userId}`);
     const snapshot = await get(userCodesRef);
@@ -500,8 +502,22 @@ export const getResidentAccessCodes = async (userId: string): Promise<AccessCode
     }
     
     return accessCodes;
-  } catch (error) {
-    console.error('Error getting resident access codes:', error);
+  } catch (error: any) {
+    console.error(`Error getting resident access codes (attempt ${retryCount + 1}/${maxRetries + 1}):`, error);
+    
+    // Retry with exponential backoff for database connection errors
+    if (retryCount < maxRetries && (
+      error?.message?.includes('database') ||
+      error?.message?.includes('connection') ||
+      error?.message?.includes('network') ||
+      error?.code === 'PERMISSION_DENIED'
+    )) {
+      const delay = Math.pow(2, retryCount) * 1000; // 1s, 2s, 4s
+      console.log(`Retrying in ${delay}ms...`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+      return getResidentAccessCodes(userId, retryCount + 1);
+    }
+    
     throw new Error('Failed to get access codes');
   }
 };

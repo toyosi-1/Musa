@@ -190,9 +190,11 @@ export const createHousehold = async (
 };
 
 // Get household by ID
-export const getHousehold = async (householdId: string): Promise<Household | null> => {
-  // Ensure the database is initialized
+export const getHousehold = async (householdId: string, retryCount = 0): Promise<Household | null> => {
+  const maxRetries = 3;
+  
   try {
+    // Ensure the database is initialized
     const db = await getFirebaseDatabase();
     const householdRef = ref(db, `households/${householdId}`);
     const snapshot = await get(householdRef);
@@ -202,9 +204,23 @@ export const getHousehold = async (householdId: string): Promise<Household | nul
     }
     
     return null;
-  } catch (error) {
-    console.error('Error getting household:', error);
-    throw new Error('Failed to get household');
+  } catch (error: any) {
+    console.error(`Error getting household (attempt ${retryCount + 1}/${maxRetries + 1}):`, error);
+    
+    // Retry with exponential backoff for database connection errors
+    if (retryCount < maxRetries && (
+      error?.message?.includes('database') ||
+      error?.message?.includes('connection') ||
+      error?.message?.includes('network') ||
+      error?.code === 'PERMISSION_DENIED'
+    )) {
+      const delay = Math.pow(2, retryCount) * 1000; // 1s, 2s, 4s
+      console.log(`Retrying getHousehold in ${delay}ms...`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+      return getHousehold(householdId, retryCount + 1);
+    }
+    
+    throw error;
   }
 };
 
