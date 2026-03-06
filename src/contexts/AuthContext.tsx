@@ -1011,8 +1011,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                   // keep them logged in — don't clear on the initial null.
                   if (initialUser) {
                     console.log('🔄 Initial auth null but we have instant-recovered user — keeping:', initialUser.displayName);
-                    // Ensure currentUser is set (it should already be from useState)
-                    setCurrentUser(initialUser);
+                    
+                    // CRITICAL: Ensure Firebase database is initialized before setting user
+                    // This prevents "Failed to load dashboard data" errors
+                    console.log('⏳ Ensuring Firebase database is ready before setting user...');
+                    waitForFirebase().then(ready => {
+                      if (ready) {
+                        console.log('✅ Firebase ready, user can now access dashboard');
+                        setCurrentUser(initialUser);
+                      } else {
+                        console.error('❌ Firebase failed to initialize, clearing recovered user');
+                        setCurrentUser(null);
+                      }
+                    });
                     return; // Don't clear anything
                   }
 
@@ -1023,7 +1034,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     const cachedUser = getPersistedUserProfile(sessionBackup.userId);
                     if (cachedUser) {
                       console.log('📦 Recovered user from persisted profile:', cachedUser.displayName);
-                      setCurrentUser(cachedUser);
+                      
+                      // CRITICAL: Ensure Firebase database is initialized before setting user
+                      console.log('⏳ Ensuring Firebase database is ready before setting user...');
+                      waitForFirebase().then(ready => {
+                        if (ready) {
+                          console.log('✅ Firebase ready, user can now access dashboard');
+                          setCurrentUser(cachedUser);
+                        } else {
+                          console.error('❌ Firebase failed to initialize, clearing recovered user');
+                          setCurrentUser(null);
+                        }
+                      });
                       return; // Don't clear anything
                     }
                   }

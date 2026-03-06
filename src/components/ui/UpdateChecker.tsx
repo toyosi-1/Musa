@@ -17,13 +17,15 @@ export default function UpdateChecker() {
     const checkBuildVersion = () => {
       const storedBuild = localStorage.getItem('musa_build_timestamp');
       const currentBuild = BUILD_TIMESTAMP.toString();
+      const updateDismissed = sessionStorage.getItem('musa_update_dismissed');
       
-      if (storedBuild && storedBuild !== currentBuild) {
+      if (storedBuild && storedBuild !== currentBuild && !updateDismissed) {
         console.log(`🔄 New build detected: ${storedBuild} → ${currentBuild}`);
         setUpdateAvailable(true);
-      } else {
-        localStorage.setItem('musa_build_timestamp', currentBuild);
       }
+      
+      // Always update stored build to current
+      localStorage.setItem('musa_build_timestamp', currentBuild);
     };
 
     // Check for service worker updates
@@ -52,14 +54,36 @@ export default function UpdateChecker() {
     checkBuildVersion();
     checkServiceWorker();
 
-    // Then check periodically (every 2 minutes)
-    const interval = setInterval(() => {
-      checkBuildVersion();
-      checkServiceWorker();
-    }, 2 * 60 * 1000);
+    // Don't check periodically - only on mount to avoid annoying users
+    // The update will be detected on next app open
 
-    return () => clearInterval(interval);
+    return () => {};
   }, []);
+
+  const handleDismiss = () => {
+    sessionStorage.setItem('musa_update_dismissed', 'true');
+    setUpdateAvailable(false);
+  };
+
+  const handleReload = () => {
+    // Mark as dismissed so it doesn't show again after reload
+    sessionStorage.setItem('musa_update_dismissed', 'true');
+    
+    // Clear service worker cache and force hard reload
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(registrations => {
+        registrations.forEach(reg => reg.unregister());
+      });
+    }
+    // Clear all caches
+    if ('caches' in window) {
+      caches.keys().then(names => {
+        names.forEach(name => caches.delete(name));
+      });
+    }
+    // Hard reload
+    window.location.reload();
+  };
 
   if (!updateAvailable) return null;
 
@@ -72,27 +96,20 @@ export default function UpdateChecker() {
           <p className="text-sm text-blue-100 mb-3">
             A new version of Musa is ready. Reload to get the latest features and fixes.
           </p>
-          <button
-            onClick={() => {
-              // Clear service worker cache and force hard reload
-              if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.getRegistrations().then(registrations => {
-                  registrations.forEach(reg => reg.unregister());
-                });
-              }
-              // Clear all caches
-              if ('caches' in window) {
-                caches.keys().then(names => {
-                  names.forEach(name => caches.delete(name));
-                });
-              }
-              // Hard reload
-              window.location.reload();
-            }}
-            className="w-full bg-white text-blue-600 font-semibold py-2 px-4 rounded-lg hover:bg-blue-50 transition-colors"
-          >
-            Reload Now
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={handleDismiss}
+              className="flex-1 bg-blue-500 text-white font-semibold py-2 px-4 rounded-lg hover:bg-blue-600 transition-colors"
+            >
+              Later
+            </button>
+            <button
+              onClick={handleReload}
+              className="flex-1 bg-white text-blue-600 font-semibold py-2 px-4 rounded-lg hover:bg-blue-50 transition-colors"
+            >
+              Reload Now
+            </button>
+          </div>
         </div>
       </div>
     </div>
