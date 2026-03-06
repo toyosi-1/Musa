@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateAuthenticationOptions } from '@simplewebauthn/server';
-import { getFirebaseDatabase } from '@/lib/firebase';
-import { ref, get, set } from 'firebase/database';
+import { getAdminDatabase } from '@/lib/firebaseAdmin';
 
 const RP_ID = process.env.NEXT_PUBLIC_WEBAUTHN_RP_ID || 'musa-security.com';
 
@@ -17,11 +16,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, message: 'Missing email' }, { status: 400 });
     }
 
-    const db = await getFirebaseDatabase();
+    const db = getAdminDatabase();
 
     // Find userId by email
-    const usersRef = ref(db, 'users');
-    const usersSnap = await get(usersRef);
+    const usersSnap = await db.ref('users').once('value');
     let userId: string | null = null;
 
     if (usersSnap.exists()) {
@@ -38,8 +36,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get stored credentials
-    const credRef = ref(db, `webauthnCredentials/${userId}`);
-    const credSnap = await get(credRef);
+    const credSnap = await db.ref(`webauthnCredentials/${userId}`).once('value');
     if (!credSnap.exists()) {
       return NextResponse.json({ success: false, message: 'No biometric credentials registered' }, { status: 404 });
     }
@@ -57,8 +54,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Store challenge for verification
-    const challengeRef = ref(db, `webauthnChallenges/${userId}`);
-    await set(challengeRef, {
+    await db.ref(`webauthnChallenges/${userId}`).set({
       challenge: options.challenge,
       createdAt: Date.now(),
     });

@@ -10,7 +10,7 @@ import HouseholdManager from './HouseholdManager';
 import CreateHouseholdForm from './CreateHouseholdForm';
 import PendingInvitations from './PendingInvitations';
 import { useDeviceAuthorization } from '@/hooks/useDeviceAuthorization';
-import { getFirebaseDatabase } from '@/lib/firebase';
+import { getFirebaseDatabase, waitForFirebase } from '@/lib/firebase';
 import { ref, get } from 'firebase/database';
 
 interface ResidentDashboardProps {
@@ -35,10 +35,18 @@ export default function ResidentDashboard({ user }: ResidentDashboardProps) {
     loadData();
   }, [user.uid]);
 
-  const loadData = async () => {
+  const loadData = async (retryCount = 0) => {
     try {
       setLoading(true);
       setError('');
+
+      // Ensure Firebase is fully initialized before querying
+      const ready = await waitForFirebase();
+      if (!ready && retryCount < 2) {
+        // Firebase not ready yet — wait a moment and retry
+        await new Promise(r => setTimeout(r, 1500));
+        return loadData(retryCount + 1);
+      }
       
       // Load access codes
       const codes = await getResidentAccessCodes(user.uid);

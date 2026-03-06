@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateRegistrationOptions } from '@simplewebauthn/server';
-import { getFirebaseDatabase } from '@/lib/firebase';
-import { ref, get } from 'firebase/database';
+import { getAdminDatabase } from '@/lib/firebaseAdmin';
 
 const RP_NAME = 'Musa Security';
 const RP_ID = process.env.NEXT_PUBLIC_WEBAUTHN_RP_ID || 'musa-security.com';
@@ -18,9 +17,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Get existing credentials for this user (to exclude them)
-    const db = await getFirebaseDatabase();
-    const credRef = ref(db, `webauthnCredentials/${userId}`);
-    const snapshot = await get(credRef);
+    const db = getAdminDatabase();
+    const snapshot = await db.ref(`webauthnCredentials/${userId}`).once('value');
     const existingCreds: any[] = [];
     if (snapshot.exists()) {
       const creds = snapshot.val();
@@ -52,9 +50,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Store the challenge temporarily for verification
-    const challengeRef = ref(db, `webauthnChallenges/${userId}`);
-    const { set } = await import('firebase/database');
-    await set(challengeRef, {
+    await db.ref(`webauthnChallenges/${userId}`).set({
       challenge: options.challenge,
       createdAt: Date.now(),
     });

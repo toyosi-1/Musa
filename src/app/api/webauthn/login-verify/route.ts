@@ -1,31 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuthenticationResponse } from '@simplewebauthn/server';
-import { getFirebaseDatabase } from '@/lib/firebase';
-import { ref, get, set, update } from 'firebase/database';
+import { getAdminDatabase } from '@/lib/firebaseAdmin';
 import { getAuth } from 'firebase-admin/auth';
-import { initializeApp, getApps, cert } from 'firebase-admin/app';
 
 const RP_ID = process.env.NEXT_PUBLIC_WEBAUTHN_RP_ID || 'musa-security.com';
 const ORIGIN = process.env.NEXT_PUBLIC_APP_URL || 'https://www.musa-security.com';
-
-// Initialize Firebase Admin for custom token generation
-function getAdminAuth() {
-  if (!getApps().length) {
-    // Try to use service account from env, otherwise use default credentials
-    const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
-    if (serviceAccount) {
-      try {
-        const parsed = JSON.parse(serviceAccount);
-        initializeApp({ credential: cert(parsed) });
-      } catch {
-        initializeApp();
-      }
-    } else {
-      initializeApp();
-    }
-  }
-  return getAuth();
-}
 
 /**
  * POST /api/webauthn/login-verify
@@ -38,19 +17,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, message: 'Missing data' }, { status: 400 });
     }
 
-    const db = await getFirebaseDatabase();
+    const db = getAdminDatabase();
 
     // Get the stored challenge
-    const challengeRef = ref(db, `webauthnChallenges/${userId}`);
-    const challengeSnap = await get(challengeRef);
+    const challengeSnap = await db.ref(`webauthnChallenges/${userId}`).once('value');
     if (!challengeSnap.exists()) {
       return NextResponse.json({ success: false, message: 'Challenge not found or expired' }, { status: 400 });
     }
     const { challenge } = challengeSnap.val();
 
     // Find the matching credential
-    const credRef = ref(db, `webauthnCredentials/${userId}`);
-    const credSnap = await get(credRef);
+    const credSnap = await db.ref(`webauthnCredentials/${userId}`).once('value');
     if (!credSnap.exists()) {
       return NextResponse.json({ success: false, message: 'No credentials found' }, { status: 404 });
     }
@@ -91,16 +68,15 @@ export async function POST(request: NextRequest) {
 
     // Update counter
     if (matchedKey) {
-      const counterRef = ref(db, `webauthnCredentials/${userId}/${matchedKey}/counter`);
-      await set(counterRef, verification.authenticationInfo.newCounter);
+      await db.ref(`webauthnCredentials/${userId}/${matchedKey}/counter`).set(verification.authenticationInfo.newCounter);
     }
 
     // Clean up challenge
-    await set(challengeRef, null);
+    await db.ref(`webauthnChallenges/${userId}`).remove();
 
     // Generate a Firebase custom token so the client can sign in
     try {
-      const adminAuth = getAdminAuth();
+      const adminAuth = getAuth();
       const customToken = await adminAuth.createCustomToken(userId);
       return NextResponse.json({ success: true, customToken });
     } catch (adminError: any) {

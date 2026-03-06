@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyRegistrationResponse } from '@simplewebauthn/server';
-import { getFirebaseDatabase } from '@/lib/firebase';
-import { ref, get, set, push } from 'firebase/database';
+import { getAdminDatabase } from '@/lib/firebaseAdmin';
 
 const RP_ID = process.env.NEXT_PUBLIC_WEBAUTHN_RP_ID || 'musa-security.com';
 const ORIGIN = process.env.NEXT_PUBLIC_APP_URL || 'https://www.musa-security.com';
@@ -17,11 +16,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, message: 'Missing data' }, { status: 400 });
     }
 
-    const db = await getFirebaseDatabase();
+    const db = getAdminDatabase();
 
     // Get the stored challenge
-    const challengeRef = ref(db, `webauthnChallenges/${userId}`);
-    const challengeSnap = await get(challengeRef);
+    const challengeSnap = await db.ref(`webauthnChallenges/${userId}`).once('value');
     if (!challengeSnap.exists()) {
       return NextResponse.json({ success: false, message: 'Challenge not found or expired' }, { status: 400 });
     }
@@ -41,9 +39,7 @@ export async function POST(request: NextRequest) {
     const { credential: regCred, credentialDeviceType, credentialBackedUp } = verification.registrationInfo;
 
     // Store credential in Firebase
-    const credListRef = ref(db, `webauthnCredentials/${userId}`);
-    const newCredRef = push(credListRef);
-    await set(newCredRef, {
+    await db.ref(`webauthnCredentials/${userId}`).push().set({
       credentialId: Buffer.from(regCred.id).toString('base64url'),
       publicKey: Buffer.from(regCred.publicKey).toString('base64'),
       counter: regCred.counter,
@@ -54,7 +50,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Clean up challenge
-    await set(challengeRef, null);
+    await db.ref(`webauthnChallenges/${userId}`).remove();
 
     return NextResponse.json({ success: true, message: 'Biometric login registered!' });
   } catch (error: any) {

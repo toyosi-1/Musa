@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getFirebaseDatabase as getServerDb } from '@/lib/firebase';
-import { ref, get, set, update } from 'firebase/database';
+import { getAdminDatabase } from '@/lib/firebaseAdmin';
 
 /**
  * POST /api/device-approval
@@ -39,9 +38,8 @@ async function handleCheck(body: any) {
     return NextResponse.json({ success: false, message: 'Missing userId or deviceId' }, { status: 400 });
   }
 
-  const db = await getServerDb();
-  const deviceRef = ref(db, `users/${userId}/knownDevices/${deviceId}`);
-  const snapshot = await get(deviceRef);
+  const db = getAdminDatabase();
+  const snapshot = await db.ref(`users/${userId}/knownDevices/${deviceId}`).once('value');
 
   return NextResponse.json({
     success: true,
@@ -58,7 +56,7 @@ async function handleSend(body: any) {
     return NextResponse.json({ success: false, message: 'Missing required fields' }, { status: 400 });
   }
 
-  const db = await getServerDb();
+  const db = getAdminDatabase();
 
   // Generate a random token
   const token = generateToken();
@@ -66,8 +64,7 @@ async function handleSend(body: any) {
   const expiresAt = now + 15 * 60 * 1000; // 15 minutes
 
   // Store the pending approval
-  const approvalRef = ref(db, `deviceApprovals/${token}`);
-  await set(approvalRef, {
+  await db.ref(`deviceApprovals/${token}`).set({
     userId,
     deviceId,
     deviceLabel: deviceLabel || 'Unknown Device',
@@ -141,9 +138,8 @@ async function handleVerify(body: any) {
     return NextResponse.json({ success: false, message: 'Missing token' }, { status: 400 });
   }
 
-  const db = await getServerDb();
-  const approvalRef = ref(db, `deviceApprovals/${token}`);
-  const snapshot = await get(approvalRef);
+  const db = getAdminDatabase();
+  const snapshot = await db.ref(`deviceApprovals/${token}`).once('value');
 
   if (!snapshot.exists()) {
     return NextResponse.json({ success: false, message: 'Invalid or expired approval link.' });
@@ -156,19 +152,18 @@ async function handleVerify(body: any) {
   }
 
   if (data.expiresAt < Date.now()) {
-    await update(approvalRef, { status: 'expired' });
+    await db.ref(`deviceApprovals/${token}`).update({ status: 'expired' });
     return NextResponse.json({ success: false, message: 'This approval link has expired. Please try logging in again.' });
   }
 
   // Approve the device
-  const deviceRef = ref(db, `users/${data.userId}/knownDevices/${data.deviceId}`);
-  await set(deviceRef, {
+  await db.ref(`users/${data.userId}/knownDevices/${data.deviceId}`).set({
     label: data.deviceLabel,
     approvedAt: Date.now(),
   });
 
   // Mark token as used
-  await update(approvalRef, { status: 'approved', approvedAt: Date.now() });
+  await db.ref(`deviceApprovals/${token}`).update({ status: 'approved', approvedAt: Date.now() });
 
   return NextResponse.json({
     success: true,

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { User, HouseholdInvite, Household } from '@/types/user';
 import { getPendingInvitationsByEmail, acceptHouseholdInvite, getHousehold } from '@/services/householdService';
 import { getUserProfile } from '@/services/userService';
+import { waitForFirebase } from '@/lib/firebase';
 
 interface PendingInvitationsProps {
   user: User;
@@ -26,6 +27,9 @@ export default function PendingInvitations({ user, onInvitationAccepted }: Pendi
       try {
         setIsLoading(true);
         setError('');
+
+        // Ensure Firebase is ready before querying
+        await waitForFirebase();
         
         const invites = await getPendingInvitationsByEmail(user.email);
         console.log('Fetched pending invitations:', invites);
