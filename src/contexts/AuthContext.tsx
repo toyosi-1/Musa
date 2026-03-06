@@ -1012,28 +1012,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                   if (initialUser) {
                     console.log('🔄 Initial auth null but we have instant-recovered user — keeping:', initialUser.displayName);
                     
-                    // CRITICAL: Ensure Firebase database is initialized before setting user
-                    // This prevents "Failed to load dashboard data" errors
-                    console.log('⏳ Ensuring Firebase database is ready before setting user...');
+                    // CRITICAL: Test database connection with actual query before setting user
+                    console.log('⏳ Testing database connection before setting user...');
                     
-                    // Keep loading state active until Firebase is ready
+                    // Keep loading state active until database is verified
                     setLoading(true);
                     
-                    waitForFirebase().then(ready => {
-                      if (ready) {
-                        console.log('✅ Firebase ready, user can now access dashboard');
+                    // Test database with actual query
+                    (async () => {
+                      try {
+                        const db = await getFirebaseDatabase();
+                        const testRef = ref(db, `users/${initialUser.uid}`);
+                        console.log('🔍 Attempting test query to verify database connection...');
+                        await get(testRef);
+                        console.log('✅ Database connection verified, user can now access dashboard');
                         setCurrentUser(initialUser);
                         setLoading(false);
-                      } else {
-                        console.error('❌ Firebase failed to initialize, clearing recovered user');
-                        setCurrentUser(null);
-                        setLoading(false);
+                      } catch (err) {
+                        console.error('❌ Database connection test failed:', err);
+                        console.log('⏳ Retrying in 2 seconds...');
+                        // Retry once after delay
+                        setTimeout(async () => {
+                          try {
+                            const db = await getFirebaseDatabase();
+                            const testRef = ref(db, `users/${initialUser.uid}`);
+                            await get(testRef);
+                            console.log('✅ Database connection verified on retry');
+                            setCurrentUser(initialUser);
+                            setLoading(false);
+                          } catch (retryErr) {
+                            console.error('❌ Database connection failed after retry:', retryErr);
+                            setCurrentUser(null);
+                            setLoading(false);
+                          }
+                        }, 2000);
                       }
-                    }).catch(err => {
-                      console.error('❌ Error waiting for Firebase:', err);
-                      setCurrentUser(null);
-                      setLoading(false);
-                    });
+                    })();
                     return; // Don't clear anything
                   }
 
@@ -1045,27 +1059,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     if (cachedUser) {
                       console.log('📦 Recovered user from persisted profile:', cachedUser.displayName);
                       
-                      // CRITICAL: Ensure Firebase database is initialized before setting user
-                      console.log('⏳ Ensuring Firebase database is ready before setting user...');
+                      // CRITICAL: Test database connection with actual query before setting user
+                      console.log('⏳ Testing database connection before setting user...');
                       
-                      // Keep loading state active until Firebase is ready
+                      // Keep loading state active until database is verified
                       setLoading(true);
                       
-                      waitForFirebase().then(ready => {
-                        if (ready) {
-                          console.log('✅ Firebase ready, user can now access dashboard');
+                      // Test database with actual query
+                      (async () => {
+                        try {
+                          const db = await getFirebaseDatabase();
+                          const testRef = ref(db, `users/${cachedUser.uid}`);
+                          console.log('🔍 Attempting test query to verify database connection...');
+                          await get(testRef);
+                          console.log('✅ Database connection verified, user can now access dashboard');
                           setCurrentUser(cachedUser);
                           setLoading(false);
-                        } else {
-                          console.error('❌ Firebase failed to initialize, clearing recovered user');
-                          setCurrentUser(null);
-                          setLoading(false);
+                        } catch (err) {
+                          console.error('❌ Database connection test failed:', err);
+                          console.log('⏳ Retrying in 2 seconds...');
+                          // Retry once after delay
+                          setTimeout(async () => {
+                            try {
+                              const db = await getFirebaseDatabase();
+                              const testRef = ref(db, `users/${cachedUser.uid}`);
+                              await get(testRef);
+                              console.log('✅ Database connection verified on retry');
+                              setCurrentUser(cachedUser);
+                              setLoading(false);
+                            } catch (retryErr) {
+                              console.error('❌ Database connection failed after retry:', retryErr);
+                              setCurrentUser(null);
+                              setLoading(false);
+                            }
+                          }, 2000);
                         }
-                      }).catch(err => {
-                        console.error('❌ Error waiting for Firebase:', err);
-                        setCurrentUser(null);
-                        setLoading(false);
-                      });
+                      })();
                       return; // Don't clear anything
                     }
                   }
