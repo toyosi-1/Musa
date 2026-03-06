@@ -10,7 +10,7 @@ import HouseholdManager from './HouseholdManager';
 import CreateHouseholdForm from './CreateHouseholdForm';
 import PendingInvitations from './PendingInvitations';
 import { useDeviceAuthorization } from '@/hooks/useDeviceAuthorization';
-import { getFirebaseDatabase, waitForFirebase } from '@/lib/firebase';
+import { getFirebaseDatabase } from '@/lib/firebase';
 import { ref, get } from 'firebase/database';
 
 interface ResidentDashboardProps {
@@ -42,20 +42,10 @@ export default function ResidentDashboard({ user }: ResidentDashboardProps) {
 
       console.log(`[ResidentDashboard] loadData attempt ${retryCount + 1}/3`);
 
-      // Ensure Firebase is fully initialized before querying
-      const ready = await waitForFirebase();
-      console.log(`[ResidentDashboard] Firebase ready: ${ready}`);
-      
-      if (!ready && retryCount < 2) {
-        // Firebase not ready yet — wait a moment and retry
-        console.warn(`[ResidentDashboard] Firebase not ready, retrying in 1.5s...`);
-        await new Promise(r => setTimeout(r, 1500));
-        return loadData(retryCount + 1);
-      }
-
-      if (!ready) {
-        console.error('[ResidentDashboard] Firebase failed to initialize after 3 attempts');
-        throw new Error('Firebase initialization failed. Please refresh the page.');
+      // Add a small delay on retries to allow Firebase to initialize
+      if (retryCount > 0) {
+        console.log(`[ResidentDashboard] Waiting ${retryCount * 1000}ms before retry...`);
+        await new Promise(r => setTimeout(r, retryCount * 1000));
       }
       
       console.log('[ResidentDashboard] Loading access codes...');
@@ -94,6 +84,13 @@ export default function ResidentDashboard({ user }: ResidentDashboardProps) {
       }
     } catch (err) {
       console.error('Error loading dashboard data:', err);
+      
+      // Auto-retry up to 2 times
+      if (retryCount < 2) {
+        console.log(`[ResidentDashboard] Error occurred, will retry (${retryCount + 1}/2)`);
+        return loadData(retryCount + 1);
+      }
+      
       setError('Failed to load dashboard data. Please try refreshing the page.');
     } finally {
       setLoading(false);
