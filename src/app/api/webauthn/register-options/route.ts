@@ -17,7 +17,16 @@ export async function POST(request: NextRequest) {
     }
 
     // Get existing credentials for this user (to exclude them)
-    const db = getAdminDatabase();
+    let db;
+    try {
+      db = getAdminDatabase();
+    } catch (dbError: any) {
+      console.error('Firebase Admin init failed:', dbError);
+      return NextResponse.json({ 
+        success: false, 
+        message: 'Server configuration error. Please contact support.' 
+      }, { status: 500 });
+    }
     const snapshot = await db.ref(`webauthnCredentials/${userId}`).once('value');
     const existingCreds: any[] = [];
     if (snapshot.exists()) {

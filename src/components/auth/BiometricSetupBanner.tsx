@@ -44,6 +44,12 @@ export default function BiometricSetupBanner() {
       setMessage(result.message);
       setTimeout(() => setShow(false), 2000);
     } else {
+      // If it's a server config error, hide the banner entirely
+      if (result.message.includes('Server configuration error') || result.message.includes('contact support')) {
+        console.warn('Biometric feature not available due to server configuration');
+        setShow(false);
+        return;
+      }
       setStatus('error');
       setMessage(result.message);
     }

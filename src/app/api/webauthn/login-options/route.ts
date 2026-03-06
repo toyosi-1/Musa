@@ -16,7 +16,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, message: 'Missing email' }, { status: 400 });
     }
 
-    const db = getAdminDatabase();
+    let db;
+    try {
+      db = getAdminDatabase();
+    } catch (dbError: any) {
+      console.error('Firebase Admin init failed:', dbError);
+      return NextResponse.json({ 
+        success: false, 
+        message: 'Server configuration error. Please contact support.' 
+      }, { status: 500 });
+    }
 
     // Find userId by email
     const usersSnap = await db.ref('users').once('value');

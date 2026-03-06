@@ -38,7 +38,16 @@ async function handleCheck(body: any) {
     return NextResponse.json({ success: false, message: 'Missing userId or deviceId' }, { status: 400 });
   }
 
-  const db = getAdminDatabase();
+  let db;
+  try {
+    db = getAdminDatabase();
+  } catch (dbError: any) {
+    console.error('Firebase Admin init failed:', dbError);
+    return NextResponse.json({ 
+      success: false, 
+      message: 'Server configuration error. Please contact support.' 
+    }, { status: 500 });
+  }
   const snapshot = await db.ref(`users/${userId}/knownDevices/${deviceId}`).once('value');
 
   return NextResponse.json({
@@ -56,7 +65,16 @@ async function handleSend(body: any) {
     return NextResponse.json({ success: false, message: 'Missing required fields' }, { status: 400 });
   }
 
-  const db = getAdminDatabase();
+  let db;
+  try {
+    db = getAdminDatabase();
+  } catch (dbError: any) {
+    console.error('Firebase Admin init failed:', dbError);
+    return NextResponse.json({ 
+      success: false, 
+      message: 'Server configuration error. Please contact support.' 
+    }, { status: 500 });
+  }
 
   // Generate a random token
   const token = generateToken();
@@ -138,7 +156,16 @@ async function handleVerify(body: any) {
     return NextResponse.json({ success: false, message: 'Missing token' }, { status: 400 });
   }
 
-  const db = getAdminDatabase();
+  let db;
+  try {
+    db = getAdminDatabase();
+  } catch (dbError: any) {
+    console.error('Firebase Admin init failed:', dbError);
+    return NextResponse.json({ 
+      success: false, 
+      message: 'Server configuration error. Please contact support.' 
+    }, { status: 500 });
+  }
   const snapshot = await db.ref(`deviceApprovals/${token}`).once('value');
 
   if (!snapshot.exists()) {

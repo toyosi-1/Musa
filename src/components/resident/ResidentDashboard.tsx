@@ -40,16 +40,28 @@ export default function ResidentDashboard({ user }: ResidentDashboardProps) {
       setLoading(true);
       setError('');
 
+      console.log(`[ResidentDashboard] loadData attempt ${retryCount + 1}/3`);
+
       // Ensure Firebase is fully initialized before querying
       const ready = await waitForFirebase();
+      console.log(`[ResidentDashboard] Firebase ready: ${ready}`);
+      
       if (!ready && retryCount < 2) {
         // Firebase not ready yet — wait a moment and retry
+        console.warn(`[ResidentDashboard] Firebase not ready, retrying in 1.5s...`);
         await new Promise(r => setTimeout(r, 1500));
         return loadData(retryCount + 1);
       }
+
+      if (!ready) {
+        console.error('[ResidentDashboard] Firebase failed to initialize after 3 attempts');
+        throw new Error('Firebase initialization failed. Please refresh the page.');
+      }
       
+      console.log('[ResidentDashboard] Loading access codes...');
       // Load access codes
       const codes = await getResidentAccessCodes(user.uid);
+      console.log(`[ResidentDashboard] Loaded ${codes.length} access codes`);
       setAccessCodes(codes);
 
       // Load household data

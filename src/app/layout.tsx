@@ -8,6 +8,7 @@ import AuthWrapper from '@/components/auth/AuthWrapper';
 import LoadingScreen from '@/components/ui/LoadingScreen';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import { getPublicEnvScript } from '@/utils/env';
+import UpdateChecker from '@/components/ui/UpdateChecker';
 import MobileInitializer from '@/components/layout/MobileInitializer';
 import DeviceApprovalNotice from '@/components/auth/DeviceApprovalNotice';
 
@@ -216,6 +217,7 @@ export default function RootLayout({
               </div>
             </Suspense>
             <DeviceApprovalNotice />
+            <UpdateChecker />
           </AuthWrapper>
         </ThemeProvider>
       </body>

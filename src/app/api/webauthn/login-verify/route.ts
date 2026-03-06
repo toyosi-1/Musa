@@ -17,7 +17,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, message: 'Missing data' }, { status: 400 });
     }
 
-    const db = getAdminDatabase();
+    let db;
+    try {
+      db = getAdminDatabase();
+    } catch (dbError: any) {
+      console.error('Firebase Admin init failed:', dbError);
+      return NextResponse.json({ 
+        success: false, 
+        message: 'Server configuration error. Please contact support.' 
+      }, { status: 500 });
+    }
 
     // Get the stored challenge
     const challengeSnap = await db.ref(`webauthnChallenges/${userId}`).once('value');
