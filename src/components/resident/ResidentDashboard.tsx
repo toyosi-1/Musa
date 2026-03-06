@@ -49,11 +49,8 @@ export default function ResidentDashboard({ user }: ResidentDashboardProps) {
       console.log('[ResidentDashboard] Waiting for auth session...');
       const authReady = await waitForAuthUser();
       if (!authReady) {
-        console.warn('[ResidentDashboard] Auth session not available, will retry...');
-        if (retryCount < 2) {
-          return loadData(retryCount + 1);
-        }
-        setError('Unable to connect to database. Please log out and log back in.');
+        console.warn('[ResidentDashboard] Auth session not restored');
+        setError('SESSION_EXPIRED');
         return;
       }
       console.log('[ResidentDashboard] Auth session ready, loading data...');
@@ -228,10 +225,30 @@ export default function ResidentDashboard({ user }: ResidentDashboardProps) {
       {error && (
         <div className="bg-red-50 dark:bg-red-900/30 border-l-4 border-red-500 text-red-700 dark:text-red-300 px-6 py-4 rounded-xl shadow-card mb-8">
           <div className="flex items-center">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-3 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-3 flex-shrink-0 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <p className="font-medium">{error}</p>
+            <div className="flex-1">
+              <p className="font-medium">
+                {error === 'SESSION_EXPIRED' 
+                  ? 'Your session needs to be refreshed.' 
+                  : error}
+              </p>
+              <div className="mt-2 flex gap-2">
+                <button
+                  onClick={() => window.location.reload()}
+                  className="px-4 py-1.5 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition-colors"
+                >
+                  Reload App
+                </button>
+                <button
+                  onClick={() => loadData()}
+                  className="px-4 py-1.5 bg-red-100 dark:bg-red-800 text-red-700 dark:text-red-200 text-sm rounded-lg hover:bg-red-200 dark:hover:bg-red-700 transition-colors"
+                >
+                  Retry
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
