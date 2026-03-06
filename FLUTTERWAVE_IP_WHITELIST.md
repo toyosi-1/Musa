@@ -16,11 +16,18 @@ Netlify uses dynamic IPs, but you can whitelist their IP ranges:
 
 ### Step 2: Whitelist IPs in Flutterwave Dashboard
 1. Log in to https://dashboard.flutterwave.com
-2. Go to **Settings** → **API Keys**
-3. Scroll to **IP Whitelisting** section
-4. Add the following IPs (if using client-side approach, add `0.0.0.0/0` temporarily):
-   - For production: Add specific Netlify IPs
-   - For testing: Add `0.0.0.0/0` (allows all IPs - NOT recommended for production)
+2. Go to **Settings** → **Whitelisted IP addresses**
+3. Add these Netlify IP addresses (one at a time):
+   ```
+   35.231.145.151
+   35.243.134.110
+   34.75.96.118
+   35.185.44.232
+   34.74.90.64
+   35.190.247.98
+   ```
+4. **Note:** Netlify uses multiple IPs, so you need to add all of them
+5. If you get errors, you may need to contact Netlify support for their current IP ranges
 
 ### Step 3: Alternative Solution (Recommended)
 Since Netlify uses dynamic IPs, the best approach is to:

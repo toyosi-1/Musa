@@ -10,7 +10,7 @@ import HouseholdManager from './HouseholdManager';
 import CreateHouseholdForm from './CreateHouseholdForm';
 import PendingInvitations from './PendingInvitations';
 import { useDeviceAuthorization } from '@/hooks/useDeviceAuthorization';
-import { getFirebaseDatabase } from '@/lib/firebase';
+import { getFirebaseDatabase, waitForAuthUser } from '@/lib/firebase';
 import { ref, get } from 'firebase/database';
 
 interface ResidentDashboardProps {
@@ -42,11 +42,21 @@ export default function ResidentDashboard({ user }: ResidentDashboardProps) {
 
       console.log(`[ResidentDashboard] loadData attempt ${retryCount + 1}/3`);
 
-      // Add a small delay on retries to allow Firebase to initialize
-      if (retryCount > 0) {
-        console.log(`[ResidentDashboard] Waiting ${retryCount * 1000}ms before retry...`);
-        await new Promise(r => setTimeout(r, retryCount * 1000));
+      // CRITICAL: Wait for Firebase Auth to restore the session
+      // On PWA cold starts, the cached user is set from localStorage but
+      // Firebase Auth hasn't restored the session yet. Database security
+      // rules require authentication, so queries will fail without this.
+      console.log('[ResidentDashboard] Waiting for auth session...');
+      const authReady = await waitForAuthUser();
+      if (!authReady) {
+        console.warn('[ResidentDashboard] Auth session not available, will retry...');
+        if (retryCount < 2) {
+          return loadData(retryCount + 1);
+        }
+        setError('Unable to connect to database. Please log out and log back in.');
+        return;
       }
+      console.log('[ResidentDashboard] Auth session ready, loading data...');
       
       console.log('[ResidentDashboard] Loading access codes...');
       // Load access codes

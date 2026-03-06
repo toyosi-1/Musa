@@ -7,6 +7,7 @@ import {
   browserLocalPersistence, 
   indexedDBLocalPersistence,
   signInWithEmailAndPassword,
+  onAuthStateChanged,
   UserCredential
 } from 'firebase/auth';
 import { 
@@ -621,6 +622,49 @@ export const waitForFirebase = async (): Promise<boolean> => {
   if (isInitialized) return true;
   if (connectionPromise) return connectionPromise;
   return initializeFirebase();
+};
+
+/**
+ * Wait for Firebase Auth to have a real authenticated user.
+ * On PWA cold starts, Firebase restores the auth session asynchronously.
+ * Database security rules require authentication, so queries will fail
+ * if called before the auth session is restored.
+ * 
+ * @param timeoutMs Maximum time to wait (default 10 seconds)
+ * @returns true if auth user is available, false if timed out
+ */
+export const waitForAuthUser = async (timeoutMs = 10000): Promise<boolean> => {
+  // Ensure Firebase is initialized first
+  await waitForFirebase();
+  
+  const auth = await getFirebaseAuth();
+  
+  // Already have a user
+  if (auth.currentUser) {
+    console.log('✅ Auth user already available:', auth.currentUser.email);
+    return true;
+  }
+  
+  console.log('⏳ Waiting for Firebase Auth to restore session...');
+  
+  // Wait for onAuthStateChanged to fire with a real user
+  return new Promise<boolean>((resolve) => {
+    const timeout = setTimeout(() => {
+      console.warn('⚠️ Auth user wait timed out after', timeoutMs, 'ms');
+      unsubscribe();
+      resolve(false);
+    }, timeoutMs);
+    
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        console.log('✅ Auth session restored for:', user.email);
+        clearTimeout(timeout);
+        unsubscribe();
+        resolve(true);
+      }
+      // If user is null on first call, keep waiting - session may still be restoring
+    });
+  });
 };
 
 /**
