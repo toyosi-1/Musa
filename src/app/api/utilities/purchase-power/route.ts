@@ -51,21 +51,27 @@ export async function POST(request: NextRequest) {
 
     // Flutterwave v3 create bill payment
     // Docs: https://developer.flutterwave.com/v3.0/reference/create-a-bill-payment
+    const billPayload = {
+      country: 'NG',
+      customer_id: String(meterNumber),
+      amount: Number(amount),
+      recurrence: 'ONCE',
+      type: String(itemCode),
+      reference: reference,
+      ...(billerCode ? { biller_name: String(billerCode) } : {}),
+      ...(phoneNumber ? { phone_number: String(phoneNumber) } : {}),
+      ...(email ? { email: String(email) } : {}),
+    };
+
+    console.log('Bill payment payload:', JSON.stringify(billPayload));
+
     const response = await fetch(`${FLUTTERWAVE_BASE_URL}/bills`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${FLUTTERWAVE_SECRET_KEY}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        country: 'NG',
-        customer: meterNumber,
-        amount: amount,
-        type: itemCode,
-        reference: reference,
-        ...(phoneNumber ? { phone_number: phoneNumber } : {}),
-        ...(email ? { email } : {}),
-      }),
+      body: JSON.stringify(billPayload),
     });
 
     const data = await response.json();

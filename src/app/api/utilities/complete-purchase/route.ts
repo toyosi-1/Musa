@@ -77,20 +77,24 @@ export async function POST(request: NextRequest) {
     // Step 2: Create the bill payment (purchase electricity)
     const reference = `MUSA-PWR-${Date.now()}-${transactionId}`;
 
-    console.log('Creating bill payment:', { itemCode, billerCode, meterNumber, amount: paidAmount, reference });
+    const billPayload = {
+      country: 'NG',
+      customer_id: String(meterNumber),
+      amount: Number(amount),
+      recurrence: 'ONCE',
+      type: String(itemCode),
+      reference: reference,
+      ...(billerCode ? { biller_name: String(billerCode) } : {}),
+      ...(phoneNumber ? { phone_number: String(phoneNumber) } : {}),
+      ...(email ? { email: String(email) } : {}),
+    };
+
+    console.log('Creating bill payment:', JSON.stringify(billPayload));
 
     const billRes = await fetch(`${FLUTTERWAVE_BASE_URL}/bills`, {
       method: 'POST',
       headers,
-      body: JSON.stringify({
-        country: 'NG',
-        customer: meterNumber,
-        amount: amount,
-        type: itemCode,
-        reference: reference,
-        ...(phoneNumber ? { phone_number: phoneNumber } : {}),
-        ...(email ? { email } : {}),
-      }),
+      body: JSON.stringify(billPayload),
     });
 
     const billData = await billRes.json();
@@ -113,10 +117,23 @@ export async function POST(request: NextRequest) {
           : 'Purchase successful! Your meter will be credited shortly.',
       });
     } else {
-      console.error('Bill payment failed after successful payment:', billData);
+      console.error('Bill payment failed after successful payment:', JSON.stringify(billData));
+      
+      // Detect common Flutterwave errors and provide helpful messages
+      const flwMessage = (billData.message || '').toLowerCase();
+      let userMessage: string;
+      
+      if (flwMessage.includes('ip') || flwMessage.includes('whitelist')) {
+        userMessage = 'Payment service configuration error (IP restriction). Please contact support.';
+      } else if (flwMessage.includes('specify') && flwMessage.includes('customer')) {
+        userMessage = 'Payment service error. Your payment was received — please contact support for your electricity token.';
+      } else {
+        userMessage = billData.message || 'Electricity purchase failed. Your payment was received — please contact support for a refund or retry.';
+      }
+      
       return NextResponse.json({
         success: false,
-        message: billData.message || 'Electricity purchase failed. Your payment was received — please contact support for a refund or retry.',
+        message: userMessage,
         paymentVerified: true,
       });
     }
