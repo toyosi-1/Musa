@@ -12,11 +12,7 @@ import { isBiometricAvailable, hasBiometricRegistered, registerBiometric } from 
  * - The user hasn't dismissed the banner
  */
 export default function BiometricSetupBanner() {
-  // TEMPORARILY DISABLED: Biometric feature requires Firebase Admin SDK configuration on server
-  // Will re-enable once FIREBASE_SERVICE_ACCOUNT_KEY is added to Netlify environment variables
-  return null;
-  
-  /* const { currentUser } = useAuth();
+  const { currentUser } = useAuth();
   const [show, setShow] = useState(false);
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState('');
@@ -34,7 +30,7 @@ export default function BiometricSetupBanner() {
     })();
   }, [currentUser]);
 
-  if (!show || !currentUser) return null; */
+  if (!show || !currentUser) return null;
 
   const handleEnable = async () => {
     setStatus('loading');
