@@ -7,6 +7,7 @@ import {
   browserLocalPersistence, 
   indexedDBLocalPersistence,
   signInWithEmailAndPassword,
+  signInWithCustomToken,
   onAuthStateChanged,
   UserCredential
 } from 'firebase/auth';
@@ -603,11 +604,11 @@ export const waitForAuthUser = async (timeoutMs = 15000): Promise<boolean> => {
   // Ensure Firebase is initialized first
   await waitForFirebase();
   
-  const auth = await getFirebaseAuth();
+  const authInstance = await getFirebaseAuth();
   
   // Already have a user
-  if (auth.currentUser) {
-    console.log('✅ Auth user already available:', auth.currentUser.email);
+  if (authInstance.currentUser) {
+    console.log('✅ Auth user already available:', authInstance.currentUser.email);
     return true;
   }
   
@@ -616,15 +617,15 @@ export const waitForAuthUser = async (timeoutMs = 15000): Promise<boolean> => {
   // Step 1: Wait for Firebase's built-in auth state resolution
   try {
     await Promise.race([
-      auth.authStateReady(),
+      authInstance.authStateReady(),
       new Promise((_, reject) => setTimeout(() => reject(new Error('authStateReady timeout')), 5000))
     ]);
   } catch (e) {
     console.warn('⚠️ authStateReady timed out or failed');
   }
   
-  if (auth.currentUser) {
-    console.log('✅ Auth restored after authStateReady:', auth.currentUser.email);
+  if (authInstance.currentUser) {
+    console.log('✅ Auth restored after authStateReady:', (authInstance.currentUser as any)?.email);
     return true;
   }
   
@@ -635,7 +636,7 @@ export const waitForAuthUser = async (timeoutMs = 15000): Promise<boolean> => {
       resolve(false);
     }, 3000);
     
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(authInstance, (user) => {
       if (user) {
         console.log('✅ Auth session restored via listener:', user.email);
         clearTimeout(timeout);
@@ -648,10 +649,10 @@ export const waitForAuthUser = async (timeoutMs = 15000): Promise<boolean> => {
   if (authRestoredViaListener) return true;
   
   // Step 3: Try refresh token recovery as last resort
-  console.log('🔄 Attempting refresh token recovery...');
-  const recovered = await attemptRefreshTokenRecovery(auth);
+  console.log('🔄 Attempting refresh token recovery via custom token...');
+  const recovered = await attemptRefreshTokenRecovery(authInstance);
   if (recovered) {
-    console.log('✅ Session recovered via refresh token');
+    console.log('✅ Session recovered via custom token');
     return true;
   }
   
@@ -661,10 +662,14 @@ export const waitForAuthUser = async (timeoutMs = 15000): Promise<boolean> => {
 
 /**
  * Attempts to recover a user session using stored refresh token.
- * Uses Firebase REST API to exchange refresh token for new credentials,
- * then signs in with the refreshed email credential.
+ * Calls the server-side /api/auth/refresh endpoint which:
+ * 1. Validates the refresh token via Firebase REST API
+ * 2. Creates a custom token using Firebase Admin SDK
+ * 3. Returns the custom token so we can call signInWithCustomToken()
+ * 
+ * This fully restores the Firebase Auth session without any page reload.
  */
-async function attemptRefreshTokenRecovery(auth: Auth): Promise<boolean> {
+async function attemptRefreshTokenRecovery(authInstance: Auth): Promise<boolean> {
   if (typeof window === 'undefined') return false;
   
   const backupAuthKey = 'firebase:authBackup';
@@ -676,7 +681,9 @@ async function attemptRefreshTokenRecovery(auth: Auth): Promise<boolean> {
   }
   
   try {
-    const { email, refreshToken, lastLogin } = JSON.parse(authBackup);
+    const parsed = JSON.parse(authBackup);
+    const { refreshToken, lastLogin } = parsed;
+    const email = parsed.email || 'unknown';
     
     // Only attempt recovery for recent logins (within last 30 days)
     if (Date.now() - lastLogin > 30 * 24 * 60 * 60 * 1000) {
@@ -685,49 +692,53 @@ async function attemptRefreshTokenRecovery(auth: Auth): Promise<boolean> {
       return false;
     }
     
-    if (!refreshToken || !email) {
-      console.log('Auth backup missing refresh token or email');
+    if (!refreshToken) {
+      console.log('Auth backup missing refresh token');
       return false;
     }
     
-    console.log('🔄 Exchanging refresh token for', email, '...');
+    console.log('🔄 Requesting custom token for session recovery...', email);
     
-    // Use Firebase REST API to exchange refresh token for new tokens
-    const apiKey = firebaseConfig.apiKey;
-    const response = await fetch(
-      `https://securetoken.googleapis.com/v1/token?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: `grant_type=refresh_token&refresh_token=${encodeURIComponent(refreshToken)}`
-      }
-    );
+    // Call our server endpoint to exchange refresh token for custom token
+    const response = await fetch('/api/auth/refresh', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refreshToken })
+    });
     
     if (!response.ok) {
-      console.warn('❌ Refresh token exchange failed:', response.status);
-      // Token is invalid/expired - clear backup
-      localStorage.removeItem(backupAuthKey);
+      const errData = await response.json().catch(() => ({}));
+      console.warn('❌ Session recovery request failed:', response.status, errData.message);
+      if (response.status === 401) {
+        // Token is invalid/expired - clear backup
+        localStorage.removeItem(backupAuthKey);
+      }
       return false;
     }
     
     const data = await response.json();
-    console.log('✅ Refresh token exchange successful, token valid for user:', email);
+    
+    if (!data.success || !data.customToken) {
+      console.warn('❌ Server did not return custom token');
+      return false;
+    }
+    
+    console.log('✅ Got custom token, signing in...');
+    
+    // Sign in with the custom token - this fully restores the Firebase Auth session
+    await signInWithCustomToken(authInstance, data.customToken);
     
     // Update the backup with the new refresh token
-    localStorage.setItem(backupAuthKey, JSON.stringify({
-      uid: data.user_id,
-      email,
-      refreshToken: data.refresh_token,
-      lastLogin: Date.now()
-    }));
+    if (data.refreshToken) {
+      localStorage.setItem(backupAuthKey, JSON.stringify({
+        uid: data.uid,
+        email,
+        refreshToken: data.refreshToken,
+        lastLogin: Date.now()
+      }));
+    }
     
-    // The refresh token exchange confirmed the session is valid.
-    // Force a page reload so Firebase Auth can pick up the refreshed state.
-    // This is a one-time operation after app cold start.
-    console.log('🔄 Reloading to restore auth session...');
-    window.location.reload();
-    
-    // Return true optimistically (page will reload)
+    console.log('✅ Session fully restored via custom token for:', email);
     return true;
     
   } catch (error) {
