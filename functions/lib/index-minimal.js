@@ -108,4 +108,4 @@ exports.getOutboundIP = functions
         res.status(500).json({ success: false, message: error === null || error === void 0 ? void 0 : error.message });
     }
 });
-//# sourceMappingURL=index.js.map
+//# sourceMappingURL=index-minimal.js.map

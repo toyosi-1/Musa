@@ -4,7 +4,11 @@ import { getAdminDatabase } from '@/lib/firebaseAdmin';
 import { getAuth } from 'firebase-admin/auth';
 
 const RP_ID = process.env.NEXT_PUBLIC_WEBAUTHN_RP_ID || 'musa-security.com';
-const ORIGIN = process.env.NEXT_PUBLIC_APP_URL || 'https://www.musa-security.com';
+const EXPECTED_ORIGINS = [
+  'https://musa-security.com',
+  'https://www.musa-security.com',
+  process.env.NEXT_PUBLIC_APP_URL,
+].filter(Boolean) as string[];
 
 /**
  * POST /api/webauthn/login-verify
@@ -61,7 +65,7 @@ export async function POST(request: NextRequest) {
     const verification = await verifyAuthenticationResponse({
       response: credential,
       expectedChallenge: challenge,
-      expectedOrigin: ORIGIN,
+      expectedOrigin: EXPECTED_ORIGINS,
       expectedRPID: RP_ID,
       credential: {
         id: matchedCred.credentialId,

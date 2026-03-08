@@ -3,10 +3,13 @@ import * as https from 'https';
 
 /**
  * Flutterwave Bill Payment Proxy
+ * Simple proxy that forwards bill payment requests to Flutterwave
  */
 export const flutterwaveBillProxy = functions
   .region('us-central1')
+  .runWith({ secrets: ['FLUTTERWAVE_SECRET_KEY', 'PROXY_SECRET'] })
   .https.onRequest(async (req, res) => {
+    // CORS
     res.set('Access-Control-Allow-Origin', '*');
     res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
     res.set('Access-Control-Allow-Headers', 'Content-Type');
@@ -24,16 +27,14 @@ export const flutterwaveBillProxy = functions
     try {
       const { proxySecret, ...billPayload } = req.body;
 
-      // Get config at runtime, not module load
-      const config = functions.config();
-      const expectedSecret = config.proxy?.secret;
-      
+      // Auth check
+      const expectedSecret = process.env.PROXY_SECRET;
       if (!expectedSecret || proxySecret !== expectedSecret) {
         res.status(401).json({ success: false, message: 'Unauthorized' });
         return;
       }
 
-      const flutterwaveKey = config.flutterwave?.secret_key;
+      const flutterwaveKey = process.env.FLUTTERWAVE_SECRET_KEY;
       if (!flutterwaveKey) {
         res.status(500).json({ success: false, message: 'Service not configured' });
         return;
@@ -82,7 +83,7 @@ export const flutterwaveBillProxy = functions
   });
 
 /**
- * Get outbound IP
+ * Get outbound IP for whitelisting
  */
 export const getOutboundIP = functions
   .region('us-central1')

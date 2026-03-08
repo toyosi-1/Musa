@@ -16,11 +16,13 @@ const functions = require("firebase-functions");
 const https = require("https");
 /**
  * Flutterwave Bill Payment Proxy
+ * Simple proxy that forwards bill payment requests to Flutterwave
  */
 exports.flutterwaveBillProxy = functions
     .region('us-central1')
+    .runWith({ secrets: ['FLUTTERWAVE_SECRET_KEY', 'PROXY_SECRET'] })
     .https.onRequest(async (req, res) => {
-    var _a, _b;
+    // CORS
     res.set('Access-Control-Allow-Origin', '*');
     res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
     res.set('Access-Control-Allow-Headers', 'Content-Type');
@@ -33,15 +35,14 @@ exports.flutterwaveBillProxy = functions
         return;
     }
     try {
-        const _c = req.body, { proxySecret } = _c, billPayload = __rest(_c, ["proxySecret"]);
-        // Get config at runtime, not module load
-        const config = functions.config();
-        const expectedSecret = (_a = config.proxy) === null || _a === void 0 ? void 0 : _a.secret;
+        const _a = req.body, { proxySecret } = _a, billPayload = __rest(_a, ["proxySecret"]);
+        // Auth check
+        const expectedSecret = process.env.PROXY_SECRET;
         if (!expectedSecret || proxySecret !== expectedSecret) {
             res.status(401).json({ success: false, message: 'Unauthorized' });
             return;
         }
-        const flutterwaveKey = (_b = config.flutterwave) === null || _b === void 0 ? void 0 : _b.secret_key;
+        const flutterwaveKey = process.env.FLUTTERWAVE_SECRET_KEY;
         if (!flutterwaveKey) {
             res.status(500).json({ success: false, message: 'Service not configured' });
             return;
@@ -85,7 +86,7 @@ exports.flutterwaveBillProxy = functions
     }
 });
 /**
- * Get outbound IP
+ * Get outbound IP for whitelisting
  */
 exports.getOutboundIP = functions
     .region('us-central1')
@@ -108,4 +109,4 @@ exports.getOutboundIP = functions
         res.status(500).json({ success: false, message: error === null || error === void 0 ? void 0 : error.message });
     }
 });
-//# sourceMappingURL=index.js.map
+//# sourceMappingURL=proxy.js.map
