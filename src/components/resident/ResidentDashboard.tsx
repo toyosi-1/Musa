@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { User, AccessCode, Household, Estate } from '@/types/user';
 import { getResidentAccessCodes, createAccessCode, deactivateAccessCode } from '@/services/accessCodeService';
 import { getHousehold, createHousehold } from '@/services/householdService';
@@ -18,6 +19,7 @@ interface ResidentDashboardProps {
 }
 
 export default function ResidentDashboard({ user }: ResidentDashboardProps) {
+  const router = useRouter();
   const [accessCodes, setAccessCodes] = useState<AccessCode[]>([]);
   const [household, setHousehold] = useState<Household | null>(null);
   const [estate, setEstate] = useState<Estate | null>(null);
@@ -207,19 +209,76 @@ export default function ResidentDashboard({ user }: ResidentDashboardProps) {
 
   return (
     <div className="w-full">
-      <div className="flex items-center justify-between mb-8">
-        <h1 className="text-3xl font-bold text-gray-800 dark:text-white">Resident Dashboard</h1>
-        {estate && (
-          <div className="flex items-center gap-2 px-4 py-2 bg-blue-50 dark:bg-blue-900/30 rounded-lg border border-blue-200 dark:border-blue-800">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+      {/* ─── Welcome Banner ─── */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary via-primary/90 to-emerald-600 p-5 mb-6">
+        <div className="relative z-10">
+          <h1 className="text-xl font-bold text-white">
+            Welcome, {user.displayName?.split(' ')[0] || 'Resident'}
+          </h1>
+          {estate && (
+            <p className="text-sm text-white/80 font-medium mt-1">{estate.name}</p>
+          )}
+        </div>
+        <div className="absolute -right-4 -top-4 w-28 h-28 bg-white/10 rounded-full" />
+        <div className="absolute -right-8 top-8 w-20 h-20 bg-white/5 rounded-full" />
+      </div>
+
+      {/* ─── Quick Action Tiles ─── */}
+      <div className="grid grid-cols-2 gap-3 mb-8">
+        {/* Visitors */}
+        <button
+          onClick={() => document.querySelector('#access-codes-section')?.scrollIntoView({ behavior: 'smooth' })}
+          className="flex flex-col items-center justify-center gap-2 p-5 rounded-2xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md hover:border-primary/30 dark:hover:border-primary/40 transition-all active:scale-[0.97]"
+        >
+          <div className="w-12 h-12 rounded-xl bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center">
+            <svg className="h-6 w-6 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
-            <div className="text-sm">
-              <span className="text-gray-600 dark:text-gray-400">Estate: </span>
-              <span className="font-semibold text-gray-800 dark:text-white">{estate.name}</span>
-            </div>
           </div>
-        )}
+          <span className="text-sm font-semibold text-gray-800 dark:text-white">Visitors</span>
+        </button>
+
+        {/* Utility */}
+        <button
+          onClick={() => router.push('/dashboard/utilities')}
+          className="flex flex-col items-center justify-center gap-2 p-5 rounded-2xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md hover:border-primary/30 dark:hover:border-primary/40 transition-all active:scale-[0.97]"
+        >
+          <div className="w-12 h-12 rounded-xl bg-yellow-50 dark:bg-yellow-900/30 flex items-center justify-center">
+            <svg className="h-6 w-6 text-yellow-600 dark:text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+          </div>
+          <span className="text-sm font-semibold text-gray-800 dark:text-white">Utility</span>
+        </button>
+
+        {/* Emergency (Coming Soon) */}
+        <button
+          disabled
+          className="relative flex flex-col items-center justify-center gap-2 p-5 rounded-2xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 opacity-60 cursor-not-allowed"
+        >
+          <span className="absolute top-2 right-2 text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400">Soon</span>
+          <div className="w-12 h-12 rounded-xl bg-red-50 dark:bg-red-900/30 flex items-center justify-center">
+            <svg className="h-6 w-6 text-red-500 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <span className="text-sm font-semibold text-gray-800 dark:text-white">Emergency</span>
+        </button>
+
+        {/* Technicians (Coming Soon) */}
+        <button
+          disabled
+          className="relative flex flex-col items-center justify-center gap-2 p-5 rounded-2xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 opacity-60 cursor-not-allowed"
+        >
+          <span className="absolute top-2 right-2 text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400">Soon</span>
+          <div className="w-12 h-12 rounded-xl bg-purple-50 dark:bg-purple-900/30 flex items-center justify-center">
+            <svg className="h-6 w-6 text-purple-600 dark:text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+          </div>
+          <span className="text-sm font-semibold text-gray-800 dark:text-white">Technicians</span>
+        </button>
       </div>
       
       {error && (
@@ -268,7 +327,7 @@ export default function ResidentDashboard({ user }: ResidentDashboardProps) {
       )}
       
       {/* Access Codes Section */}
-      <div className="space-y-8">
+      <div id="access-codes-section" className="space-y-8">
         {/* Section Header */}
         <div className="flex items-center mb-6">
           <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7 mr-3 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
