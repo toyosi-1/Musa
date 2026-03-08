@@ -4,6 +4,7 @@ import * as nodemailer from 'nodemailer';
 import * as handlebars from 'handlebars';
 import * as fs from 'fs';
 import * as path from 'path';
+import * as https from 'https';
 
 // Type definitions
 type HandlebarsTemplateDelegate = handlebars.TemplateDelegate;
@@ -131,6 +132,127 @@ export const sendEmail = functions.https.onCall(async (data: any, context: any) 
  * Automatically send email when a user's status changes
  * This is triggered by database changes
  */
+/**
+ * Flutterwave Bill Payment Proxy
+ * 
+ * This Cloud Function proxies bill payment API calls to Flutterwave.
+ * It runs on Google Cloud infrastructure with stable IPs that can be
+ * whitelisted in Flutterwave's dashboard.
+ * 
+ * Netlify doesn't provide fixed outbound IPs, so we route these
+ * specific API calls through this Cloud Function instead.
+ * 
+ * POST body: { proxySecret, country, customer_id, amount, type, reference, biller_name?, phone_number?, email? }
+ */
+export const flutterwaveBillProxy = functions
+  .region('us-central1')
+  .https.onRequest(async (req: functions.https.Request, res: functions.Response<any>) => {
+    // CORS headers
+    res.set('Access-Control-Allow-Origin', '*');
+    res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.set('Access-Control-Allow-Headers', 'Content-Type');
+
+    if (req.method === 'OPTIONS') {
+      res.status(204).send('');
+      return;
+    }
+
+    if (req.method !== 'POST') {
+      res.status(405).json({ success: false, message: 'Method not allowed' });
+      return;
+    }
+
+    try {
+      const { proxySecret, ...billPayload } = req.body;
+
+      // Authenticate the request using a shared secret
+      const expectedSecret = functions.config().proxy?.secret;
+      if (!expectedSecret || proxySecret !== expectedSecret) {
+        console.error('Invalid proxy secret');
+        res.status(401).json({ success: false, message: 'Unauthorized' });
+        return;
+      }
+
+      const flutterwaveKey = functions.config().flutterwave?.secret_key;
+      if (!flutterwaveKey) {
+        console.error('Flutterwave secret key not configured in Cloud Functions');
+        res.status(500).json({ success: false, message: 'Bill payment service not configured' });
+        return;
+      }
+
+      console.log('Proxying bill payment to Flutterwave:', JSON.stringify(billPayload));
+
+      // Make the request to Flutterwave using https module
+      const flwResponse: any = await new Promise((resolve, reject) => {
+        const postData = JSON.stringify(billPayload);
+        
+        const options = {
+          hostname: 'api.flutterwave.com',
+          port: 443,
+          path: '/v3/bills',
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${flutterwaveKey}`,
+            'Content-Type': 'application/json',
+            'Content-Length': Buffer.byteLength(postData),
+          },
+        };
+
+        const request = https.request(options, (response) => {
+          let data = '';
+          response.on('data', (chunk) => { data += chunk; });
+          response.on('end', () => {
+            try {
+              resolve(JSON.parse(data));
+            } catch (e) {
+              reject(new Error(`Failed to parse Flutterwave response: ${data}`));
+            }
+          });
+        });
+
+        request.on('error', (error) => {
+          reject(error);
+        });
+
+        request.write(postData);
+        request.end();
+      });
+
+      console.log('Flutterwave response:', JSON.stringify(flwResponse));
+      res.status(200).json(flwResponse);
+    } catch (error: any) {
+      console.error('Bill proxy error:', error?.message || error);
+      res.status(500).json({ success: false, message: 'Proxy error: ' + (error?.message || 'Unknown error') });
+    }
+  });
+
+/**
+ * Utility: Get this Cloud Function's outbound IP address
+ * Call this once after deploying to find the IP to whitelist in Flutterwave.
+ */
+export const getOutboundIP = functions
+  .region('us-central1')
+  .https.onRequest(async (_req: functions.https.Request, res: functions.Response<any>) => {
+    try {
+      const ipResponse: string = await new Promise((resolve, reject) => {
+        https.get('https://api.ipify.org', (response) => {
+          let data = '';
+          response.on('data', (chunk) => { data += chunk; });
+          response.on('end', () => resolve(data.trim()));
+        }).on('error', reject);
+      });
+      
+      console.log('Cloud Function outbound IP:', ipResponse);
+      res.status(200).json({ 
+        success: true, 
+        ip: ipResponse,
+        message: 'Add this IP to your Flutterwave IP whitelist' 
+      });
+    } catch (error: any) {
+      res.status(500).json({ success: false, message: error?.message });
+    }
+  });
+
 export const onUserStatusChange = functions.database
   .ref('/users/{userId}/status')
   .onUpdate(async (change: any, context: any) => {

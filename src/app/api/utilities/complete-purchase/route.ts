@@ -75,6 +75,7 @@ export async function POST(request: NextRequest) {
     console.log('Payment verified successfully:', { transactionId, paidAmount, paidCurrency });
 
     // Step 2: Create the bill payment (purchase electricity)
+    // Route through Firebase Cloud Function proxy to avoid Netlify IP whitelisting issue
     const reference = `MUSA-PWR-${Date.now()}-${transactionId}`;
 
     const billPayload = {
@@ -91,11 +92,26 @@ export async function POST(request: NextRequest) {
 
     console.log('Creating bill payment:', JSON.stringify(billPayload));
 
-    const billRes = await fetch(`${FLUTTERWAVE_BASE_URL}/bills`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(billPayload),
-    });
+    // Use Cloud Function proxy if available, otherwise try direct
+    const proxyUrl = process.env.BILL_PAYMENT_PROXY_URL;
+    const proxySecret = process.env.BILL_PAYMENT_PROXY_SECRET;
+    
+    let billRes;
+    if (proxyUrl && proxySecret) {
+      console.log('Using Cloud Function proxy for bill payment');
+      billRes = await fetch(proxyUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ proxySecret, ...billPayload }),
+      });
+    } else {
+      console.log('No proxy configured, calling Flutterwave directly');
+      billRes = await fetch(`${FLUTTERWAVE_BASE_URL}/bills`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(billPayload),
+      });
+    }
 
     const billData = await billRes.json();
     console.log('Bill payment response:', JSON.stringify(billData));
