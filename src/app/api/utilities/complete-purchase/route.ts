@@ -95,88 +95,71 @@ export async function POST(request: NextRequest) {
     console.log('Payment verified successfully:', { transactionId, paidAmount, paidCurrency });
 
     // Step 2: Create the bill payment (purchase electricity)
-    // Route through Firebase Cloud Function proxy to avoid Netlify IP whitelisting issue
+    // Per Flutterwave v3.0.0 docs:
+    //   - Bill payments debit from the MERCHANT's funded Flutterwave balance
+    //   - Server IP must be whitelisted in Flutterwave dashboard
+    //   - Token for prepaid comes from the bill STATUS endpoint (extra field)
     const reference = `MUSA-PWR-${Date.now()}-${transactionId}`;
 
     const billPayload = {
       country: 'NG',
-      customer: String(meterNumber),
+      customer_id: String(meterNumber),
       amount: Number(amount),
       recurrence: 'ONCE',
       type: String(itemCode),
       reference: reference,
       ...(billerCode ? { biller_name: String(billerCode) } : {}),
-      ...(phoneNumber ? { phone_number: String(phoneNumber) } : {}),
-      ...(email ? { email: String(email) } : {}),
     };
 
     console.log('Creating bill payment:', JSON.stringify(billPayload));
 
-    // Try Cloud Function proxy first, then fall back to direct Flutterwave API
+    // Route through Firebase Cloud Function proxy (whitelisted IP)
     const proxyUrl = process.env.BILL_PAYMENT_PROXY_URL;
     const proxySecret = process.env.BILL_PAYMENT_PROXY_SECRET;
-    
-    let billData: any;
 
-    // Helper: attempt a bill payment call and parse JSON response
-    const attemptBillPayment = async (
+    // Helper: make a JSON API call with error handling
+    const apiCall = async (
       url: string,
+      method: string,
       fetchHeaders: Record<string, string>,
-      body: any,
-      label: string
+      body?: any,
+      label = ''
     ): Promise<{ ok: boolean; data?: any; error?: string }> => {
       try {
-        console.log(`[${label}] Calling: ${url}`);
-        const res = await fetch(url, {
-          method: 'POST',
-          headers: fetchHeaders,
-          body: JSON.stringify(body),
-        });
+        console.log(`[${label}] ${method} ${url}`);
+        const opts: RequestInit = { method, headers: fetchHeaders };
+        if (body) opts.body = JSON.stringify(body);
+        const res = await fetch(url, opts);
         const text = await res.text();
         console.log(`[${label}] Status ${res.status}, body: ${text.substring(0, 800)}`);
-
         try {
-          const data = JSON.parse(text);
-          return { ok: true, data };
+          return { ok: true, data: JSON.parse(text) };
         } catch {
-          return { ok: false, error: `Non-JSON response (status ${res.status}): ${text.substring(0, 200)}` };
+          return { ok: false, error: `Non-JSON (status ${res.status}): ${text.substring(0, 200)}` };
         }
-      } catch (fetchErr: any) {
-        return { ok: false, error: fetchErr?.message || 'Network error' };
+      } catch (e: any) {
+        return { ok: false, error: e?.message || 'Network error' };
       }
     };
 
-    // 1) Try proxy if configured
+    let billData: any;
+
+    // 1) Try proxy (whitelisted IP)
     if (proxyUrl && proxySecret) {
-      const proxyResult = await attemptBillPayment(
-        proxyUrl,
-        { 'Content-Type': 'application/json' },
-        { proxySecret, ...billPayload },
-        'Proxy'
-      );
-      if (proxyResult.ok) {
-        billData = proxyResult.data;
-      } else {
-        console.warn('Proxy failed, falling back to direct API:', proxyResult.error);
-      }
+      const r = await apiCall(proxyUrl, 'POST', { 'Content-Type': 'application/json' }, { proxySecret, ...billPayload }, 'Proxy');
+      if (r.ok) billData = r.data;
+      else console.warn('Proxy failed:', r.error);
     }
 
-    // 2) Fall back to direct Flutterwave API if proxy wasn't used or failed
+    // 2) Fallback to direct API
     if (!billData) {
-      console.log('Calling Flutterwave bills API directly');
-      const directResult = await attemptBillPayment(
-        `${FLUTTERWAVE_BASE_URL}/bills`,
-        headers,
-        billPayload,
-        'Direct'
-      );
-      if (directResult.ok) {
-        billData = directResult.data;
+      const r = await apiCall(`${FLUTTERWAVE_BASE_URL}/bills`, 'POST', headers, billPayload, 'Direct');
+      if (r.ok) {
+        billData = r.data;
       } else {
-        console.error('Direct Flutterwave API also failed:', directResult.error);
         return NextResponse.json({
           success: false,
-          message: `Could not reach electricity service. Your payment was verified — please contact support for your token. (${directResult.error})`,
+          message: `Could not reach electricity service. Your payment of ₦${paidAmount} was verified — please contact support with ref: ${reference}`,
           paymentVerified: true,
         });
       }
@@ -184,43 +167,70 @@ export async function POST(request: NextRequest) {
 
     console.log('Bill payment response:', JSON.stringify(billData));
 
-    if (billData.status === 'success') {
-      const token =
-        billData.data?.extra ||
-        billData.data?.recharge_token ||
-        billData.data?.token ||
-        null;
-
-      return NextResponse.json({
-        success: true,
-        reference: billData.data?.flw_ref || billData.data?.tx_ref || reference,
-        token: token,
-        transactionId: transactionId,
-        message: token
-          ? 'Purchase successful! Your token is ready.'
-          : 'Purchase successful! Your meter will be credited shortly.',
-      });
-    } else {
-      console.error('Bill payment failed after successful payment:', JSON.stringify(billData));
-      
-      // Detect common Flutterwave errors and provide helpful messages
-      const flwMessage = (billData.message || '').toLowerCase();
+    // Handle Flutterwave account-level errors
+    if (billData.status !== 'success') {
+      const flwMsg = (billData.message || '').toLowerCase();
       let userMessage: string;
-      
-      if (flwMessage.includes('ip') || flwMessage.includes('whitelist')) {
-        userMessage = 'Payment service configuration error (IP restriction). Please contact support.';
-      } else if (flwMessage.includes('specify') && flwMessage.includes('customer')) {
-        userMessage = 'Payment service error. Your payment was received — please contact support for your electricity token.';
+
+      if (flwMsg.includes('cannot be processed') || flwMsg.includes('account administrator')) {
+        userMessage = 'Electricity service is temporarily unavailable (provider account issue). Your payment of ₦' + paidAmount + ' was verified — please contact support for your token or refund.';
+      } else if (flwMsg.includes('ip') || flwMsg.includes('whitelist')) {
+        userMessage = 'Service configuration error. Your payment was verified — please contact support.';
+      } else if (flwMsg.includes('balance') || flwMsg.includes('insufficient')) {
+        userMessage = 'Electricity service temporarily unavailable. Your payment was verified — please contact support.';
       } else {
-        userMessage = billData.message || 'Electricity purchase failed. Your payment was received — please contact support for a refund or retry.';
+        userMessage = billData.message || 'Electricity purchase could not be completed. Your payment was verified — please contact support.';
       }
-      
-      return NextResponse.json({
-        success: false,
-        message: userMessage,
-        paymentVerified: true,
-      });
+
+      return NextResponse.json({ success: false, message: userMessage, paymentVerified: true });
     }
+
+    // Bill creation succeeded — now poll for the token
+    // Per Flutterwave docs: token is in the "extra" field of the bill STATUS endpoint
+    const flwRef = billData.data?.flw_ref || billData.data?.tx_ref || '';
+    let token = billData.data?.extra || billData.data?.recharge_token || billData.data?.token || null;
+
+    // If no token in initial response, poll the status endpoint (up to 4 times, 5s apart)
+    if (!token && flwRef) {
+      console.log('No token in initial response, polling bill status for:', flwRef);
+      for (let attempt = 1; attempt <= 4; attempt++) {
+        await new Promise(resolve => setTimeout(resolve, 5000));
+        console.log(`[StatusPoll] Attempt ${attempt}/4 for ref: ${flwRef}`);
+
+        // Try via proxy first for whitelisted IP
+        let statusData: any;
+        if (proxyUrl && proxySecret) {
+          // The proxy only handles POST /bills — call status directly
+        }
+        const statusResult = await apiCall(
+          `${FLUTTERWAVE_BASE_URL}/bills/${flwRef}`,
+          'GET',
+          headers,
+          undefined,
+          `StatusPoll-${attempt}`
+        );
+
+        if (statusResult.ok && statusResult.data?.status === 'success') {
+          statusData = statusResult.data;
+          const extraToken = statusData.data?.extra;
+          if (extraToken && extraToken !== 'null' && extraToken !== '') {
+            token = extraToken;
+            console.log('Token found via status poll:', token);
+            break;
+          }
+        }
+      }
+    }
+
+    return NextResponse.json({
+      success: true,
+      reference: flwRef || reference,
+      token: token,
+      transactionId: transactionId,
+      message: token
+        ? 'Purchase successful! Your electricity token is ready.'
+        : 'Purchase initiated! Your meter will be credited shortly. Check your meter in a few minutes.',
+    });
   } catch (error: any) {
     console.error('Complete purchase error:', error?.message || error, error?.stack);
     return NextResponse.json(
