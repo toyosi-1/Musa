@@ -40,11 +40,31 @@ export async function POST(request: NextRequest) {
     // Step 1: Verify the payment with Flutterwave
     console.log('Verifying payment transaction:', transactionId);
 
-    const verifyRes = await fetch(
-      `${FLUTTERWAVE_BASE_URL}/transactions/${transactionId}/verify`,
-      { method: 'GET', headers }
-    );
-    const verifyData = await verifyRes.json();
+    let verifyData: any;
+    try {
+      const verifyRes = await fetch(
+        `${FLUTTERWAVE_BASE_URL}/transactions/${transactionId}/verify`,
+        { method: 'GET', headers }
+      );
+      const verifyText = await verifyRes.text();
+      try {
+        verifyData = JSON.parse(verifyText);
+      } catch {
+        console.error('Verify response not JSON:', verifyText.substring(0, 500));
+        return NextResponse.json({
+          success: false,
+          message: 'Payment verification returned an unexpected response. Your payment may still be valid — please contact support.',
+          paymentVerified: false,
+        });
+      }
+    } catch (fetchErr: any) {
+      console.error('Verify fetch failed:', fetchErr?.message);
+      return NextResponse.json({
+        success: false,
+        message: 'Could not reach payment verification service. Your payment may still be valid — please contact support.',
+        paymentVerified: false,
+      });
+    }
 
     if (verifyData.status !== 'success' || verifyData.data?.status !== 'successful') {
       console.error('Payment verification failed:', JSON.stringify(verifyData));
@@ -96,24 +116,47 @@ export async function POST(request: NextRequest) {
     const proxyUrl = process.env.BILL_PAYMENT_PROXY_URL;
     const proxySecret = process.env.BILL_PAYMENT_PROXY_SECRET;
     
-    let billRes;
-    if (proxyUrl && proxySecret) {
-      console.log('Using Cloud Function proxy for bill payment');
-      billRes = await fetch(proxyUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ proxySecret, ...billPayload }),
-      });
-    } else {
-      console.log('No proxy configured, calling Flutterwave directly');
-      billRes = await fetch(`${FLUTTERWAVE_BASE_URL}/bills`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(billPayload),
+    let billRes: Response;
+    let billData: any;
+    try {
+      if (proxyUrl && proxySecret) {
+        console.log('Using Cloud Function proxy for bill payment:', proxyUrl);
+        billRes = await fetch(proxyUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ proxySecret, ...billPayload }),
+        });
+      } else {
+        console.log('No proxy configured (BILL_PAYMENT_PROXY_URL missing), calling Flutterwave directly');
+        billRes = await fetch(`${FLUTTERWAVE_BASE_URL}/bills`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(billPayload),
+        });
+      }
+
+      const billText = await billRes.text();
+      console.log('Bill payment raw response (status', billRes.status, '):', billText.substring(0, 1000));
+
+      try {
+        billData = JSON.parse(billText);
+      } catch {
+        console.error('Bill response not JSON:', billText.substring(0, 500));
+        return NextResponse.json({
+          success: false,
+          message: 'Electricity service returned an unexpected response. Your payment was verified — please contact support for your token.',
+          paymentVerified: true,
+        });
+      }
+    } catch (fetchErr: any) {
+      console.error('Bill payment fetch failed:', fetchErr?.message);
+      return NextResponse.json({
+        success: false,
+        message: `Could not reach electricity service: ${fetchErr?.message || 'network error'}. Your payment was verified — please contact support.`,
+        paymentVerified: true,
       });
     }
 
-    const billData = await billRes.json();
     console.log('Bill payment response:', JSON.stringify(billData));
 
     if (billData.status === 'success') {
@@ -154,9 +197,13 @@ export async function POST(request: NextRequest) {
       });
     }
   } catch (error: any) {
-    console.error('Complete purchase error:', error?.message || error);
+    console.error('Complete purchase error:', error?.message || error, error?.stack);
     return NextResponse.json(
-      { success: false, message: 'Server error. Please try again or contact support.' },
+      { 
+        success: false, 
+        message: `Server error: ${error?.message || 'unknown'}. Your payment may still be valid — please contact support.`,
+        paymentVerified: false,
+      },
       { status: 500 }
     );
   }
