@@ -64,7 +64,7 @@ export default function VisitorsPage() {
   };
 
   const handleCreateCode = async (description: string, expiresAt?: number) => {
-    if (!currentUser) return;
+    if (!currentUser) return null;
     try {
       setError('');
 
@@ -74,14 +74,16 @@ export default function VisitorsPage() {
         throw new Error(msg);
       }
 
-      await createAccessCode(
+      const householdId = household?.id || currentUser.householdId || '';
+      const result = await createAccessCode(
         currentUser.uid,
-        household?.id || '',
+        householdId,
         description,
         expiresAt,
         currentUser.estateId || household?.estateId
       );
       await loadData();
+      return result;
     } catch (err) {
       console.error('Error creating access code:', err);
       const msg = err instanceof Error ? err.message : 'Failed to create access code';

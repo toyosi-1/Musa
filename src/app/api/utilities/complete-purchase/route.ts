@@ -112,49 +112,74 @@ export async function POST(request: NextRequest) {
 
     console.log('Creating bill payment:', JSON.stringify(billPayload));
 
-    // Use Cloud Function proxy if available, otherwise try direct
+    // Try Cloud Function proxy first, then fall back to direct Flutterwave API
     const proxyUrl = process.env.BILL_PAYMENT_PROXY_URL;
     const proxySecret = process.env.BILL_PAYMENT_PROXY_SECRET;
     
-    let billRes: Response;
     let billData: any;
-    try {
-      if (proxyUrl && proxySecret) {
-        console.log('Using Cloud Function proxy for bill payment:', proxyUrl);
-        billRes = await fetch(proxyUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ proxySecret, ...billPayload }),
-        });
-      } else {
-        console.log('No proxy configured (BILL_PAYMENT_PROXY_URL missing), calling Flutterwave directly');
-        billRes = await fetch(`${FLUTTERWAVE_BASE_URL}/bills`, {
-          method: 'POST',
-          headers,
-          body: JSON.stringify(billPayload),
-        });
-      }
 
-      const billText = await billRes.text();
-      console.log('Bill payment raw response (status', billRes.status, '):', billText.substring(0, 1000));
-
+    // Helper: attempt a bill payment call and parse JSON response
+    const attemptBillPayment = async (
+      url: string,
+      fetchHeaders: Record<string, string>,
+      body: any,
+      label: string
+    ): Promise<{ ok: boolean; data?: any; error?: string }> => {
       try {
-        billData = JSON.parse(billText);
-      } catch {
-        console.error('Bill response not JSON:', billText.substring(0, 500));
+        console.log(`[${label}] Calling: ${url}`);
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: fetchHeaders,
+          body: JSON.stringify(body),
+        });
+        const text = await res.text();
+        console.log(`[${label}] Status ${res.status}, body: ${text.substring(0, 800)}`);
+
+        try {
+          const data = JSON.parse(text);
+          return { ok: true, data };
+        } catch {
+          return { ok: false, error: `Non-JSON response (status ${res.status}): ${text.substring(0, 200)}` };
+        }
+      } catch (fetchErr: any) {
+        return { ok: false, error: fetchErr?.message || 'Network error' };
+      }
+    };
+
+    // 1) Try proxy if configured
+    if (proxyUrl && proxySecret) {
+      const proxyResult = await attemptBillPayment(
+        proxyUrl,
+        { 'Content-Type': 'application/json' },
+        { proxySecret, ...billPayload },
+        'Proxy'
+      );
+      if (proxyResult.ok) {
+        billData = proxyResult.data;
+      } else {
+        console.warn('Proxy failed, falling back to direct API:', proxyResult.error);
+      }
+    }
+
+    // 2) Fall back to direct Flutterwave API if proxy wasn't used or failed
+    if (!billData) {
+      console.log('Calling Flutterwave bills API directly');
+      const directResult = await attemptBillPayment(
+        `${FLUTTERWAVE_BASE_URL}/bills`,
+        headers,
+        billPayload,
+        'Direct'
+      );
+      if (directResult.ok) {
+        billData = directResult.data;
+      } else {
+        console.error('Direct Flutterwave API also failed:', directResult.error);
         return NextResponse.json({
           success: false,
-          message: 'Electricity service returned an unexpected response. Your payment was verified — please contact support for your token.',
+          message: `Could not reach electricity service. Your payment was verified — please contact support for your token. (${directResult.error})`,
           paymentVerified: true,
         });
       }
-    } catch (fetchErr: any) {
-      console.error('Bill payment fetch failed:', fetchErr?.message);
-      return NextResponse.json({
-        success: false,
-        message: `Could not reach electricity service: ${fetchErr?.message || 'network error'}. Your payment was verified — please contact support.`,
-        paymentVerified: true,
-      });
     }
 
     console.log('Bill payment response:', JSON.stringify(billData));
