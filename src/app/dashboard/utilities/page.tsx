@@ -71,6 +71,8 @@ export default function UtilitiesPage() {
   const [billers, setBillers] = useState<Biller[]>([]);
   const [billersLoading, setBillersLoading] = useState(true);
   const [billersError, setBillersError] = useState('');
+  const [serviceAvailable, setServiceAvailable] = useState<boolean | null>(null);
+  const [serviceMessage, setServiceMessage] = useState('');
 
   // Selection state
   const [step, setStep] = useState<PurchaseStep>('loading');
@@ -92,6 +94,21 @@ export default function UtilitiesPage() {
   const [purchaseToken, setPurchaseToken] = useState<string | null>(null);
   const [saveMeterChecked, setSaveMeterChecked] = useState(true);
   const paymentInProgress = useRef(false);
+
+  // Check if bill payment service is available before letting users pay
+  const checkServiceHealth = useCallback(async () => {
+    try {
+      const res = await fetch('/api/utilities/health-check');
+      const data = await res.json();
+      setServiceAvailable(data.available);
+      if (!data.available) {
+        setServiceMessage(data.reason || 'Electricity purchase is temporarily unavailable.');
+      }
+    } catch {
+      // If health check fails, allow users to proceed (don't block on network error)
+      setServiceAvailable(true);
+    }
+  }, []);
 
   // Fetch billers on mount
   const fetchBillers = useCallback(async () => {
@@ -139,7 +156,7 @@ export default function UtilitiesPage() {
     }
   }, [currentUser?.uid]);
 
-  useEffect(() => { fetchBillers(); }, [fetchBillers]);
+  useEffect(() => { fetchBillers(); checkServiceHealth(); }, [fetchBillers, checkServiceHealth]);
   useEffect(() => { fetchSavedMeters(); }, [fetchSavedMeters]);
 
   useEffect(() => {
@@ -285,6 +302,10 @@ export default function UtilitiesPage() {
 
   const initiatePayment = () => {
     if (paymentInProgress.current) return;
+    if (serviceAvailable === false) {
+      setErrorMessage('Electricity purchase is currently unavailable. ' + (serviceMessage || 'Please try again later.'));
+      return;
+    }
     if (!flwReady || typeof window.FlutterwaveCheckout !== 'function') {
       setErrorMessage('Payment system is loading. Please wait a moment and try again.');
       return;
@@ -434,6 +455,19 @@ export default function UtilitiesPage() {
         <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Utilities</h1>
         <div className="w-16" />
       </div>
+
+      {/* Service unavailable banner */}
+      {serviceAvailable === false && (
+        <div className="bg-red-50 dark:bg-red-900/30 border-l-4 border-red-500 text-red-700 dark:text-red-300 px-5 py-4 rounded-xl mb-4">
+          <div className="flex items-start gap-3">
+            <XCircleIcon className="w-6 h-6 flex-shrink-0 mt-0.5 text-red-500" />
+            <div>
+              <p className="font-semibold">Electricity Purchase Unavailable</p>
+              <p className="text-sm mt-1">{serviceMessage || 'This service is temporarily unavailable. Please try again later.'}</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Select DisCo */}
       {step === 'select-disco' && (
