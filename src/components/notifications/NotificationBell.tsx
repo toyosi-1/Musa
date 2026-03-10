@@ -200,10 +200,17 @@ export default function NotificationBell({ className = '' }: NotificationBellPro
 
             {/* Footer */}
             {notifications.length > 0 && (
-              <div className="px-4 py-3 border-t border-gray-200 dark:border-gray-700 text-center">
+              <div className="px-4 py-3 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                <a
+                  href="/dashboard/notifications"
+                  className="text-sm text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 font-medium"
+                  onClick={() => setIsOpen(false)}
+                >
+                  View all
+                </a>
                 <button
                   onClick={() => setIsOpen(false)}
-                  className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium"
+                  className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 font-medium"
                 >
                   Close
                 </button>
