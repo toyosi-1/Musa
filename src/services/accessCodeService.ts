@@ -288,7 +288,7 @@ import { Household } from '@/types/user';
 // Verify if an access code is valid
 export const verifyAccessCode = async (
   code: string,
-  options?: { estateId?: string }
+  options?: { estateId?: string; guardName?: string }
 ): Promise<{ 
   isValid: boolean; 
   message?: string; 
@@ -451,6 +451,28 @@ export const verifyAccessCode = async (
     } catch (updateError) {
       // Not critical, still return valid but log the error
       console.error('Failed to update usage count:', updateError);
+    }
+
+    // Send notification to resident that their guest has checked in
+    try {
+      console.log('Sending guest check-in notification to resident...');
+      const notificationResponse = await fetch('/api/notifications/guest-checkin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          accessCodeId: accessCode.id,
+          guardName: options?.guardName || 'Security'
+        })
+      });
+      
+      if (notificationResponse.ok) {
+        console.log('Guest check-in notification sent successfully');
+      } else {
+        console.error('Failed to send notification:', await notificationResponse.text());
+      }
+    } catch (notificationError) {
+      // Don't fail verification if notification fails
+      console.error('Error sending guest check-in notification:', notificationError);
     }
 
     console.log('Access code verification successful!');

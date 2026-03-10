@@ -169,6 +169,7 @@ export default function ScanPage() {
                   onScanResult={handleScanResult}
                   onScanningStateChange={handleScanningStateChange}
                   estateId={currentUser?.estateId}
+                  guardName={currentUser?.displayName || 'Security Guard'}
                 />
               </div>
             ) : (
