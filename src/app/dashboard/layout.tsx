@@ -83,7 +83,7 @@ export default function DashboardLayout({
   return (
     <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900 safe-area-inset-bottom">
       {/* ─── Desktop Top Header ─── */}
-      <header className="md:block hidden bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 sticky top-0 z-40">
+      <header className="md:block hidden bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-800/50 sticky top-0 z-40">
         <div className="w-full max-w-7xl mx-auto px-5 sm:px-6 lg:px-8 py-3">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-6">
@@ -143,7 +143,7 @@ export default function DashboardLayout({
       </main>
 
       {/* ─── Mobile Bottom Navigation ─── */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 z-50 pb-safe">
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-t border-gray-200/50 dark:border-gray-700/50 z-50 pb-safe">
         <nav className="h-16 flex items-stretch justify-around">
           {/* Tab: Social / Feed */}
           <Link href="/dashboard/feed" className="flex-1 relative" aria-label="Social">

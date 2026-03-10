@@ -116,22 +116,36 @@ export default function VisitorsPage() {
   return (
     <div className="w-full max-w-4xl mx-auto">
       {/* Header */}
-      <div className="flex items-center gap-3 mb-6">
-        <button
-          onClick={() => router.back()}
-          className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-          aria-label="Go back"
-        >
-          <ArrowLeftIcon className="w-5 h-5 text-gray-600 dark:text-gray-300" />
-        </button>
-        <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Visitors</h1>
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-600 p-5 mb-6 shadow-md">
+        <div className="relative z-10 flex items-center gap-3">
+          <button
+            onClick={() => router.back()}
+            className="p-2 rounded-xl bg-white/10 hover:bg-white/20 transition-colors"
+            aria-label="Go back"
+          >
+            <ArrowLeftIcon className="w-5 h-5 text-white" />
+          </button>
+          <div>
+            <h1 className="text-xl font-bold text-white">Visitors</h1>
+            <p className="text-xs text-white/60 mt-0.5">Manage access codes for your guests</p>
+          </div>
+        </div>
+        <div className="absolute -right-4 -top-4 w-24 h-24 bg-white/10 rounded-full blur-sm" />
+        <div className="absolute right-8 -bottom-6 w-20 h-20 bg-white/5 rounded-full" />
       </div>
 
       {loading && !accessCodes.length ? (
         <div className="animate-pulse space-y-4">
-          <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4"></div>
-          <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
-          <div className="h-32 bg-gray-200 dark:bg-gray-700 rounded"></div>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-100 dark:border-gray-700">
+            <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded-lg w-2/3 mb-3"></div>
+            <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded-lg w-1/2 mb-6"></div>
+            <div className="h-12 bg-gray-200 dark:bg-gray-700 rounded-xl w-full mb-3"></div>
+            <div className="h-12 bg-gray-200 dark:bg-gray-700 rounded-xl w-full"></div>
+          </div>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-100 dark:border-gray-700">
+            <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded-lg w-1/3 mb-4"></div>
+            <div className="h-24 bg-gray-200 dark:bg-gray-700 rounded-xl w-full"></div>
+          </div>
         </div>
       ) : (
         <div className="space-y-8">

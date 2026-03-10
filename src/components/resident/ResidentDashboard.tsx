@@ -195,11 +195,14 @@ export default function ResidentDashboard({ user }: ResidentDashboardProps) {
   if (loading && !accessCodes.length && !household) {
     return (
       <div className="w-full">
-        <h1 className="text-3xl font-bold mb-8 text-gray-800 dark:text-white">Resident Dashboard</h1>
         <div className="animate-pulse space-y-4">
-          <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4"></div>
-          <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
-          <div className="h-32 bg-gray-200 dark:bg-gray-700 rounded"></div>
+          <div className="h-24 bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-600 rounded-2xl"></div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="h-28 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700"></div>
+            <div className="h-28 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700"></div>
+            <div className="h-28 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700"></div>
+            <div className="h-28 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700"></div>
+          </div>
         </div>
       </div>
     );
@@ -208,17 +211,24 @@ export default function ResidentDashboard({ user }: ResidentDashboardProps) {
   return (
     <div className="w-full">
       {/* ─── Welcome Banner ─── */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary via-primary/90 to-emerald-600 p-5 mb-6">
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary via-primary-600 to-emerald-600 p-6 mb-6 shadow-lg">
         <div className="relative z-10">
-          <h1 className="text-xl font-bold text-white">
-            Welcome, {user.displayName?.split(' ')[0] || 'Resident'}
+          <p className="text-xs font-medium text-white/60 uppercase tracking-wider mb-1">
+            {new Date().getHours() < 12 ? 'Good morning' : new Date().getHours() < 17 ? 'Good afternoon' : 'Good evening'}
+          </p>
+          <h1 className="text-2xl font-bold text-white">
+            {user.displayName?.split(' ')[0] || 'Resident'}
           </h1>
           {estate && (
-            <p className="text-sm text-white/80 font-medium mt-1">{estate.name}</p>
+            <div className="flex items-center gap-1.5 mt-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-pulse" />
+              <p className="text-sm text-white/80 font-medium">{estate.name}</p>
+            </div>
           )}
         </div>
-        <div className="absolute -right-4 -top-4 w-28 h-28 bg-white/10 rounded-full" />
-        <div className="absolute -right-8 top-8 w-20 h-20 bg-white/5 rounded-full" />
+        <div className="absolute -right-6 -top-6 w-32 h-32 bg-white/10 rounded-full blur-sm" />
+        <div className="absolute -right-2 top-10 w-20 h-20 bg-white/5 rounded-full" />
+        <div className="absolute left-1/2 -bottom-8 w-40 h-40 bg-white/5 rounded-full blur-md" />
       </div>
 
       {/* ─── Quick Action Tiles ─── */}
@@ -226,56 +236,60 @@ export default function ResidentDashboard({ user }: ResidentDashboardProps) {
         {/* Visitors */}
         <button
           onClick={() => router.push('/dashboard/visitors')}
-          className="flex flex-col items-center justify-center gap-2 p-5 rounded-2xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md hover:border-primary/30 dark:hover:border-primary/40 transition-all active:scale-[0.97]"
+          className="group flex flex-col items-center justify-center gap-2.5 p-5 rounded-2xl bg-white dark:bg-gray-800/80 border border-gray-100 dark:border-gray-700/60 shadow-sm hover:shadow-lg hover:border-blue-200 dark:hover:border-blue-800 transition-all duration-200 active:scale-[0.97]"
         >
-          <div className="w-12 h-12 rounded-xl bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center">
+          <div className="w-13 h-13 rounded-2xl bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/40 dark:to-blue-800/30 flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
             <svg className="h-6 w-6 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
           </div>
           <span className="text-sm font-semibold text-gray-800 dark:text-white">Visitors</span>
+          <span className="text-[10px] text-gray-400 dark:text-gray-500 -mt-1">Manage access</span>
         </button>
 
         {/* Utility */}
         <button
           onClick={() => router.push('/dashboard/utilities')}
-          className="flex flex-col items-center justify-center gap-2 p-5 rounded-2xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md hover:border-primary/30 dark:hover:border-primary/40 transition-all active:scale-[0.97]"
+          className="group flex flex-col items-center justify-center gap-2.5 p-5 rounded-2xl bg-white dark:bg-gray-800/80 border border-gray-100 dark:border-gray-700/60 shadow-sm hover:shadow-lg hover:border-amber-200 dark:hover:border-amber-800 transition-all duration-200 active:scale-[0.97]"
         >
-          <div className="w-12 h-12 rounded-xl bg-yellow-50 dark:bg-yellow-900/30 flex items-center justify-center">
-            <svg className="h-6 w-6 text-yellow-600 dark:text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div className="w-13 h-13 rounded-2xl bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-900/40 dark:to-amber-800/30 flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
+            <svg className="h-6 w-6 text-amber-600 dark:text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
             </svg>
           </div>
           <span className="text-sm font-semibold text-gray-800 dark:text-white">Utility</span>
+          <span className="text-[10px] text-gray-400 dark:text-gray-500 -mt-1">Pay bills</span>
         </button>
 
         {/* Emergency (Coming Soon) */}
         <button
           disabled
-          className="relative flex flex-col items-center justify-center gap-2 p-5 rounded-2xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 opacity-60 cursor-not-allowed"
+          className="relative flex flex-col items-center justify-center gap-2.5 p-5 rounded-2xl bg-white dark:bg-gray-800/80 border border-gray-100 dark:border-gray-700/60 opacity-50 cursor-not-allowed"
         >
-          <span className="absolute top-2 right-2 text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400">Soon</span>
-          <div className="w-12 h-12 rounded-xl bg-red-50 dark:bg-red-900/30 flex items-center justify-center">
+          <span className="absolute top-2.5 right-2.5 text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500">Soon</span>
+          <div className="w-13 h-13 rounded-2xl bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/40 dark:to-red-800/30 flex items-center justify-center">
             <svg className="h-6 w-6 text-red-500 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
           <span className="text-sm font-semibold text-gray-800 dark:text-white">Emergency</span>
+          <span className="text-[10px] text-gray-400 dark:text-gray-500 -mt-1">SOS alerts</span>
         </button>
 
         {/* Technicians (Coming Soon) */}
         <button
           disabled
-          className="relative flex flex-col items-center justify-center gap-2 p-5 rounded-2xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 opacity-60 cursor-not-allowed"
+          className="relative flex flex-col items-center justify-center gap-2.5 p-5 rounded-2xl bg-white dark:bg-gray-800/80 border border-gray-100 dark:border-gray-700/60 opacity-50 cursor-not-allowed"
         >
-          <span className="absolute top-2 right-2 text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400">Soon</span>
-          <div className="w-12 h-12 rounded-xl bg-purple-50 dark:bg-purple-900/30 flex items-center justify-center">
+          <span className="absolute top-2.5 right-2.5 text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500">Soon</span>
+          <div className="w-13 h-13 rounded-2xl bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/40 dark:to-purple-800/30 flex items-center justify-center">
             <svg className="h-6 w-6 text-purple-600 dark:text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
           </div>
           <span className="text-sm font-semibold text-gray-800 dark:text-white">Technicians</span>
+          <span className="text-[10px] text-gray-400 dark:text-gray-500 -mt-1">Request help</span>
         </button>
       </div>
       

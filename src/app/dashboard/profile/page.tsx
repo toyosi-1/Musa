@@ -95,31 +95,28 @@ export default function ProfilePage() {
 
   return (
     <div className="container mx-auto px-4 py-6 max-w-md">
-      <div className="flex items-center justify-between mb-6">
-        <button 
-          onClick={() => router.back()} 
-          className="flex items-center text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-all duration-200 rounded-lg px-2 py-1.5 hover:bg-gray-100 dark:hover:bg-gray-800"
-        >
-          <ArrowLeftIcon className="h-5 w-5 mr-1" />
-          <span className="font-medium text-sm">Back</span>
-        </button>
-        <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Your Profile</h1>
-        <div className="w-16" />
-      </div>
-      
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden mb-6">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden mb-6">
         {/* Profile header with avatar */}
-        <div className="bg-blue-500 text-white p-6 text-center">
-          <div className="w-24 h-24 rounded-full bg-white text-blue-500 flex items-center justify-center text-3xl font-bold mx-auto mb-4">
+        <div className="relative overflow-hidden bg-gradient-to-br from-primary via-primary-600 to-indigo-600 text-white p-6 text-center">
+          <button 
+            onClick={() => router.back()} 
+            className="absolute top-4 left-4 p-2 rounded-xl bg-white/10 hover:bg-white/20 transition-colors z-10"
+            aria-label="Go back"
+          >
+            <ArrowLeftIcon className="h-5 w-5 text-white" />
+          </button>
+          <div className="w-24 h-24 rounded-full bg-white/20 backdrop-blur-sm text-white flex items-center justify-center text-3xl font-bold mx-auto mb-4 ring-4 ring-white/30">
             {currentUser.displayName?.charAt(0) || 'U'}
           </div>
           <h2 className="text-xl font-bold">{currentUser.displayName}</h2>
-          <p className="opacity-90">{currentUser.email}</p>
-          <div className="mt-2">
-            <span className="inline-block px-3 py-1 bg-white/20 rounded-full text-sm">
+          <p className="text-white/70 text-sm mt-0.5">{currentUser.email}</p>
+          <div className="mt-3">
+            <span className="inline-block px-3 py-1 bg-white/15 backdrop-blur-sm rounded-full text-sm font-medium">
               {currentUser.role.charAt(0).toUpperCase() + currentUser.role.slice(1)}
             </span>
           </div>
+          <div className="absolute -right-6 -top-6 w-32 h-32 bg-white/10 rounded-full blur-sm" />
+          <div className="absolute -left-4 -bottom-8 w-28 h-28 bg-white/5 rounded-full blur-md" />
         </div>
         
         {/* Profile details */}

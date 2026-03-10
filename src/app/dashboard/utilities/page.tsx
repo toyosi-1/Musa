@@ -444,16 +444,22 @@ export default function UtilitiesPage() {
   return (
     <div className="container mx-auto px-4 py-6 max-w-md">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <button
-          onClick={goBack}
-          className="flex items-center text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-all duration-200 rounded-lg px-2 py-1.5 hover:bg-gray-100 dark:hover:bg-gray-800"
-        >
-          <ArrowLeftIcon className="h-5 w-5 mr-1" />
-          <span className="font-medium text-sm">Back</span>
-        </button>
-        <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Utilities</h1>
-        <div className="w-16" />
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-amber-500 via-amber-600 to-orange-600 p-5 mb-6 shadow-md">
+        <div className="relative z-10 flex items-center gap-3">
+          <button
+            onClick={goBack}
+            className="p-2 rounded-xl bg-white/10 hover:bg-white/20 transition-colors"
+            aria-label="Go back"
+          >
+            <ArrowLeftIcon className="h-5 w-5 text-white" />
+          </button>
+          <div>
+            <h1 className="text-xl font-bold text-white">Utilities</h1>
+            <p className="text-xs text-white/60 mt-0.5">Buy electricity & pay bills</p>
+          </div>
+        </div>
+        <div className="absolute -right-4 -top-4 w-24 h-24 bg-white/10 rounded-full blur-sm" />
+        <div className="absolute right-8 -bottom-6 w-20 h-20 bg-white/5 rounded-full" />
       </div>
 
       {/* Service unavailable banner */}
