@@ -97,9 +97,9 @@ Powered By Musa Security`;
   };
 
   return (
-    <div className={`w-full max-w-full box-border bg-musa-bg dark:bg-gray-900/50 rounded-xl md:rounded-2xl shadow-lg border border-transparent dark:border-gray-700/50 animate-fade-in transition-all duration-300 ${!accessCode.isActive || isExpired ? 'opacity-80' : 'hover:shadow-card-hover'}`}>
+    <div className={`w-full max-w-full box-border bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl md:rounded-2xl shadow-md border border-gray-200/60 dark:border-gray-700/50 animate-fade-in transition-all duration-200 ${!accessCode.isActive || isExpired ? 'opacity-75' : 'hover:shadow-lg hover:border-gray-300/60 dark:hover:border-gray-600/60'}`}>
       {/* Status indicator */}
-      <div className={`w-full h-1.5 rounded-t-xl md:rounded-t-2xl ${!accessCode.isActive ? 'bg-gray-300 dark:bg-gray-600' : isExpired ? 'bg-warning' : 'bg-success'}`}></div>
+      <div className={`w-full h-1.5 rounded-t-xl md:rounded-t-2xl ${!accessCode.isActive ? 'bg-gradient-to-r from-gray-300 to-gray-400 dark:from-gray-600 dark:to-gray-500' : isExpired ? 'bg-gradient-to-r from-amber-400 to-orange-400' : 'bg-gradient-to-r from-emerald-400 to-green-500'}`}></div>
       
       <div className="p-4 md:p-5">
         {/* Code header with status badge */}
@@ -181,7 +181,7 @@ Powered By Musa Security`;
           ) : (
             <button
               onClick={() => setShowQR(true)}
-              className="w-full py-3 px-4 box-border bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-xl text-center hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-300 shadow-sm hover:shadow group overflow-hidden"
+              className="w-full py-3 px-4 box-border bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm border border-gray-200 dark:border-gray-600 rounded-xl text-center hover:bg-primary-50/50 dark:hover:bg-primary-900/20 hover:border-primary-200 dark:hover:border-primary-700 transition-all duration-200 shadow-sm hover:shadow cursor-pointer group overflow-hidden"
             >
               <span className="flex items-center justify-center gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-500 group-hover:text-primary-500 transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -261,7 +261,7 @@ Powered By Musa Security`;
           <div className="mt-4 md:mt-5">
             <button
               onClick={handleDeactivate}
-              className="w-full py-2 md:py-2.5 text-sm text-danger hover:text-danger-600 hover:bg-danger-50 dark:hover:bg-danger-950/30 rounded-lg font-medium transition-all duration-300 flex items-center justify-center gap-2"
+              className="w-full py-2 md:py-2.5 text-sm text-danger hover:text-danger-600 hover:bg-danger-50 dark:hover:bg-danger-950/30 rounded-lg font-medium transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer"
               disabled={isDeactivating}
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
