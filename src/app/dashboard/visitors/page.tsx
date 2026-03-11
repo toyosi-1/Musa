@@ -12,6 +12,8 @@ import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import { useDeviceAuthorization } from '@/hooks/useDeviceAuthorization';
 import { waitForAuthUser } from '@/lib/firebase';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
+import ModernBanner from '@/components/ui/ModernBanner';
+import { UsersIcon } from '@heroicons/react/24/solid';
 
 export default function VisitorsPage() {
   const { currentUser, loading: authLoading } = useAuth();
@@ -116,22 +118,21 @@ export default function VisitorsPage() {
   return (
     <div className="w-full max-w-4xl mx-auto">
       {/* Header */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-600 p-5 mb-6 shadow-md">
-        <div className="relative z-10 flex items-center gap-3">
-          <button
-            onClick={() => router.back()}
-            className="p-2 rounded-xl bg-white/10 hover:bg-white/20 transition-colors"
-            aria-label="Go back"
-          >
-            <ArrowLeftIcon className="w-5 h-5 text-white" />
-          </button>
-          <div>
-            <h1 className="text-xl font-bold text-white">Visitors</h1>
-            <p className="text-xs text-white/60 mt-0.5">Manage access codes for your guests</p>
-          </div>
-        </div>
-        <div className="absolute -right-4 -top-4 w-24 h-24 bg-white/10 rounded-full blur-sm" />
-        <div className="absolute right-8 -bottom-6 w-20 h-20 bg-white/5 rounded-full" />
+      <div className="flex items-center gap-3 mb-6">
+        <button
+          onClick={() => router.back()}
+          className="p-2 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+          aria-label="Go back"
+        >
+          <ArrowLeftIcon className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+        </button>
+        <ModernBanner
+          title="Visitors"
+          subtitle="Manage access codes for your guests"
+          icon={<UsersIcon className="h-7 w-7 text-white" />}
+          gradient="primary"
+          className="flex-1"
+        />
       </div>
 
       {loading && !accessCodes.length ? (

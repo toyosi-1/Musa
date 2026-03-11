@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import { useRouter } from 'next/navigation';
-import { ArrowLeftIcon } from '@heroicons/react/24/solid';
+import { ArrowLeftIcon, UserCircleIcon } from '@heroicons/react/24/solid';
+import ModernBanner from '@/components/ui/ModernBanner';
 
 export default function ProfilePage() {
   const { currentUser, signOut } = useAuth();
@@ -95,28 +96,37 @@ export default function ProfilePage() {
 
   return (
     <div className="container mx-auto px-4 py-6 max-w-md">
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden mb-6">
+      {/* Header */}
+      <div className="flex items-center gap-3 mb-6">
+        <button
+          onClick={() => router.back()}
+          className="p-2 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+          aria-label="Go back"
+        >
+          <ArrowLeftIcon className="h-5 w-5 text-gray-700 dark:text-gray-300" />
+        </button>
+        <ModernBanner
+          title="Profile"
+          subtitle="Manage your account settings"
+          icon={<UserCircleIcon className="h-7 w-7 text-white" />}
+          gradient="primary"
+          className="flex-1"
+        />
+      </div>
+
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden mb-6 card-hover-lift animate-fade-in">
         {/* Profile header with avatar */}
-        <div className="relative overflow-hidden bg-gradient-to-br from-primary via-primary-600 to-indigo-600 text-white p-6 text-center">
-          <button 
-            onClick={() => router.back()} 
-            className="absolute top-4 left-4 p-2 rounded-xl bg-white/10 hover:bg-white/20 transition-colors z-10"
-            aria-label="Go back"
-          >
-            <ArrowLeftIcon className="h-5 w-5 text-white" />
-          </button>
-          <div className="w-24 h-24 rounded-full bg-white/20 backdrop-blur-sm text-white flex items-center justify-center text-3xl font-bold mx-auto mb-4 ring-4 ring-white/30">
+        <div className="relative overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 p-6 text-center border-b border-gray-200 dark:border-gray-700">
+          <div className="w-24 h-24 rounded-full bg-gradient-to-br from-primary to-blue-600 text-white flex items-center justify-center text-3xl font-bold mx-auto mb-4 ring-4 ring-primary/20 shadow-lg">
             {currentUser.displayName?.charAt(0) || 'U'}
           </div>
-          <h2 className="text-xl font-bold">{currentUser.displayName}</h2>
-          <p className="text-white/70 text-sm mt-0.5">{currentUser.email}</p>
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white">{currentUser.displayName}</h2>
+          <p className="text-gray-600 dark:text-gray-400 text-sm mt-1">{currentUser.email}</p>
           <div className="mt-3">
-            <span className="inline-block px-3 py-1 bg-white/15 backdrop-blur-sm rounded-full text-sm font-medium">
+            <span className="inline-block px-3 py-1 bg-primary/10 dark:bg-primary/20 text-primary dark:text-blue-400 rounded-full text-sm font-medium">
               {currentUser.role.charAt(0).toUpperCase() + currentUser.role.slice(1)}
             </span>
           </div>
-          <div className="absolute -right-6 -top-6 w-32 h-32 bg-white/10 rounded-full blur-sm" />
-          <div className="absolute -left-4 -bottom-8 w-28 h-28 bg-white/5 rounded-full blur-md" />
         </div>
         
         {/* Profile details */}
