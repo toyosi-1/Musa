@@ -8,6 +8,7 @@ import { ArrowLeftIcon, BoltIcon, CheckCircleIcon, XCircleIcon, BookmarkIcon, Tr
 import { getFirebaseDatabase } from '@/lib/firebase';
 import { ref, get, set, push, remove } from 'firebase/database';
 import { getDiscoBrand } from '@/utils/discoLogos';
+import ModernBanner, { AlertBanner } from '@/components/ui/ModernBanner';
 
 declare global {
   interface Window {
@@ -444,22 +445,21 @@ export default function UtilitiesPage() {
   return (
     <div className="container mx-auto px-4 py-6 max-w-md">
       {/* Header */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-amber-500 via-amber-600 to-orange-600 p-5 mb-6 shadow-md">
-        <div className="relative z-10 flex items-center gap-3">
-          <button
-            onClick={goBack}
-            className="p-2 rounded-xl bg-white/10 hover:bg-white/20 transition-colors"
-            aria-label="Go back"
-          >
-            <ArrowLeftIcon className="h-5 w-5 text-white" />
-          </button>
-          <div>
-            <h1 className="text-xl font-bold text-white">Utilities</h1>
-            <p className="text-xs text-white/60 mt-0.5">Buy electricity & pay bills</p>
-          </div>
-        </div>
-        <div className="absolute -right-4 -top-4 w-24 h-24 bg-white/10 rounded-full blur-sm" />
-        <div className="absolute right-8 -bottom-6 w-20 h-20 bg-white/5 rounded-full" />
+      <div className="flex items-center gap-3 mb-6">
+        <button
+          onClick={goBack}
+          className="p-2 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+          aria-label="Go back"
+        >
+          <ArrowLeftIcon className="h-5 w-5 text-gray-700 dark:text-gray-300" />
+        </button>
+        <ModernBanner
+          title="Utilities"
+          subtitle="Buy electricity & pay bills"
+          icon={<BoltIcon className="h-7 w-7 text-white" />}
+          gradient="amber"
+          className="flex-1"
+        />
       </div>
 
       {/* Service unavailable banner */}

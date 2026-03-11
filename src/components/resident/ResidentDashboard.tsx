@@ -4,10 +4,13 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { User, AccessCode, Household, Estate } from '@/types/user';
 import { getResidentAccessCodes, createAccessCode, deactivateAccessCode } from '@/services/accessCodeService';
-import { getHousehold, createHousehold } from '@/services/householdService';
-import HouseholdManager from './HouseholdManager';
+import { useAuth } from '@/contexts/AuthContext';
+import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import CreateHouseholdForm from './CreateHouseholdForm';
 import PendingInvitations from './PendingInvitations';
+import AccessCodeCard from './AccessCodeCard';
+import { ActionTile } from '@/components/ui/ProfessionalCard';
+import { WelcomeBanner, AlertBanner } from '@/components/ui/ModernBanner';
 import { useDeviceAuthorization } from '@/hooks/useDeviceAuthorization';
 import { getFirebaseDatabase, waitForAuthUser } from '@/lib/firebase';
 import { ref, get } from 'firebase/database';
@@ -211,25 +214,11 @@ export default function ResidentDashboard({ user }: ResidentDashboardProps) {
   return (
     <div className="w-full">
       {/* ─── Welcome Banner ─── */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary via-primary-600 to-emerald-600 p-6 mb-6 shadow-lg">
-        <div className="relative z-10">
-          <p className="text-xs font-medium text-white/60 uppercase tracking-wider mb-1">
-            {new Date().getHours() < 12 ? 'Good morning' : new Date().getHours() < 17 ? 'Good afternoon' : 'Good evening'}
-          </p>
-          <h1 className="text-2xl font-bold text-white">
-            {user.displayName?.split(' ')[0] || 'Resident'}
-          </h1>
-          {estate && (
-            <div className="flex items-center gap-1.5 mt-2">
-              <div className="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-pulse" />
-              <p className="text-sm text-white/80 font-medium">{estate.name}</p>
-            </div>
-          )}
-        </div>
-        <div className="absolute -right-6 -top-6 w-32 h-32 bg-white/10 rounded-full blur-sm" />
-        <div className="absolute -right-2 top-10 w-20 h-20 bg-white/5 rounded-full" />
-        <div className="absolute left-1/2 -bottom-8 w-40 h-40 bg-white/5 rounded-full blur-md" />
-      </div>
+      <WelcomeBanner 
+        userName={user.displayName || 'Resident'}
+        estateName={estate?.name}
+        className="mb-6"
+      />
 
       {/* ─── Quick Action Tiles ─── */}
       <div className="grid grid-cols-2 gap-3 mb-8">
