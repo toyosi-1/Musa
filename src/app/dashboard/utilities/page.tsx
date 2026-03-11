@@ -464,12 +464,22 @@ export default function UtilitiesPage() {
 
       {/* Service unavailable banner */}
       {serviceAvailable === false && (
-        <div className="bg-red-50 dark:bg-red-900/30 border-l-4 border-red-500 text-red-700 dark:text-red-300 px-5 py-4 rounded-xl mb-4">
-          <div className="flex items-start gap-3">
-            <XCircleIcon className="w-6 h-6 flex-shrink-0 mt-0.5 text-red-500" />
-            <div>
-              <p className="font-semibold">Electricity Purchase Unavailable</p>
-              <p className="text-sm mt-1">{serviceMessage || 'This service is temporarily unavailable. Please try again later.'}</p>
+        <div className="relative overflow-hidden bg-gradient-to-br from-red-50 to-orange-50 dark:from-red-900/20 dark:to-orange-900/20 border border-red-200 dark:border-red-800 rounded-2xl p-6 mb-6 shadow-sm">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-red-100 dark:bg-red-900/30 rounded-full -mr-16 -mt-16 blur-2xl opacity-50" />
+          <div className="relative flex items-start gap-4">
+            <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-red-100 dark:bg-red-900/40 flex items-center justify-center">
+              <XCircleIcon className="w-7 h-7 text-red-600 dark:text-red-400" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-bold text-red-900 dark:text-red-200 text-lg mb-2">Service Temporarily Unavailable</h3>
+              <p className="text-red-800 dark:text-red-300 text-sm leading-relaxed mb-3">
+                We're currently unable to process electricity purchases. This is usually due to maintenance or configuration updates.
+              </p>
+              <div className="bg-white/50 dark:bg-gray-900/30 rounded-lg p-3 border border-red-200/50 dark:border-red-800/50">
+                <p className="text-xs font-medium text-red-700 dark:text-red-400">
+                  💡 What you can do: Check back in a few minutes, or contact support if this persists.
+                </p>
+              </div>
             </div>
           </div>
         </div>
