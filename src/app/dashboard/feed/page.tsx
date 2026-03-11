@@ -18,6 +18,8 @@ import {
 } from '@/services/feedService';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import { formatDistanceToNow } from 'date-fns';
+import ModernBanner from '@/components/ui/ModernBanner';
+import { ChatBubbleLeftRightIcon } from '@heroicons/react/24/solid';
 
 export default function FeedPage() {
   const { currentUser } = useAuth();
@@ -262,11 +264,17 @@ export default function FeedPage() {
   return (
     <div className="max-w-2xl mx-auto pb-24">
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Estate Feed</h1>
+      <div className="flex items-center gap-3 mb-6">
+        <ModernBanner
+          title="Estate Feed"
+          subtitle="Connect with your community"
+          icon={<ChatBubbleLeftRightIcon className="h-7 w-7 text-white" />}
+          gradient="green"
+          className="flex-1"
+        />
         <button
           onClick={() => setShowSearch(!showSearch)}
-          className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+          className="p-3 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors flex-shrink-0"
           aria-label="Search posts"
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
