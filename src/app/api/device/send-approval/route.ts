@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 import { createDeviceApprovalToken } from '@/services/deviceService';
 import {
   generateDeviceApprovalEmail,
@@ -7,10 +7,16 @@ import {
   DeviceApprovalEmailProps,
 } from '@/emails/deviceApprovalEmail';
 
-const SMTP_HOST = 'mail.hspace.cloud';
-const SMTP_PORT = 465;
-const SMTP_USER = 'toyosiajibola@musa-security.com';
-const SMTP_PASS = 'Olatoyosi1';
+// Lazy-initialize Resend
+let _resend: Resend | null = null;
+function getResend(): Resend {
+  if (!_resend) {
+    _resend = new Resend(process.env.RESEND_API_KEY);
+  }
+  return _resend;
+}
+
+const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'Musa Security <noreply@musa-security.com>';
 
 export async function POST(request: NextRequest) {
   try {
@@ -28,7 +34,7 @@ export async function POST(request: NextRequest) {
     const token = await createDeviceApprovalToken(deviceId, userId);
 
     // Generate approval link
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://musa-security.com';
     const approvalLink = `${baseUrl}/api/device/approve?token=${token}`;
 
     // Prepare email props
@@ -46,27 +52,24 @@ export async function POST(request: NextRequest) {
 
     // Generate email content
     const htmlContent = generateDeviceApprovalEmail(emailProps);
-    const textContent = generateDeviceApprovalEmailPlainText(emailProps);
 
-    // Create transporter
-    const transporter = nodemailer.createTransporter({
-      host: SMTP_HOST,
-      port: SMTP_PORT,
-      secure: true,
-      auth: {
-        user: SMTP_USER,
-        pass: SMTP_PASS,
-      },
-    });
-
-    // Send email
-    await transporter.sendMail({
-      from: `"Musa Security" <${SMTP_USER}>`,
-      to: userEmail,
+    // Send email via Resend
+    const { data, error } = await getResend().emails.send({
+      from: FROM_EMAIL,
+      to: [userEmail],
       subject: '🔐 Device Authorization Required - Musa Security',
-      text: textContent,
       html: htmlContent,
     });
+
+    if (error) {
+      console.error('Resend error:', error);
+      return NextResponse.json(
+        { success: false, message: 'Failed to send device approval email' },
+        { status: 500 }
+      );
+    }
+
+    console.log('Device approval email sent via Resend:', data?.id);
 
     return NextResponse.json({
       success: true,

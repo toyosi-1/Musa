@@ -1,8 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
-import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 
-// This API route handles email sending using SMTP
-// It's a server-side route that can safely use SMTP credentials
+// This API route handles email sending using Resend
+// It's a server-side route that safely uses the RESEND_API_KEY
+
+// Lazy-initialize to avoid build-time errors when env var isn't set
+let _resend: Resend | null = null;
+function getResend(): Resend {
+  if (!_resend) {
+    _resend = new Resend(process.env.RESEND_API_KEY);
+  }
+  return _resend;
+}
+
+const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'Musa Security <noreply@musa-security.com>';
 
 interface EmailData {
   to: string;
@@ -11,76 +22,62 @@ interface EmailData {
   from?: string;
 }
 
-interface SMTPConfig {
-  host: string;
-  port: number;
-  secure: boolean;
-  auth: {
-    user: string;
-    pass: string;
-  };
-}
-
 export async function POST(request: NextRequest) {
   try {
-    const { emailData, smtpConfig }: { emailData: EmailData; smtpConfig: SMTPConfig } = await request.json();
+    // Support both old format (with smtpConfig) and new format (just emailData)
+    const body = await request.json();
+    const emailData: EmailData = body.emailData || body;
 
     // Validate required fields
     if (!emailData.to || !emailData.subject || !emailData.html) {
       return NextResponse.json(
-        { error: 'Missing required email fields' },
+        { error: 'Missing required email fields (to, subject, html)' },
         { status: 400 }
       );
     }
 
-    // Create nodemailer transporter with SMTP configuration
-    const transporter = nodemailer.createTransport({
-      host: smtpConfig.host,
-      port: smtpConfig.port,
-      secure: smtpConfig.secure,
-      auth: {
-        user: smtpConfig.auth.user,
-        pass: smtpConfig.auth.pass
-      },
-      // Additional options for better deliverability
-      tls: {
-        rejectUnauthorized: false // Allow self-signed certificates
-      }
-    });
+    if (!process.env.RESEND_API_KEY) {
+      console.error('❌ RESEND_API_KEY environment variable is not set');
+      return NextResponse.json(
+        { error: 'Email service not configured. RESEND_API_KEY is missing.' },
+        { status: 500 }
+      );
+    }
 
-    console.log('📧 Sending email via SMTP:');
+    console.log('📧 Sending email via Resend:');
     console.log('To:', emailData.to);
-    console.log('From:', emailData.from);
+    console.log('From:', emailData.from || FROM_EMAIL);
     console.log('Subject:', emailData.subject);
-    console.log('SMTP Host:', smtpConfig.host);
-    console.log('SMTP Port:', smtpConfig.port);
-    console.log('SMTP User:', smtpConfig.auth.user);
 
-    // Send the email
-    const info = await transporter.sendMail({
-      from: emailData.from || `"Musa Security" <${smtpConfig.auth.user}>`,
-      to: emailData.to,
+    const { data, error } = await getResend().emails.send({
+      from: emailData.from || FROM_EMAIL,
+      to: [emailData.to],
       subject: emailData.subject,
-      html: emailData.html
+      html: emailData.html,
     });
 
-    console.log('✅ Email sent successfully:', info.messageId);
-    
-    const emailResult = {
+    if (error) {
+      console.error('❌ Resend API error:', error);
+      return NextResponse.json(
+        { error: `Resend error: ${error.message}` },
+        { status: 500 }
+      );
+    }
+
+    console.log('✅ Email sent successfully via Resend:', data?.id);
+
+    return NextResponse.json({
       success: true,
-      messageId: info.messageId,
+      messageId: data?.id,
       to: emailData.to,
       subject: emailData.subject,
       timestamp: new Date().toISOString(),
-      response: info.response
-    };
-
-    return NextResponse.json(emailResult);
+    });
 
   } catch (error) {
     console.error('Error in send-email API:', error);
     return NextResponse.json(
-      { error: 'Failed to send email' },
+      { error: 'Failed to send email', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }

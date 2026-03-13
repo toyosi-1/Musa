@@ -97,7 +97,6 @@ async function handleSend(body: any) {
   const approvalLink = `${appUrl}/approve-device?token=${token}`;
 
   try {
-    // Use the existing SMTP email route
     const emailHtml = generateDeviceApprovalEmailHTML({
       displayName: displayName || 'User',
       deviceLabel: deviceLabel || 'Unknown Device',
@@ -105,37 +104,23 @@ async function handleSend(body: any) {
       expiresInMinutes: 15,
     });
 
-    const smtpConfig = {
-      host: 'mail.hspace.cloud',
-      port: 465,
-      secure: true,
-      auth: {
-        user: 'toyosiajibola@musa-security.com',
-        pass: 'Olatoyosi1',
-      },
-    };
+    // Send email via Resend using the /api/send-email route internally
+    const { Resend } = require('resend');
+    const resend = new Resend(process.env.RESEND_API_KEY);
+    const fromEmail = process.env.RESEND_FROM_EMAIL || 'Musa Security <noreply@musa-security.com>';
 
-    // Use internal fetch to the send-email route
-    const origin = process.env.NEXT_PUBLIC_APP_URL || 'https://musa-security.com';
-    
-    // Send email directly using nodemailer since we're on the server
-    const nodemailer = require('nodemailer');
-    const transporter = nodemailer.createTransport({
-      host: smtpConfig.host,
-      port: smtpConfig.port,
-      secure: smtpConfig.secure,
-      auth: smtpConfig.auth,
-      tls: { rejectUnauthorized: false },
-    });
-
-    await transporter.sendMail({
-      from: `"Musa Security" <${smtpConfig.auth.user}>`,
-      to: email,
+    const { error: sendError } = await resend.emails.send({
+      from: fromEmail,
+      to: [email],
       subject: '🔐 New Device Login – Approval Required',
       html: emailHtml,
     });
 
-    console.log('Device approval email sent to:', email);
+    if (sendError) {
+      console.error('Resend error sending device approval email:', sendError);
+    } else {
+      console.log('Device approval email sent to:', email);
+    }
   } catch (emailError) {
     console.error('Failed to send device approval email:', emailError);
     // Don't fail the request — the token is stored, user can retry

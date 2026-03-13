@@ -1,5 +1,5 @@
-// Direct SMTP Email Service for Musa App
-// This bypasses Firebase Functions and sends emails directly
+// Email Service for Musa App - Powered by Resend
+// All emails are sent via the /api/send-email route which uses Resend
 
 interface EmailData {
   to: string;
@@ -32,19 +32,11 @@ interface RejectionNotificationData {
   supportEmail?: string;
 }
 
-// SMTP Configuration for mail.hspace.cloud
-const SMTP_CONFIG = {
-  host: 'mail.hspace.cloud',
-  port: 465,
-  secure: true,
-  auth: {
-    user: 'toyosiajibola@musa-security.com',
-    pass: 'Olatoyosi1'
-  }
-};
+// Resend "from" address — must match your verified domain in Resend
+const FROM_EMAIL = 'Musa Security <noreply@musa-security.com>';
 
 /**
- * Send approval notification email using direct SMTP
+ * Send approval notification email via Resend
  */
 export const sendApprovalNotificationEmail = async (data: ApprovalNotificationData): Promise<boolean> => {
   try {
@@ -54,23 +46,18 @@ export const sendApprovalNotificationEmail = async (data: ApprovalNotificationDa
       to: data.userEmail,
       subject: "🎉 Your Musa account has been approved!",
       html: emailHtml,
-      from: `"Musa Security" <${SMTP_CONFIG.auth.user}>`
+      from: FROM_EMAIL
     };
 
-    // Send via API route
     const response = await fetch('/api/send-email', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        emailData,
-        smtpConfig: SMTP_CONFIG
-      }),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ emailData }),
     });
 
     if (!response.ok) {
-      throw new Error(`Email API responded with status: ${response.status}`);
+      const errorBody = await response.json().catch(() => ({}));
+      throw new Error(`Email API responded with status: ${response.status} - ${errorBody?.error || 'Unknown'}`);
     }
 
     const result = await response.json();
@@ -84,7 +71,7 @@ export const sendApprovalNotificationEmail = async (data: ApprovalNotificationDa
 };
 
 /**
- * Send household invitation email using direct SMTP
+ * Send household invitation email via Resend
  */
 export const sendHouseholdInvitationEmail = async (data: HouseholdInviteData): Promise<boolean> => {
   try {
@@ -94,31 +81,26 @@ export const sendHouseholdInvitationEmail = async (data: HouseholdInviteData): P
       to: data.recipientEmail,
       subject: "You've been invited to join a household on Musa",
       html: emailHtml,
-      from: `"Musa Security" <${SMTP_CONFIG.auth.user}>`
+      from: FROM_EMAIL
     };
 
-    // Send via API route (we'll create this)
     const response = await fetch('/api/send-email', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        emailData,
-        smtpConfig: SMTP_CONFIG
-      }),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ emailData }),
     });
 
     if (!response.ok) {
-      throw new Error(`Email API responded with status: ${response.status}`);
+      const errorBody = await response.json().catch(() => ({}));
+      throw new Error(`Email API responded with status: ${response.status} - ${errorBody?.error || 'Unknown'}`);
     }
 
     const result = await response.json();
-    console.log('Household invitation email sent successfully:', result);
+    console.log('✅ Household invitation email sent successfully:', result);
     return true;
 
   } catch (error) {
-    console.error('Error sending household invitation email:', error);
+    console.error('❌ Error sending household invitation email:', error);
     return false;
   }
 };
@@ -498,10 +480,7 @@ function generateApprovalNotificationHTML(data: ApprovalNotificationData): strin
 }
 
 /**
- * Test email configuration
- */
-/**
- * Send rejection notification email using direct SMTP
+ * Send rejection notification email via Resend
  */
 export const sendRejectionNotificationEmail = async (data: RejectionNotificationData): Promise<boolean> => {
   try {
@@ -511,23 +490,18 @@ export const sendRejectionNotificationEmail = async (data: RejectionNotification
       to: data.userEmail,
       subject: "Important Information About Your Musa Account Application",
       html: emailHtml,
-      from: `"Musa Security" <${SMTP_CONFIG.auth.user}>`
+      from: FROM_EMAIL
     };
 
-    // Send via API route
     const response = await fetch('/api/send-email', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        emailData,
-        smtpConfig: SMTP_CONFIG
-      }),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ emailData }),
     });
 
     if (!response.ok) {
-      throw new Error(`Email API responded with status: ${response.status}`);
+      const errorBody = await response.json().catch(() => ({}));
+      throw new Error(`Email API responded with status: ${response.status} - ${errorBody?.error || 'Unknown'}`);
     }
 
     const result = await response.json();

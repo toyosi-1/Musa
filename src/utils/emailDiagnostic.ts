@@ -58,20 +58,16 @@ export class EmailDiagnostic {
         this.addResult('API Route Test', false, 'Failed to reach email API', apiError);
       }
 
-      // Step 2: Test SMTP Configuration
-      this.addResult('SMTP Config Test', true, 'Checking SMTP configuration...');
+      // Step 2: Test Resend Configuration
+      this.addResult('Resend Config Test', true, 'Checking Resend configuration...');
       
-      const smtpConfig = {
-        host: 'mail.hspace.cloud',
-        port: 465,
-        secure: true,
-        auth: {
-          user: 'toyosiajibola@musa-security.com',
-          pass: 'Olatoyosi1'
-        }
+      const resendConfig = {
+        provider: 'Resend',
+        fromEmail: 'Musa Security <noreply@musa-security.com>',
+        apiKeySet: !!process.env.NEXT_PUBLIC_RESEND_API_KEY || '(checked server-side)',
       };
 
-      this.addResult('SMTP Config Test', true, 'SMTP configuration appears valid', smtpConfig);
+      this.addResult('Resend Config Test', true, 'Email is powered by Resend via /api/send-email route', resendConfig);
 
       // Step 3: Test Email Template Generation
       this.addResult('Template Test', true, 'Testing email template generation...');
