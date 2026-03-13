@@ -6,7 +6,9 @@ import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { getFirebaseDatabase } from '@/lib/firebase';
 import { ref, get, query, orderByChild, equalTo } from 'firebase/database';
-import type { User, Estate } from '@/types/user';
+import type { User, Estate, EmergencyAlert } from '@/types/user';
+import { subscribeToAlerts, acknowledgeAlert, resolveAlert, getEmergencyTypeInfo } from '@/services/emergencyService';
+import { formatDistanceToNow } from 'date-fns';
 
 export default function EstateAdminDashboard() {
   const { currentUser, signOut } = useAuth();
@@ -19,6 +21,7 @@ export default function EstateAdminDashboard() {
     residents: 0,
     guards: 0
   });
+  const [emergencyAlerts, setEmergencyAlerts] = useState<EmergencyAlert[]>([]);
 
   const handleLogout = async () => {
     try {
@@ -42,6 +45,17 @@ export default function EstateAdminDashboard() {
 
     loadDashboardData();
   }, [currentUser, router]);
+
+  // Subscribe to emergency alerts for this estate
+  useEffect(() => {
+    if (!currentUser?.estateId) return;
+
+    const unsubscribe = subscribeToAlerts(currentUser.estateId, (alerts) => {
+      setEmergencyAlerts(alerts.filter(a => a.status === 'active'));
+    });
+
+    return () => unsubscribe();
+  }, [currentUser?.estateId]);
 
   const loadDashboardData = async () => {
     if (!currentUser?.estateId) {
@@ -142,6 +156,56 @@ export default function EstateAdminDashboard() {
           </button>
         </div>
       </div>
+
+      {/* ─── Emergency Alerts ─── */}
+      {emergencyAlerts.length > 0 && (
+        <div className="mb-4 sm:mb-6 space-y-3">
+          <h2 className="text-base font-bold text-red-600 dark:text-red-400 flex items-center gap-2">
+            <span className="animate-pulse">🚨</span> Active Emergencies ({emergencyAlerts.length})
+          </h2>
+          {emergencyAlerts.map((alert) => {
+            const typeInfo = getEmergencyTypeInfo(alert.type);
+            const timeAgo = formatDistanceToNow(new Date(alert.createdAt), { addSuffix: true });
+            return (
+              <div key={alert.id} className="bg-red-50 dark:bg-red-900/20 border-2 border-red-500 dark:border-red-600 rounded-2xl p-4 shadow-lg">
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-red-500 flex items-center justify-center flex-shrink-0 animate-pulse">
+                    <span className="text-xl">{typeInfo.icon}</span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-bold text-red-700 dark:text-red-300 uppercase tracking-wide text-xs">Emergency</span>
+                      <span className="text-xs text-red-500 dark:text-red-400">{timeAgo}</span>
+                    </div>
+                    <p className="text-sm font-semibold text-gray-900 dark:text-white">{typeInfo.label}</p>
+                    <p className="text-xs text-gray-600 dark:text-gray-300 mt-0.5">
+                      From: <strong>{alert.triggeredByName}</strong>
+                      {alert.householdName ? ` • ${alert.householdName}` : ''}
+                    </p>
+                    {alert.description && (
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 italic">&ldquo;{alert.description}&rdquo;</p>
+                    )}
+                  </div>
+                  <div className="flex flex-col gap-1.5 flex-shrink-0">
+                    <button
+                      onClick={() => acknowledgeAlert(alert.estateId, alert.id, currentUser!.uid)}
+                      className="px-3 py-1.5 text-[11px] font-bold text-white bg-orange-500 hover:bg-orange-600 rounded-lg transition-colors"
+                    >
+                      Acknowledge
+                    </button>
+                    <button
+                      onClick={() => resolveAlert(alert.estateId, alert.id, currentUser!.uid)}
+                      className="px-3 py-1.5 text-[11px] font-bold text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors"
+                    >
+                      Resolve
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* Statistics Cards — compact 2x2 on mobile */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-8">

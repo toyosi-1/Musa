@@ -250,14 +250,13 @@ export default function ResidentDashboard({ user }: ResidentDashboardProps) {
           <span className="text-[10px] text-gray-400 dark:text-gray-500 -mt-1">Pay bills</span>
         </button>
 
-        {/* Emergency (Coming Soon) */}
+        {/* Emergency */}
         <button
-          disabled
-          className="relative flex flex-col items-center justify-center gap-2.5 p-5 rounded-2xl bg-white dark:bg-gray-800/80 border border-gray-100 dark:border-gray-700/60 opacity-50 cursor-not-allowed"
+          onClick={() => router.push('/dashboard/emergency')}
+          className="group flex flex-col items-center justify-center gap-2.5 p-5 rounded-2xl bg-white dark:bg-gray-800/80 border border-gray-100 dark:border-gray-700/60 shadow-sm hover:shadow-lg hover:border-red-200 dark:hover:border-red-800 transition-all duration-200 active:scale-[0.97]"
         >
-          <span className="absolute top-2.5 right-2.5 text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500">Soon</span>
-          <div className="w-13 h-13 rounded-2xl bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/40 dark:to-red-800/30 flex items-center justify-center">
-            <svg className="h-6 w-6 text-red-500 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div className="w-13 h-13 rounded-2xl bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/40 dark:to-red-800/30 flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
+            <svg className="h-6 w-6 text-red-600 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>

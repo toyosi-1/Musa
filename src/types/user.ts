@@ -79,6 +79,25 @@ export interface Estate {
   isLocked?: boolean;
 }
 
+export type EmergencyType = 'robbery' | 'fire' | 'medical' | 'suspicious' | 'flood' | 'other';
+
+export interface EmergencyAlert {
+  id: string;
+  estateId: string;
+  triggeredBy: string; // UID of resident
+  triggeredByName: string;
+  householdId?: string;
+  householdName?: string;
+  type: EmergencyType;
+  description?: string;
+  status: 'active' | 'acknowledged' | 'resolved';
+  acknowledgedBy?: string; // UID of guard/admin who acknowledged
+  acknowledgedAt?: number;
+  resolvedBy?: string;
+  resolvedAt?: number;
+  createdAt: number;
+}
+
 export interface FeedPost {
   id: string;
   estateId: string;

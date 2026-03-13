@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from 'react';
-import { User, Household, Estate } from '@/types/user';
+import { User, Household, Estate, EmergencyAlert } from '@/types/user';
 import { verifyAccessCode } from '@/services/accessCodeService';
 import { MapPinIcon, ClockIcon, CheckCircleIcon, XCircleIcon, ShieldCheckIcon } from '@heroicons/react/24/solid';
 import { getGuardVerificationHistory, getGuardActivityStats, logVerificationAttempt, VerificationRecord } from '@/services/guardActivityService';
@@ -10,6 +10,7 @@ import { getFirebaseDatabase } from '@/lib/firebase';
 import { ref, get } from 'firebase/database';
 import { WelcomeBanner } from '@/components/ui/ModernBanner';
 import { StatCard } from '@/components/ui/ProfessionalCard';
+import { subscribeToAlerts, acknowledgeAlert, getEmergencyTypeInfo } from '@/services/emergencyService';
 
 interface GuardDashboardProps {
   user: User;
@@ -39,6 +40,7 @@ export default function GuardDashboard({ user }: GuardDashboardProps) {
   });
   const [isLoadingStats, setIsLoadingStats] = useState(true);
   const [estate, setEstate] = useState<Estate | null>(null);
+  const [emergencyAlerts, setEmergencyAlerts] = useState<EmergencyAlert[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Load estate data
@@ -59,6 +61,37 @@ export default function GuardDashboard({ user }: GuardDashboardProps) {
     };
     
     loadEstate();
+  }, [user.estateId]);
+
+  // Subscribe to real-time emergency alerts
+  useEffect(() => {
+    if (!user.estateId) return;
+
+    const unsubscribe = subscribeToAlerts(user.estateId, (alerts) => {
+      const activeAlerts = alerts.filter(a => a.status === 'active');
+      setEmergencyAlerts(activeAlerts);
+
+      // Play alert sound for new active alerts
+      if (activeAlerts.length > 0 && typeof window !== 'undefined') {
+        try {
+          // Use Web Audio API for alert sound
+          const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+          const oscillator = audioCtx.createOscillator();
+          const gainNode = audioCtx.createGain();
+          oscillator.connect(gainNode);
+          gainNode.connect(audioCtx.destination);
+          oscillator.frequency.value = 880;
+          oscillator.type = 'square';
+          gainNode.gain.value = 0.3;
+          oscillator.start();
+          setTimeout(() => { oscillator.stop(); audioCtx.close(); }, 300);
+        } catch (e) {
+          // Audio may be blocked by browser policy
+        }
+      }
+    });
+
+    return () => unsubscribe();
   }, [user.estateId]);
 
   // Function removed: QR code scanning has been moved to the dedicated Scan page
@@ -235,6 +268,58 @@ export default function GuardDashboard({ user }: GuardDashboardProps) {
         estateName={estate?.name}
         className="mb-6"
       />
+
+      {/* ─── Emergency Alert Banner ─── */}
+      {emergencyAlerts.length > 0 && (
+        <div className="mb-6 space-y-3 animate-pulse-slow">
+          {emergencyAlerts.map((alert) => {
+            const typeInfo = getEmergencyTypeInfo(alert.type);
+            const timeAgo = formatDistanceToNow(new Date(alert.createdAt), { addSuffix: true });
+            return (
+              <div
+                key={alert.id}
+                className="bg-red-50 dark:bg-red-900/30 border-2 border-red-500 dark:border-red-600 rounded-2xl p-4 shadow-lg shadow-red-500/10"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-red-500 flex items-center justify-center flex-shrink-0 animate-pulse">
+                    <span className="text-xl">{typeInfo.icon}</span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-sm font-bold text-red-700 dark:text-red-300 uppercase tracking-wide">
+                        🚨 Emergency Alert
+                      </span>
+                      <span className="text-xs text-red-500 dark:text-red-400">{timeAgo}</span>
+                    </div>
+                    <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                      {typeInfo.label}
+                    </p>
+                    <p className="text-xs text-gray-600 dark:text-gray-300 mt-0.5">
+                      From: <strong>{alert.triggeredByName}</strong>
+                      {alert.householdName ? ` • ${alert.householdName}` : ''}
+                    </p>
+                    {alert.description && (
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 italic">
+                        &ldquo;{alert.description}&rdquo;
+                      </p>
+                    )}
+                  </div>
+                  <button
+                    onClick={async () => {
+                      if (user.estateId) {
+                        await acknowledgeAlert(user.estateId, alert.id, user.uid);
+                      }
+                    }}
+                    className="px-3 py-1.5 text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors flex-shrink-0"
+                  >
+                    Acknowledge
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
       
       {/* Comprehensive Security Statistics */}
       <div className="mb-6 animate-fade-in">

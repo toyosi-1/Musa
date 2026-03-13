@@ -32,8 +32,8 @@ interface RejectionNotificationData {
   supportEmail?: string;
 }
 
-// Resend "from" address — must match your verified domain in Resend
-const FROM_EMAIL = 'Musa Security <noreply@musa-security.com>';
+// The "from" address is controlled server-side via the RESEND_FROM_EMAIL
+// environment variable set in Netlify. We do NOT hardcode it here.
 
 /**
  * Send approval notification email via Resend
@@ -46,7 +46,6 @@ export const sendApprovalNotificationEmail = async (data: ApprovalNotificationDa
       to: data.userEmail,
       subject: "🎉 Your Musa account has been approved!",
       html: emailHtml,
-      from: FROM_EMAIL
     };
 
     const response = await fetch('/api/send-email', {
@@ -81,7 +80,6 @@ export const sendHouseholdInvitationEmail = async (data: HouseholdInviteData): P
       to: data.recipientEmail,
       subject: "You've been invited to join a household on Musa",
       html: emailHtml,
-      from: FROM_EMAIL
     };
 
     const response = await fetch('/api/send-email', {
@@ -490,7 +488,6 @@ export const sendRejectionNotificationEmail = async (data: RejectionNotification
       to: data.userEmail,
       subject: "Important Information About Your Musa Account Application",
       html: emailHtml,
-      from: FROM_EMAIL
     };
 
     const response = await fetch('/api/send-email', {
@@ -674,6 +671,101 @@ export function generateRejectionNotificationHTML(data: RejectionNotificationDat
             <p>© ${new Date().getFullYear()} Musa Security. All rights reserved.</p>
         </div>
     </div>
+</body>
+</html>
+  `;
+}
+
+/**
+ * Send welcome/registration confirmation email via Resend
+ */
+interface WelcomeEmailData {
+  userName: string;
+  userEmail: string;
+  userRole: string;
+}
+
+export const sendWelcomeEmail = async (data: WelcomeEmailData): Promise<boolean> => {
+  try {
+    const emailHtml = generateWelcomeEmailHTML(data);
+    
+    const emailData: EmailData = {
+      to: data.userEmail,
+      subject: "Welcome to Musa Security! 🏠",
+      html: emailHtml,
+    };
+
+    const response = await fetch('/api/send-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ emailData }),
+    });
+
+    if (!response.ok) {
+      const errorBody = await response.json().catch(() => ({}));
+      throw new Error(`Email API responded with status: ${response.status} - ${errorBody?.error || 'Unknown'}`);
+    }
+
+    const result = await response.json();
+    console.log('✅ Welcome email sent successfully:', result);
+    return true;
+
+  } catch (error) {
+    console.error('❌ Error sending welcome email:', error);
+    return false;
+  }
+};
+
+/**
+ * Generate HTML template for welcome/registration confirmation
+ */
+export function generateWelcomeEmailHTML(data: WelcomeEmailData): string {
+  const roleLabel = data.userRole === 'guard' ? 'Security Guard' : 'Resident';
+  return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Welcome to Musa Security</title>
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8fafc;">
+  <div style="background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); border-radius: 16px 16px 0 0; padding: 40px 30px; text-align: center;">
+    <div style="width: 80px; height: 80px; margin: 0 auto 16px; background: rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+      <span style="font-size: 40px;">🏠</span>
+    </div>
+    <h1 style="color: white; font-size: 28px; margin: 0; font-weight: 700;">Welcome to Musa!</h1>
+    <p style="color: rgba(255,255,255,0.85); font-size: 15px; margin-top: 8px;">Modern Estate Access Control</p>
+  </div>
+
+  <div style="background: white; border-radius: 0 0 16px 16px; padding: 32px 30px; box-shadow: 0 4px 12px rgba(0,0,0,0.08);">
+    <p style="font-size: 16px; margin-top: 0;">Hello <strong>${data.userName}</strong>,</p>
+    <p>Thank you for registering on <strong>Musa Security</strong> as a <strong>${roleLabel}</strong>! We're excited to have you on board.</p>
+
+    <div style="background: #fffbeb; border: 1px solid #f59e0b; border-radius: 10px; padding: 16px; margin: 20px 0;">
+      <p style="margin: 0; font-weight: 600; color: #92400e;">⏳ What happens next?</p>
+      <p style="margin: 8px 0 0; color: #78350f; font-size: 14px;">
+        Your account is now <strong>pending approval</strong> by your estate administrator. You'll receive another email once your account has been reviewed and approved.
+      </p>
+    </div>
+
+    <div style="background: #f0f9ff; border-radius: 10px; padding: 16px; margin: 20px 0;">
+      <p style="margin: 0; font-weight: 600; color: #1e40af;">📋 Your Details</p>
+      <table style="width: 100%; margin-top: 10px; font-size: 14px;">
+        <tr><td style="color: #6b7280; padding: 4px 0;">Name:</td><td style="font-weight: 500;">${data.userName}</td></tr>
+        <tr><td style="color: #6b7280; padding: 4px 0;">Email:</td><td style="font-weight: 500;">${data.userEmail}</td></tr>
+        <tr><td style="color: #6b7280; padding: 4px 0;">Role:</td><td style="font-weight: 500;">${roleLabel}</td></tr>
+        <tr><td style="color: #6b7280; padding: 4px 0;">Status:</td><td><span style="background: #fef3c7; color: #92400e; padding: 2px 10px; border-radius: 20px; font-size: 12px; font-weight: 600;">Pending Approval</span></td></tr>
+      </table>
+    </div>
+
+    <p style="font-size: 14px; color: #6b7280;">If you did not create this account, please ignore this email.</p>
+
+    <div style="margin-top: 32px; padding-top: 16px; border-top: 1px solid #e5e7eb; text-align: center; color: #9ca3af; font-size: 12px;">
+      <p style="margin: 0;">Musa Security &middot; Modern Estate Access Control</p>
+      <p style="margin: 4px 0 0;">&copy; ${new Date().getFullYear()} Musa. All rights reserved.</p>
+    </div>
+  </div>
 </body>
 </html>
   `;

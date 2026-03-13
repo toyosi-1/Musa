@@ -7,6 +7,9 @@ import PendingUsersManager from '@/components/admin/PendingUsersManager';
 import StatusGuard from '@/components/auth/StatusGuard';
 import Link from 'next/link';
 import { getAdminStats, AdminStats } from '@/services/adminStatsService';
+import { subscribeToAlerts, acknowledgeAlert, resolveAlert, getEmergencyTypeInfo } from '@/services/emergencyService';
+import { EmergencyAlert } from '@/types/user';
+import { formatDistanceToNow } from 'date-fns';
 
 export default function AdminDashboardPage() {
   const { currentUser, loading, signOut } = useAuth();
@@ -16,6 +19,7 @@ export default function AdminDashboardPage() {
   const [adminStats, setAdminStats] = useState<AdminStats | null>(null);
   const [isLoadingStats, setIsLoadingStats] = useState(true);
   const [statsError, setStatsError] = useState<string | null>(null);
+  const [emergencyAlerts, setEmergencyAlerts] = useState<EmergencyAlert[]>([]);
   
   // Handle logout
   const handleLogout = async () => {
@@ -55,6 +59,48 @@ export default function AdminDashboardPage() {
     }
   }, [mounted, currentUser, loading]);
 
+  // Subscribe to emergency alerts across all estates (admin sees all)
+  useEffect(() => {
+    if (!mounted || !currentUser || currentUser.role !== 'admin') return;
+
+    // Admin subscribes to alerts - for now using a known estateId from stats
+    // We'll subscribe once we have estate data
+    const setupSubscription = async () => {
+      try {
+        const { getFirebaseDatabase } = await import('@/lib/firebase');
+        const { ref, get } = await import('firebase/database');
+        const db = await getFirebaseDatabase();
+        const estatesSnap = await get(ref(db, 'estates'));
+        if (!estatesSnap.exists()) return;
+
+        const unsubscribers: (() => void)[] = [];
+        const allAlerts = new Map<string, EmergencyAlert>();
+
+        estatesSnap.forEach((child: any) => {
+          const estateId = child.key;
+          if (estateId) {
+            const unsub = subscribeToAlerts(estateId, (alerts) => {
+              alerts.forEach(a => {
+                if (a.status === 'active') allAlerts.set(a.id, a);
+                else allAlerts.delete(a.id);
+              });
+              setEmergencyAlerts(Array.from(allAlerts.values()).sort((a, b) => b.createdAt - a.createdAt));
+            });
+            unsubscribers.push(unsub);
+          }
+        });
+
+        return () => unsubscribers.forEach(fn => fn());
+      } catch (e) {
+        console.error('Error subscribing to emergency alerts:', e);
+      }
+    };
+
+    let cleanup: (() => void) | undefined;
+    setupSubscription().then(fn => { cleanup = fn; });
+    return () => { if (cleanup) cleanup(); };
+  }, [mounted, currentUser]);
+
   useEffect(() => {
     // Only allow admins to access this page
     if (!loading && currentUser && currentUser.role !== 'admin') {
@@ -93,6 +139,59 @@ export default function AdminDashboardPage() {
             Logout
           </button>
         </div>
+
+        {/* ─── Emergency Alerts ─── */}
+        {emergencyAlerts.length > 0 && (
+          <div className="mb-8 space-y-3">
+            <h2 className="text-lg font-bold text-red-600 dark:text-red-400 flex items-center gap-2">
+              <span className="animate-pulse">🚨</span> Active Emergency Alerts ({emergencyAlerts.length})
+            </h2>
+            {emergencyAlerts.map((alert) => {
+              const typeInfo = getEmergencyTypeInfo(alert.type);
+              const timeAgo = formatDistanceToNow(new Date(alert.createdAt), { addSuffix: true });
+              return (
+                <div
+                  key={alert.id}
+                  className="bg-red-50 dark:bg-red-900/20 border-2 border-red-500 dark:border-red-600 rounded-2xl p-5 shadow-lg"
+                >
+                  <div className="flex items-start gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-red-500 flex items-center justify-center flex-shrink-0 animate-pulse">
+                      <span className="text-2xl">{typeInfo.icon}</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-bold text-red-700 dark:text-red-300 uppercase tracking-wide text-sm">Emergency</span>
+                        <span className="text-xs text-red-500 dark:text-red-400">{timeAgo}</span>
+                      </div>
+                      <p className="font-semibold text-gray-900 dark:text-white">{typeInfo.label}</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-300 mt-0.5">
+                        From: <strong>{alert.triggeredByName}</strong>
+                        {alert.householdName ? ` • ${alert.householdName}` : ''}
+                      </p>
+                      {alert.description && (
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 italic">&ldquo;{alert.description}&rdquo;</p>
+                      )}
+                    </div>
+                    <div className="flex flex-col gap-2 flex-shrink-0">
+                      <button
+                        onClick={() => acknowledgeAlert(alert.estateId, alert.id, currentUser!.uid)}
+                        className="px-4 py-2 text-xs font-bold text-white bg-orange-500 hover:bg-orange-600 rounded-lg transition-colors"
+                      >
+                        Acknowledge
+                      </button>
+                      <button
+                        onClick={() => resolveAlert(alert.estateId, alert.id, currentUser!.uid)}
+                        className="px-4 py-2 text-xs font-bold text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors"
+                      >
+                        Resolve
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
 
         <div className="grid grid-cols-1 gap-10">
           <div className="space-y-2">

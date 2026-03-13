@@ -220,6 +220,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const pendingUserRef = ref(db, `pendingUsers/${result.user.uid}`);
       await set(pendingUserRef, true);
       
+      // Send welcome/registration confirmation email (non-blocking)
+      try {
+        const { sendWelcomeEmail } = await import('@/services/smtpEmailService');
+        sendWelcomeEmail({
+          userName: displayName,
+          userEmail: email,
+          userRole: role,
+        }).then((sent) => {
+          if (sent) console.log(`✅ Welcome email sent to ${email}`);
+          else console.warn(`⚠️ Welcome email failed for ${email}`);
+        }).catch((err) => console.error('❌ Welcome email error:', err));
+      } catch (emailImportError) {
+        console.error('❌ Failed to import email service:', emailImportError);
+      }
+      
       console.log('New user signed up and added to pending list:', newUser.uid, estateId ? `for estate: ${estateId}` : '');
       return newUser;
     } catch (error) {
