@@ -120,12 +120,11 @@ const nextConfig = {
   
   // Experimental features
   experimental: {
-    // Enable server components external packages
     serverComponentsExternalPackages: ['firebase-admin'],
-    // Enable app directory
     appDir: true,
-    // Enable server actions
     serverActions: true,
+    optimizeCss: true,
+    scrollRestoration: true,
   },
   // Static generation is now handled by Next.js App Router automatically
   // Add transpilePackages to handle problematic packages
@@ -198,19 +197,19 @@ const nextConfig = {
       config: [__filename]
     };
     
-    // Enable source maps in development for better debugging
-    if (!isServer) {
-      config.devtool = 'source-map';
-    }
-
     return config;
   },
   // Add security headers
   async headers() {
     return [
       {
+        // Preconnect to Firebase for faster initial load
         source: '/(.*)',
         headers: [
+          {
+            key: 'Link',
+            value: '<https://firebaseio.com>; rel=preconnect, <https://googleapis.com>; rel=preconnect, <https://firebasestorage.googleapis.com>; rel=preconnect',
+          },
           {
             key: 'X-Content-Type-Options',
             value: 'nosniff',
@@ -250,9 +249,7 @@ const nextConfig = {
   generateEtags: true,
   // Disable X-Powered-By header for security
   poweredByHeader: false,
-  // Enable React strict mode
-  reactStrictMode: true,
-  // Enable production browser source maps
+  // Disable production browser source maps for smaller bundles
   productionBrowserSourceMaps: false,
   // Add trailing slash for better SEO
   trailingSlash: true,
@@ -260,11 +257,6 @@ const nextConfig = {
   devIndicators: {
     buildActivity: true,
     buildActivityPosition: 'bottom-right',
-  },
-  // Add experimental features
-  experimental: {
-    optimizeCss: true,
-    scrollRestoration: true,
   },
   // Enable output file tracing for better optimization
   outputFileTracing: true,

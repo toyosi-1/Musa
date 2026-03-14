@@ -143,20 +143,31 @@ export async function POST(request: NextRequest) {
     };
 
     let billData: any;
+    let billSource = 'none';
 
-    // 1) Try proxy (whitelisted IP)
+    // 1) Try proxy (whitelisted IP) — this is the preferred path
     if (proxyUrl && proxySecret) {
+      console.log('[BillPayment] Attempting via proxy (whitelisted IP)...');
       const r = await apiCall(proxyUrl, 'POST', { 'Content-Type': 'application/json' }, { proxySecret, ...billPayload }, 'Proxy');
-      if (r.ok) billData = r.data;
-      else console.warn('Proxy failed:', r.error);
+      if (r.ok && r.data?.status === 'success') {
+        billData = r.data;
+        billSource = 'proxy';
+      } else {
+        console.warn('[BillPayment] Proxy failed:', r.ok ? JSON.stringify(r.data) : r.error);
+      }
+    } else {
+      console.warn('[BillPayment] No proxy configured (BILL_PAYMENT_PROXY_URL / BILL_PAYMENT_PROXY_SECRET missing). Bill payments may fail due to IP restrictions.');
     }
 
-    // 2) Fallback to direct API
+    // 2) Fallback to direct API (may fail on Netlify due to dynamic IP)
     if (!billData) {
+      console.log('[BillPayment] Attempting direct Flutterwave API...');
       const r = await apiCall(`${FLUTTERWAVE_BASE_URL}/bills`, 'POST', headers, billPayload, 'Direct');
       if (r.ok) {
         billData = r.data;
+        billSource = 'direct';
       } else {
+        console.error('[BillPayment] Direct API also failed:', r.error);
         return NextResponse.json({
           success: false,
           message: `Could not reach electricity service. Your payment of ₦${paidAmount} was verified — please contact support with ref: ${reference}`,
@@ -165,21 +176,24 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    console.log('Bill payment response:', JSON.stringify(billData));
+    console.log(`[BillPayment] Response via ${billSource}:`, JSON.stringify(billData));
 
     // Handle Flutterwave account-level errors
     if (billData.status !== 'success') {
       const flwMsg = (billData.message || '').toLowerCase();
       let userMessage: string;
 
-      if (flwMsg.includes('cannot be processed') || flwMsg.includes('account administrator')) {
-        userMessage = 'Electricity service is temporarily unavailable (provider account issue). Your payment of ₦' + paidAmount + ' was verified — please contact support for your token or refund.';
+      if (flwMsg.includes('unauthorized') || flwMsg.includes('authentication')) {
+        console.error('[BillPayment] UNAUTHORIZED — Likely cause: Server IP not whitelisted in Flutterwave dashboard. Netlify serverless IPs are dynamic. You MUST use a Cloud Function proxy with a static IP.');
+        userMessage = `Server authorization failed (IP restriction). Your payment of ₦${paidAmount} was verified — please contact support with ref: ${reference}. The admin needs to configure the bill payment proxy.`;
+      } else if (flwMsg.includes('cannot be processed') || flwMsg.includes('account administrator')) {
+        userMessage = `Electricity service is temporarily unavailable (provider account issue). Your payment of ₦${paidAmount} was verified — please contact support for your token or refund. Ref: ${reference}`;
       } else if (flwMsg.includes('ip') || flwMsg.includes('whitelist')) {
-        userMessage = 'Service configuration error. Your payment was verified — please contact support.';
+        userMessage = `Service configuration error (IP not whitelisted). Your payment of ₦${paidAmount} was verified — please contact support. Ref: ${reference}`;
       } else if (flwMsg.includes('balance') || flwMsg.includes('insufficient')) {
-        userMessage = 'Electricity service temporarily unavailable. Your payment was verified — please contact support.';
+        userMessage = `Electricity service temporarily unavailable (insufficient balance). Your payment of ₦${paidAmount} was verified — please contact support. Ref: ${reference}`;
       } else {
-        userMessage = billData.message || 'Electricity purchase could not be completed. Your payment was verified — please contact support.';
+        userMessage = `${billData.message || 'Electricity purchase could not be completed'}. Your payment of ₦${paidAmount} was verified — please contact support. Ref: ${reference}`;
       }
 
       return NextResponse.json({ success: false, message: userMessage, paymentVerified: true });

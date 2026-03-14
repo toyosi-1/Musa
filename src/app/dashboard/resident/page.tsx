@@ -7,59 +7,35 @@ import ResidentDashboard from '@/components/resident/ResidentDashboard';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 
 export default function ResidentDashboardPage() {
-  const { currentUser, loading, getUserProfile } = useAuth();
+  const { currentUser, loading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    const verifyResidentRole = async () => {
-      // Wait until authentication is not loading
-      if (!loading) {
-        if (!currentUser) {
-          // Not logged in, redirect to login
-          router.push('/auth/login');
-          return;
-        }
+    if (loading) return;
 
-        // Handle different user statuses
-        if (currentUser.status === 'pending') {
-          router.push('/auth/pending');
-          return;
-        } else if (currentUser.status === 'rejected') {
-          router.push('/auth/rejected');
-          return;
-        }
+    if (!currentUser) {
+      router.push('/auth/login');
+      return;
+    }
 
-        // Double verify the user role from the database
-        try {
-          if (currentUser.role !== 'resident') {
-            console.log('User is not a resident. Actual role:', currentUser.role);
-            // If not a resident, redirect to the appropriate dashboard
-            if (currentUser.role === 'admin') {
-              router.push('/admin/dashboard');
-            } else {
-              router.push('/dashboard/guard');
-            }
-            return;
-          }
+    if (currentUser.status === 'pending') {
+      router.push('/auth/pending');
+      return;
+    } else if (currentUser.status === 'rejected') {
+      router.push('/auth/rejected');
+      return;
+    }
 
-          // Optional second verification directly from database
-          const freshUserData = await getUserProfile(currentUser.uid);
-          if (freshUserData && freshUserData.role !== 'resident') {
-            console.log('Database role verification failed. Redirecting to correct dashboard.');
-            if (freshUserData.role === 'admin') {
-              router.push('/admin/dashboard');
-            } else {
-              router.push('/dashboard/guard');
-            }
-          }
-        } catch (error) {
-          console.error('Error verifying user role:', error);
-        }
+    if (currentUser.role !== 'resident') {
+      if (currentUser.role === 'admin') {
+        router.push('/admin/dashboard');
+      } else if (currentUser.role === 'estate_admin') {
+        router.push('/estate-admin/dashboard');
+      } else {
+        router.push('/dashboard/guard');
       }
-    };
-
-    verifyResidentRole();
-  }, [currentUser, loading, router, getUserProfile]);
+    }
+  }, [currentUser, loading, router]);
 
   if (loading) {
     return (

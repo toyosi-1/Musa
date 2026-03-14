@@ -105,25 +105,9 @@ const validateFirebaseConfig = () => {
   return true;
 };
 
-// Performance monitoring helpers
-const timeStart = (label: string) => {
-  if (typeof window !== 'undefined' && window.performance) {
-    window.performance.mark(`${label}-start`);
-  }
-  console.time(`⏱️ ${label}`);
-};
-
-const timeEnd = (label: string) => {
-  if (typeof window !== 'undefined' && window.performance) {
-    window.performance.mark(`${label}-end`);
-    try {
-      window.performance.measure(label, `${label}-start`, `${label}-end`);
-    } catch (e) {
-      // Ignore measurement errors
-    }
-  }
-  console.timeEnd(`⏱️ ${label}`);
-};
+// Performance monitoring - minimal overhead
+const isDev = process.env.NODE_ENV === 'development';
+const logDebug = (...args: any[]) => { if (isDev) console.log(...args); };
 
 // Lazy initialization variables with proper typing
 let app: FirebaseApp | undefined;
@@ -170,13 +154,8 @@ export async function getFirebaseApp(): Promise<FirebaseApp> {
  * Gets the Firebase Auth instance, initializing app if necessary
  */
 export async function getFirebaseAuth(): Promise<Auth> {
-  timeStart('getFirebaseAuth');
-  
   // If already initialized, return it immediately
-  if (auth) {
-    timeEnd('getFirebaseAuth');
-    return auth;
-  }
+  if (auth) return auth;
   
   // Ensure the app is initialized first
   const app = await getFirebaseApp();
@@ -185,68 +164,48 @@ export async function getFirebaseAuth(): Promise<Auth> {
   try {
     auth = getAuth(app);
     
-    // Enhanced persistence configuration for all platforms
-    const isPWA = typeof window !== 'undefined' && 
-      (window.matchMedia('(display-mode: standalone)').matches || 
-       (window.navigator as any).standalone === true);
-    
-    // Special handling for iOS PWA
-    const isIOS = typeof navigator !== 'undefined' && 
-                 /iPad|iPhone|iPod/.test(navigator.userAgent) && 
-                 !(window as any).MSStream;
-    
     // Use browserLocalPersistence (localStorage) as PRIMARY for ALL platforms
-    // IndexedDB persistence is unreliable on Android PWA - gets cleared on app close
-    // localStorage is more reliable and survives app closes on all platforms
     try {
       await setPersistence(auth!, browserLocalPersistence);
-      console.log('✅ Auth persistence set to localStorage');
+      logDebug('✅ Auth persistence set to localStorage');
     } catch (persistError) {
-      console.warn('⚠️ localStorage persistence failed, trying IndexedDB:', persistError);
       try {
         await setPersistence(auth!, indexedDBLocalPersistence);
-        console.log('✅ Auth persistence set to IndexedDB (fallback)');
+        logDebug('✅ Auth persistence set to IndexedDB (fallback)');
       } catch (indexedDBError) {
         console.error('❌ All persistence methods failed:', indexedDBError);
       }
     }
     
     // Add localStorage backup for auth state on ALL platforms
-    // This provides a fallback for session recovery
     if (typeof window !== 'undefined') {
       const backupAuthKey = 'firebase:authBackup';
       
       auth!.onAuthStateChanged((user) => {
         if (user) {
-          const authData = {
+          localStorage.setItem(backupAuthKey, JSON.stringify({
             uid: user.uid,
             email: user.email,
             refreshToken: user.refreshToken,
             lastLogin: Date.now()
-          };
-          localStorage.setItem(backupAuthKey, JSON.stringify(authData));
-          console.log('💾 Auth backup saved for', user.email);
+          }));
         }
-        // Don't remove backup on null - it might be a temporary state during cold start
       });
     }
     
-    // Connect to emulator in development (async)
+    // Connect to emulator in development
     if (process.env.NODE_ENV === 'development' && 
         process.env.NEXT_PUBLIC_USE_FIREBASE_EMULATOR === 'true') {
       try {
         connectAuthEmulator(auth!, 'http://localhost:9099', { disableWarnings: true });
-        console.log('🔧 Connected to Auth emulator');
       } catch (error) {
         console.warn('⚠️ Failed to connect to Auth emulator:', error);
       }
     }
     
-    timeEnd('getFirebaseAuth');
     return auth;
   } catch (error) {
     console.error('❌ Failed to initialize Firebase Auth:', error);
-    timeEnd('getFirebaseAuth');
     throw error;
   }
 }
@@ -262,93 +221,46 @@ export async function getFirebaseDatabase(): Promise<Database> {
   }
   
   if (!firebaseDb) {
-    console.log('🔄 Initializing Firebase Database...');
     try {
-      // Dynamically import Firebase Database modules
       const { getDatabase, connectDatabaseEmulator } = await import('firebase/database');
       const app = await getFirebaseApp();
       
-      // Get database URL from environment variables
       const databaseURL = window.ENV?.NEXT_PUBLIC_FIREBASE_DATABASE_URL || 
                          process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL;
       
       if (!databaseURL) {
-        console.error('❌ Firebase Database URL is not configured');
         throw new Error('Firebase Database URL is not configured. Please check your environment variables.');
       }
       
-      console.log(`🔗 Initializing database with URL: ${databaseURL}`);
-      
-      // Initialize database with explicit URL
       firebaseDb = getDatabase(app, databaseURL);
       
-      // Set shorter timeouts for Firebase operations
       try {
-        // Increase the default timeout for initial connection
-        (firebaseDb as any).app.options.databaseTimeoutSeconds = 30; // 30 seconds timeout for initial connection
-        console.log('⏱️ Set database operation timeout to 30 seconds');
-        
-        // Add offline support
         goOnline(firebaseDb);
-        console.log('🌐 Enabled Firebase Database online mode');
-        
-        // Set up connection state monitoring
-        const connectedRef = ref(firebaseDb, '.info/connected');
-        onValue(connectedRef, (snap) => {
-          if (snap.val() === true) {
-            console.log('✅ Database connection established');
-          } else {
-            console.log('⚠️ Database connection lost');
-          }
-        });
       } catch (e) {
-        console.warn('⚠️ Could not set database timeout:', e);
+        // Non-critical
       }
       
-      // Check if we should use emulators
-      const useEmulators = process.env.NODE_ENV === 'development' && 
-                         process.env.NEXT_PUBLIC_USE_FIREBASE_EMULATORS === 'true';
-      
-      if (useEmulators) {
+      // Emulator support
+      if (process.env.NODE_ENV === 'development' && 
+          process.env.NEXT_PUBLIC_USE_FIREBASE_EMULATORS === 'true') {
         try {
-          console.log('🔌 Connecting to Database emulator...');
           connectDatabaseEmulator(firebaseDb, 'localhost', 9000);
-          console.log('✅ Connected to Database emulator');
         } catch (err) {
           console.warn('⚠️ Failed to connect to Database emulator:', err);
         }
-      } else {
-        console.log('🌐 Using production Firebase Database');
       }
       
-      console.log('✅ Firebase Database initialized successfully');
+      logDebug('✅ Firebase Database initialized');
     } catch (error: unknown) {
       console.error('❌ Error initializing Firebase Database:', error);
       
-      // Provide more detailed error information
       if (error && typeof error === 'object') {
         const firebaseError = error as { code?: string; message: string };
-        
-        if (firebaseError.code) {
-          console.error(`Firebase error code: ${firebaseError.code}`);
-          console.error(`Firebase error message: ${firebaseError.message}`);
-          
-          if (firebaseError.code === 'app/duplicate-app') {
-            console.error('A Firebase App named "[DEFAULT]" already exists');
-          } else if (firebaseError.code === 'app/no-app') {
-            console.error('No Firebase App has been created');
-          } else if (firebaseError.code === 'storage/unknown') {
-            console.error('Unknown error occurred while accessing storage');
-          }
-        }
-        
         throw new Error(`Failed to initialize Firebase Database: ${firebaseError.message || 'Unknown error'}`);
       }
       
       throw new Error('Failed to initialize Firebase Database: Unknown error occurred');
     }
-  } else {
-    console.log('♻️ Using existing Firebase Database instance');
   }
   
   return firebaseDb as Database;
@@ -448,76 +360,35 @@ export async function getFirebaseStorage() {
  * Returns a promise that resolves when initialization is complete
  */
 export async function initializeFirebase(): Promise<boolean> {
-  console.log('=== Starting Firebase Initialization ===');
-  console.log('Environment:', process.env.NODE_ENV);
-  console.log('Is Server:', typeof window === 'undefined');
-  console.log('=== Firebase Config ===');
-  console.log('API Key:', process.env.NEXT_PUBLIC_FIREBASE_API_KEY ? '*** (set)' : 'Not set');
-  console.log('Auth Domain:', process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || 'Not set');
-  console.log('Project ID:', process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'Not set');
-  console.log('Database URL:', process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL || 'Not set');
-  console.log('========================');
   // Skip initialization on server-side
-  if (typeof window === 'undefined') {
-    console.log('⚠️ Skipping Firebase initialization on server side');
-    return false;
-  }
+  if (typeof window === 'undefined') return false;
   
   // Return existing promise if already initializing
-  if (isInitialized) {
-    console.log('✅ Firebase already initialized');
-    return Promise.resolve(true);
-  }
+  if (isInitialized) return Promise.resolve(true);
+  if (initPromise) return initPromise;
   
-  if (initPromise) {
-    console.log('⏳ Firebase initialization in progress, returning existing promise');
-    return initPromise;
-  }
-  
-  console.log('🔥 Starting Firebase initialization process...');
-  
-  // Store the current promise to prevent multiple initializations
   const currentPromise = connectionPromise;
   if (currentPromise) return currentPromise;
   
   // Create new initialization promise
   connectionPromise = new Promise<boolean>(async (resolve) => {
     try {
-      console.log('🔥 Starting Firebase initialization...');
-      
-      // Check configuration
-      console.log('🔥 Validating Firebase configuration...');
       const isConfigValid = validateFirebaseConfig();
       if (!isConfigValid) {
-        console.error('❌ Firebase configuration validation failed');
         throw new Error('Firebase configuration is incomplete. Check your environment variables.');
       }
-      console.log('✅ Firebase configuration is valid');
       
-      // Initialize app and services
-      console.log('🔥 [1/3] Initializing Firebase App...');
+      // Initialize app and services in parallel where possible
       const app = await getFirebaseApp();
-      console.log('✅ [1/3] Firebase App initialized successfully');
       
-      console.log('🔥 [2/3] Initializing Firebase Auth...');
-      const auth = await getFirebaseAuth();
-      console.log('✅ [2/3] Firebase Auth initialized successfully');
-      
-      console.log('🔥 [3/3] Initializing Firebase Database...');
-      const database = await getFirebaseDatabase();
-      console.log('✅ [3/3] Firebase Database initialized successfully');
-      
-      // Log auth state
-      if (auth) {
-        console.log('🔐 Auth state:', auth.currentUser ? 'User signed in' : 'No user signed in');
-      }
-      
-      // Skip database connection test for faster initialization
-      // The auth will work even if DB test fails
-      console.log('✅ Database initialized, skipping connection test for speed');
+      // Auth and Database can initialize in parallel
+      await Promise.all([
+        getFirebaseAuth(),
+        getFirebaseDatabase(),
+      ]);
       
       isInitialized = true;
-      console.log('Firebase initialization completed');
+      logDebug('✅ Firebase initialization completed');
       resolve(true);
     } catch (error) {
       console.error('Firebase initialization failed:', error);
@@ -780,19 +651,15 @@ if (typeof window !== 'undefined' && !isInitialized) {
 // Export initialized instances
 export { firebaseApp, firebaseAuth, firebaseDb };
 
-// Export Firestore instance
+// Firestore instance - lazily initialized on first use, NOT at module load
 export let db: Firestore;
 
-// Initialize Firestore if we're on the client side
-if (typeof window !== 'undefined') {
-  getFirebaseFirestore()
-    .then(firestoreInstance => {
-      db = firestoreInstance;
-      console.log('✅ Firestore instance exported as db');
-    })
-    .catch(error => {
-      console.error('❌ Failed to initialize Firestore for export:', error);
-    });
+// Lazy Firestore getter - only initializes when actually needed
+export async function getFirestoreDb(): Promise<Firestore> {
+  if (!db) {
+    db = await getFirebaseFirestore();
+  }
+  return db;
 }
 
 // Export database helpers

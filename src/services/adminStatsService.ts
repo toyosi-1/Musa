@@ -1,4 +1,4 @@
-import { db } from '@/lib/firebase';
+import { getFirestoreDb } from '@/lib/firebase';
 import { collection, getDocs, query, where, orderBy, limit, Timestamp } from 'firebase/firestore';
 import { getFirebaseDatabase, ref, get } from '@/lib/firebase';
 import { DataSnapshot } from 'firebase/database';
@@ -42,7 +42,7 @@ export async function getAdminStats(): Promise<AdminStats> {
  * Get admin statistics from Firestore
  */
 async function getFirestoreStats(): Promise<AdminStats> {
-  console.log('Fetching admin statistics from Firestore...');
+  const db = await getFirestoreDb();
   
   // Get total users
   const usersSnapshot = await getDocs(collection(db, 'users'));
@@ -266,7 +266,7 @@ async function getRealtimeDatabaseStats(): Promise<AdminStats> {
 
 export async function getRecentActivities(limitCount: number = 10): Promise<RecentActivity[]> {
   try {
-    console.log('Fetching recent activities...');
+    const db = await getFirestoreDb();
     
     const activities: RecentActivity[] = [];
     const yesterday = new Date();
