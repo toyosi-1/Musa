@@ -11,11 +11,8 @@ import LoadingSpinner from '@/components/ui/LoadingSpinner';
 
 const EMERGENCY_TYPES: { type: EmergencyType; label: string; icon: string; description: string }[] = [
   { type: 'robbery', label: 'Robbery / Break-in', icon: '🚨', description: 'Armed robbery, burglary, or break-in attempt' },
-  { type: 'fire', label: 'Fire', icon: '🔥', description: 'Fire outbreak in or near your property' },
+  { type: 'fire', label: 'Fire Emergency', icon: '🔥', description: 'Fire outbreak in or near your property' },
   { type: 'medical', label: 'Medical Emergency', icon: '🏥', description: 'Someone needs urgent medical attention' },
-  { type: 'suspicious', label: 'Suspicious Activity', icon: '👁️', description: 'Suspicious person or activity observed' },
-  { type: 'flood', label: 'Flood / Water', icon: '🌊', description: 'Flooding or serious water damage' },
-  { type: 'other', label: 'Other', icon: '⚠️', description: 'Other emergency situation' },
 ];
 
 export default function EmergencyPage() {
@@ -224,20 +221,33 @@ export default function EmergencyPage() {
               <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-1">What's the emergency?</h2>
               <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Select the type that best describes your situation.</p>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-3">
                 {EMERGENCY_TYPES.map(({ type, label, icon, description: desc }) => (
                   <button
                     key={type}
                     onClick={() => setSelectedType(type)}
-                    className={`flex flex-col items-start gap-1.5 p-4 rounded-2xl border-2 text-left transition-all duration-200 ${
+                    className={`w-full flex items-start gap-4 p-5 rounded-2xl border-2 text-left transition-all duration-200 ${
                       selectedType === type
-                        ? 'border-red-500 bg-red-50 dark:bg-red-900/20 shadow-md'
-                        : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/80 hover:border-gray-300 dark:hover:border-gray-600'
+                        ? 'border-red-500 bg-red-50 dark:bg-red-900/20 shadow-lg shadow-red-500/10'
+                        : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/80 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-md'
                     }`}
                   >
-                    <span className="text-2xl">{icon}</span>
-                    <span className="text-sm font-bold text-gray-900 dark:text-white">{label}</span>
-                    <span className="text-[11px] text-gray-400 dark:text-gray-500 leading-tight">{desc}</span>
+                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 ${
+                      selectedType === type ? 'bg-red-500' : 'bg-gray-100 dark:bg-gray-700'
+                    }`}>
+                      <span className="text-3xl">{icon}</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <span className="block text-base font-bold text-gray-900 dark:text-white mb-1">{label}</span>
+                      <span className="block text-sm text-gray-500 dark:text-gray-400 leading-snug">{desc}</span>
+                    </div>
+                    {selectedType === type && (
+                      <div className="flex-shrink-0">
+                        <svg className="w-6 h-6 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                    )}
                   </button>
                 ))}
               </div>

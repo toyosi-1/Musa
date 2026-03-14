@@ -162,11 +162,8 @@ export const subscribeToAlerts = (
 export const getEmergencyTypeInfo = (type: EmergencyType) => {
   const map: Record<EmergencyType, { label: string; icon: string; color: string }> = {
     robbery: { label: 'Robbery / Break-in', icon: '🚨', color: 'red' },
-    fire: { label: 'Fire', icon: '🔥', color: 'orange' },
+    fire: { label: 'Fire Emergency', icon: '🔥', color: 'orange' },
     medical: { label: 'Medical Emergency', icon: '🏥', color: 'blue' },
-    suspicious: { label: 'Suspicious Activity', icon: '👁', color: 'yellow' },
-    flood: { label: 'Flood / Water Damage', icon: '🌊', color: 'cyan' },
-    other: { label: 'Other Emergency', icon: '⚠️', color: 'gray' },
   };
-  return map[type] || map.other;
+  return map[type];
 };

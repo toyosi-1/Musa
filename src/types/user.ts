@@ -79,7 +79,7 @@ export interface Estate {
   isLocked?: boolean;
 }
 
-export type EmergencyType = 'robbery' | 'fire' | 'medical' | 'suspicious' | 'flood' | 'other';
+export type EmergencyType = 'robbery' | 'fire' | 'medical';
 
 export interface EmergencyAlert {
   id: string;
