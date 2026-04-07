@@ -265,7 +265,7 @@ export default function FeedPage() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto pb-24">
+    <div className="max-w-2xl mx-auto" style={{ paddingBottom: 'calc(6rem + env(safe-area-inset-bottom, 0px))' }}>
       {/* Header */}
       <div className="flex items-center justify-between mb-5">
         <div className="flex items-center gap-2.5">
@@ -571,7 +571,8 @@ export default function FeedPage() {
       {/* Floating Create Post Button */}
       <button
         onClick={() => setShowCreateModal(true)}
-        className="fixed bottom-20 right-5 md:bottom-8 md:right-8 w-14 h-14 bg-gradient-to-br from-green-500 to-emerald-600 hover:from-green-400 hover:to-emerald-500 text-white rounded-full shadow-lg shadow-green-500/30 flex items-center justify-center transition-all hover:scale-105 active:scale-95 z-40"
+        className="fixed right-5 md:bottom-8 md:right-8 w-14 h-14 bg-gradient-to-br from-green-500 to-emerald-600 hover:from-green-400 hover:to-emerald-500 text-white rounded-full shadow-lg shadow-green-500/30 flex items-center justify-center transition-all hover:scale-105 active:scale-95 z-40"
+        style={{ bottom: 'calc(5rem + env(safe-area-inset-bottom, 0px))' }}
         aria-label="Create new post"
       >
         <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -648,7 +649,7 @@ export default function FeedPage() {
             </div>
 
             {/* Modal Footer */}
-            <div className="p-4 border-t border-gray-100 dark:border-gray-700 flex items-center gap-3">
+            <div className="p-4 border-t border-gray-100 dark:border-gray-700 flex items-center gap-3 pb-safe" style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom, 1rem))' }}>
               {/* Add Photo Button */}
               <button
                 onClick={() => fileInputRef.current?.click()}

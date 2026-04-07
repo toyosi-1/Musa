@@ -161,7 +161,7 @@ export default function VendorRequestPage() {
   const serviceLabel = SERVICES.find(s => s.type === selected);
 
   return (
-    <div className="min-h-screen bg-[#080d1a] text-white">
+    <div className="min-h-screen bg-[#080d1a] text-white" style={{ paddingBottom: 'calc(6rem + env(safe-area-inset-bottom, 0px))' }}>
       {/* Sticky header */}
       <div className="sticky top-0 z-10 bg-[#080d1a]/90 backdrop-blur-xl border-b border-white/[0.06] px-5 py-3.5">
         <div className="max-w-2xl mx-auto flex items-center gap-3">

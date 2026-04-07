@@ -146,7 +146,7 @@ export default function DashboardLayout({
       </header>
 
       {/* ─── Main Content ─── */}
-      <main className="flex-grow overflow-y-auto overflow-x-hidden pb-24 md:pb-0">
+      <main className="flex-grow overflow-y-auto overflow-x-hidden md:pb-0" style={{ paddingBottom: 'calc(6rem + env(safe-area-inset-bottom, 0px))' }}>
         <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 md:py-8" style={{ paddingTop: 'max(1.25rem, env(safe-area-inset-top, 1.25rem))' }}>
           {/* Mobile Top Bar — premium feel */}
           <div className="md:hidden flex items-center justify-between mb-5">

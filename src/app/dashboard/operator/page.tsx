@@ -64,7 +64,7 @@ export default function OperatorDashboard() {
   const counts: Record<string, number> = { all: requests.length, pending: requests.filter(r=>r.status==='pending').length, assigned: requests.filter(r=>r.status==='assigned').length, in_progress: requests.filter(r=>r.status==='in_progress').length, completed: requests.filter(r=>r.status==='completed').length, cancelled: requests.filter(r=>r.status==='cancelled').length };
 
   return (
-    <div className="min-h-screen bg-[#080d1a] text-white">
+    <div className="min-h-screen bg-[#080d1a] text-white" style={{ paddingBottom: 'calc(6rem + env(safe-area-inset-bottom, 0px))' }}>
       {/* Header */}
       <div className="sticky top-0 z-10 bg-[#080d1a]/90 backdrop-blur-xl border-b border-white/[0.06] px-5 py-3.5">
         <div className="max-w-3xl mx-auto flex items-center gap-3">

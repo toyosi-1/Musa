@@ -47,7 +47,7 @@ export default function VendorPortalPage() {
   const done = jobs.filter(j => j.status === 'completed' || j.status === 'cancelled');
 
   return (
-    <div className="min-h-screen bg-[#080d1a] text-white">
+    <div className="min-h-screen bg-[#080d1a] text-white" style={{ paddingBottom: 'calc(6rem + env(safe-area-inset-bottom, 0px))' }}>
       <div className="sticky top-0 z-10 bg-[#080d1a]/90 backdrop-blur-xl border-b border-white/[0.06] px-5 py-3.5">
         <div className="max-w-2xl mx-auto flex items-center gap-3">
           <Link href="/dashboard" className="w-9 h-9 rounded-xl bg-white/[0.06] hover:bg-white/[0.10] border border-white/[0.08] flex items-center justify-center transition-colors flex-shrink-0">

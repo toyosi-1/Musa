@@ -90,6 +90,21 @@ html, body {
   padding-top: env(safe-area-inset-top, 0px);
 }
 
+/* pb-safe: bottom padding that accounts for iOS home indicator */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* mb-safe: bottom margin that accounts for iOS home indicator */
+.mb-safe {
+  margin-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* For fixed/sticky bottom elements — offset by safe area */
+.bottom-safe {
+  bottom: env(safe-area-inset-bottom, 0px);
+}
+
 /* Prevent text size adjustment on mobile */
 html {
   -webkit-text-size-adjust: 100%;
