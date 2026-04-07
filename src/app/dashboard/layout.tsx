@@ -175,8 +175,8 @@ export default function DashboardLayout({
       </main>
 
       {/* ─── Mobile Bottom Navigation — refined ─── */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 pb-safe">
-        <div className="mx-3 mb-2 bg-white/90 dark:bg-gray-900/90 backdrop-blur-2xl rounded-2xl border border-gray-200/70 dark:border-gray-700/50 shadow-xl shadow-gray-900/10 dark:shadow-black/30">
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 pb-safe pointer-events-none">
+        <div className="mx-3 mb-2 bg-white/90 dark:bg-gray-900/90 backdrop-blur-2xl rounded-2xl border border-gray-200/70 dark:border-gray-700/50 shadow-xl shadow-gray-900/10 dark:shadow-black/30 pointer-events-auto">
           <nav className="h-[62px] flex items-stretch justify-around px-1">
             {/* Tab: Feed */}
             <Link href="/dashboard/feed" className="flex-1" aria-label="Feed">

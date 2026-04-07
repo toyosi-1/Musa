@@ -330,10 +330,31 @@ export default function FeedPage() {
         </button>
       </div>
 
-      {/* Loading State */}
+      {/* Loading State — skeleton cards for better perceived performance */}
       {loading ? (
-        <div className="flex justify-center py-12">
-          <LoadingSpinner />
+        <div className="space-y-4 animate-pulse">
+          {[1, 2, 3].map(i => (
+            <div key={i} className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 overflow-hidden p-4">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700" />
+                <div className="flex-1">
+                  <div className="h-3.5 bg-gray-200 dark:bg-gray-700 rounded-full w-28 mb-1.5" />
+                  <div className="h-2.5 bg-gray-100 dark:bg-gray-800 rounded-full w-16" />
+                </div>
+              </div>
+              <div className="space-y-2 mb-3">
+                <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded-full w-full" />
+                <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded-full w-4/5" />
+                <div className="h-3 bg-gray-100 dark:bg-gray-800 rounded-full w-3/5" />
+              </div>
+              {i === 1 && <div className="h-48 bg-gray-200 dark:bg-gray-700 rounded-xl" />}
+              <div className="flex gap-4 mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
+                <div className="h-3 bg-gray-100 dark:bg-gray-800 rounded-full w-12" />
+                <div className="h-3 bg-gray-100 dark:bg-gray-800 rounded-full w-12" />
+                <div className="h-3 bg-gray-100 dark:bg-gray-800 rounded-full w-12" />
+              </div>
+            </div>
+          ))}
         </div>
       ) : filteredPosts.length === 0 ? (
         <div className="bg-white dark:bg-gray-800/80 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-12 text-center">
@@ -571,8 +592,8 @@ export default function FeedPage() {
       {/* Floating Create Post Button */}
       <button
         onClick={() => setShowCreateModal(true)}
-        className="fixed right-5 md:bottom-8 md:right-8 w-14 h-14 bg-gradient-to-br from-green-500 to-emerald-600 hover:from-green-400 hover:to-emerald-500 text-white rounded-full shadow-lg shadow-green-500/30 flex items-center justify-center transition-all hover:scale-105 active:scale-95 z-40"
-        style={{ bottom: 'calc(5rem + env(safe-area-inset-bottom, 0px))' }}
+        className="fixed right-5 md:right-8 w-14 h-14 bg-gradient-to-br from-green-500 to-emerald-600 hover:from-green-400 hover:to-emerald-500 text-white rounded-full shadow-lg shadow-green-500/30 flex items-center justify-center transition-all hover:scale-105 active:scale-95 z-[55]"
+        style={{ bottom: 'calc(6.5rem + env(safe-area-inset-bottom, 0px))' }}
         aria-label="Create new post"
       >
         <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
