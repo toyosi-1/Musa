@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Musa - Estate Access Control</string>
+    <string name="launcherName">Musa</string>
+    <string name="fallbackType">customtabs</string>
+</resources>

@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: flw-proxy
+    runtime: node
+    rootDir: flw-proxy
+    buildCommand: npm install
+    startCommand: node index.js
+    plan: free
+    envVars:
+      - key: FLUTTERWAVE_SECRET_KEY
+        sync: false
+      - key: PROXY_SECRET
+        sync: false
+      - key: NODE_ENV
+        value: production

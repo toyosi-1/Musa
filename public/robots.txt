@@ -1,0 +1,17 @@
+# *
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+Disallow: /_next/
+Disallow: /sw.js
+Disallow: /workbox-*.js
+Disallow: /worker-*.js
+Disallow: /fallback-*.js
+
+# Host
+Host: https://musa-security-app.windsurf.build
+
+# Sitemaps
+Sitemap: https://musa-security-app.windsurf.build/sitemap.xml
+Sitemap: https://musa-security-app.windsurf.build/server-sitemap.xml

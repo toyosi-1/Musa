@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Geolocation Test - Musa App</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .button {
+            background: #3b82f6;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 0;
+        }
+        .button:hover {
+            background: #2563eb;
+        }
+        .button:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+        }
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #3b82f6;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 8px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .result {
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 6px;
+        }
+        .success {
+            background: #d1fae5;
+            border: 1px solid #10b981;
+            color: #065f46;
+        }
+        .error {
+            background: #fee2e2;
+            border: 1px solid #ef4444;
+            color: #991b1b;
+        }
+        .info {
+            background: #dbeafe;
+            border: 1px solid #3b82f6;
+            color: #1e40af;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 16px;
+        }
+        label {
+            display: block;
+            margin: 10px 0 5px 0;
+            font-weight: bold;
+        }
+        .coordinates {
+            font-family: monospace;
+            background: #f3f4f6;
+            padding: 10px;
+            border-radius: 6px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌍 Geolocation Test for Musa App</h1>
+        <p>This test verifies that the geolocation feature works correctly for the household creation form.</p>
+        
+        <div id="status" class="result info">
+            <strong>Status:</strong> Ready to test geolocation
+        </div>
+        
+        <button id="testLocationBtn" class="button" onclick="testGeolocation()">
+            📍 Test Geolocation Feature
+        </button>
+        
+        <div id="coordinates" style="display: none;">
+            <h3>📍 Coordinates Detected:</h3>
+            <div class="coordinates">
+                <div>Latitude: <span id="lat"></span></div>
+                <div>Longitude: <span id="lng"></span></div>
+                <div>Accuracy: <span id="accuracy"></span> meters</div>
+            </div>
+        </div>
+        
+        <div id="addressForm" style="display: none;">
+            <h3>🏠 Address Information:</h3>
+            <label for="street">Street Address:</label>
+            <input type="text" id="street" placeholder="Will be filled automatically">
+            
+            <label for="city">City:</label>
+            <input type="text" id="city" placeholder="Will be filled automatically">
+            
+            <label for="state">State/Province:</label>
+            <input type="text" id="state" placeholder="Will be filled automatically">
+            
+            <div id="rawData" style="margin-top: 20px;">
+                <h4>Raw Geocoding Data:</h4>
+                <pre id="geocodingResult" style="background: #f3f4f6; padding: 10px; border-radius: 6px; overflow-x: auto; font-size: 12px;"></pre>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let isLoadingLocation = false;
+
+        function updateStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.className = `result ${type}`;
+            statusDiv.innerHTML = `<strong>Status:</strong> ${message}`;
+        }
+
+        function setLoading(loading) {
+            const btn = document.getElementById('testLocationBtn');
+            isLoadingLocation = loading;
+            
+            if (loading) {
+                btn.innerHTML = '<span class="loading"></span>Getting location...';
+                btn.disabled = true;
+            } else {
+                btn.innerHTML = '📍 Test Geolocation Feature';
+                btn.disabled = false;
+            }
+        }
+
+        async function testGeolocation() {
+            setLoading(true);
+            updateStatus('Requesting location permission...', 'info');
+            
+            try {
+                // Check if geolocation is supported
+                if (!navigator.geolocation) {
+                    throw new Error('Geolocation is not supported by this browser');
+                }
+                
+                updateStatus('Getting GPS coordinates...', 'info');
+                
+                // Get current position
+                const position = await new Promise((resolve, reject) => {
+                    navigator.geolocation.getCurrentPosition(
+                        resolve,
+                        reject,
+                        {
+                            enableHighAccuracy: true,
+                            timeout: 10000,
+                            maximumAge: 300000 // 5 minutes
+                        }
+                    );
+                });
+                
+                const { latitude, longitude, accuracy } = position.coords;
+                console.log('Got coordinates:', { latitude, longitude, accuracy });
+                
+                // Display coordinates
+                document.getElementById('lat').textContent = latitude.toFixed(6);
+                document.getElementById('lng').textContent = longitude.toFixed(6);
+                document.getElementById('accuracy').textContent = Math.round(accuracy);
+                document.getElementById('coordinates').style.display = 'block';
+                
+                updateStatus('Coordinates obtained! Now getting address...', 'success');
+                
+                // Use reverse geocoding to get address
+                const response = await fetch(
+                    `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`,
+                    {
+                        headers: {
+                            'User-Agent': 'Musa-Security-App/1.0'
+                        }
+                    }
+                );
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: Failed to get address from coordinates`);
+                }
+                
+                const data = await response.json();
+                console.log('Reverse geocoding result:', data);
+                
+                // Display raw data
+                document.getElementById('geocodingResult').textContent = JSON.stringify(data, null, 2);
+                
+                if (data && data.address) {
+                    const addressComponents = data.address;
+                    
+                    // Extract address components (same logic as in the app)
+                    const streetNumber = addressComponents.house_number || '';
+                    const streetName = addressComponents.road || addressComponents.street || '';
+                    const neighborhood = addressComponents.neighbourhood || addressComponents.suburb || '';
+                    const city = addressComponents.city || addressComponents.town || addressComponents.village || 
+                                addressComponents.state_district || addressComponents.county || '';
+                    const state = addressComponents.state || addressComponents.region || '';
+                    
+                    // Construct full street address
+                    let fullAddress = '';
+                    if (streetNumber && streetName) {
+                        fullAddress = `${streetNumber} ${streetName}`;
+                    } else if (streetName) {
+                        fullAddress = streetName;
+                    } else if (neighborhood) {
+                        fullAddress = neighborhood;
+                    }
+                    
+                    // If we have a display name but no constructed address, use part of display name
+                    if (!fullAddress && data.display_name) {
+                        const parts = data.display_name.split(',');
+                        fullAddress = parts[0]?.trim() || '';
+                    }
+                    
+                    // Update form fields
+                    document.getElementById('street').value = fullAddress || 'No street address found';
+                    document.getElementById('city').value = city || 'No city found';
+                    document.getElementById('state').value = state || 'No state found';
+                    
+                    document.getElementById('addressForm').style.display = 'block';
+                    
+                    updateStatus(`✅ SUCCESS! Address detected and filled automatically. Location: ${data.display_name}`, 'success');
+                    
+                } else {
+                    throw new Error('No address found for this location');
+                }
+                
+            } catch (error) {
+                console.error('Error getting location:', error);
+                let errorMessage = 'Failed to get your location. ';
+                
+                if (error.code === 1) {
+                    errorMessage += 'Please allow location access and try again.';
+                } else if (error.code === 2) {
+                    errorMessage += 'Location unavailable. Please enter address manually.';
+                } else if (error.code === 3) {
+                    errorMessage += 'Location request timed out. Please try again.';
+                } else {
+                    errorMessage += error.message || 'Please enter address manually.';
+                }
+                
+                updateStatus(`❌ ERROR: ${errorMessage}`, 'error');
+                
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        // Test browser compatibility on load
+        window.addEventListener('load', function() {
+            if (!navigator.geolocation) {
+                updateStatus('❌ Geolocation is not supported by this browser', 'error');
+                document.getElementById('testLocationBtn').disabled = true;
+            } else {
+                updateStatus('✅ Browser supports geolocation. Ready to test!', 'success');
+            }
+        });
+    </script>
+</body>
+</html>

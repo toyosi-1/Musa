@@ -1,0 +1,69 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Common function to check if the user is an admin
+    function isAdmin() {
+      return request.auth != null && 
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+    
+    // Common function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Common function to check if user is approved
+    function isApproved() {
+      return request.auth != null && 
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.status == 'approved';
+    }
+    
+    // Users collection
+    match /users/{userId} {
+      allow read: if request.auth != null && 
+                  (request.auth.uid == userId || isAdmin());
+      allow create: if request.auth != null && 
+                    request.auth.uid == userId;
+      allow update: if request.auth != null && 
+                   (request.auth.uid == userId || isAdmin());
+      allow delete: if isAdmin();
+    }
+    
+    // Households collection
+    match /households/{householdId} {
+      allow read: if isApproved();
+      allow create: if isApproved() && 
+                    (isAdmin() || request.resource.data.headId == request.auth.uid);
+      allow update: if isApproved() && 
+                    (isAdmin() || resource.data.headId == request.auth.uid);
+      allow delete: if isAdmin();
+    }
+    
+    // Access codes collection
+    match /accessCodes/{codeId} {
+      allow read: if isApproved() && 
+                  (isAdmin() || resource.data.userId == request.auth.uid || 
+                   get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'guard');
+      allow write: if isApproved() && 
+                  (isAdmin() || request.resource.data.userId == request.auth.uid);
+    }
+    
+    // Household invites collection
+    match /householdInvites/{inviteId} {
+      allow read: if isAuthenticated() && 
+                  (isAdmin() || 
+                  resource.data.invitedBy == request.auth.uid || 
+                  resource.data.email == request.auth.token.email);
+      allow write: if isApproved() && 
+                   (isAdmin() || resource.data.invitedBy == request.auth.uid);
+    }
+    
+    // Allow admin to read all collections for dashboard statistics
+    match /{collection}/{document=**} {
+      allow read: if isAdmin();
+    }
+  }
+}

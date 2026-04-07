@@ -1,0 +1,13 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.musasecurity.app",
+      "sha256_cert_fingerprints": [
+        "9A:1C:A1:55:4B:F9:0A:13:00:BE:55:E1:64:AA:A6:DE:73:22:B2:45:82:04:94:42:F6:87:E3:EB:F6:17:60:FD",
+        "FC:67:2E:5E:11:61:56:C3:78:BD:9B:3E:47:A7:9D:78:D6:D5:B9:29:29:DB:AB:5D:27:EA:C5:DE:F9:EE:43:E4"
+      ]
+    }
+  }
+]

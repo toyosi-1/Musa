@@ -1,0 +1,223 @@
+{
+  "rules": {
+    "estates": {
+      ".read": "true",
+      "$estateId": {
+        ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'",
+        ".validate": "newData.hasChildren(['id', 'name', 'createdAt', 'updatedAt'])"
+      }
+    },
+    "users": {
+      ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'estate_admin')",
+      ".indexOn": ["status", "estateId", "role", "email"],
+      "$uid": {
+        ".read": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('role').val() === 'admin' || (root.child('users').child(auth.uid).child('role').val() === 'estate_admin' && root.child('users').child(auth.uid).child('estateId').val() === root.child('users').child($uid).child('estateId').val()))",
+        ".write": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('role').val() === 'admin')",
+        ".validate": "newData.hasChildren(['email', 'role', 'createdAt'])",
+        "role": {
+          ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'"
+        },
+        "estateId": {
+          ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || (root.child('users').child(auth.uid).child('role').val() === 'estate_admin' && root.child('users').child(auth.uid).child('estateId').val() === newData.val() && root.child('users').child($uid).child('status').val() === 'pending'))"
+        },
+        "status": {
+          ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || (root.child('users').child(auth.uid).child('role').val() === 'estate_admin' && root.child('users').child(auth.uid).child('estateId').val() === root.child('users').child($uid).child('estateId').val()))"
+        },
+        "approvedAt": {
+          ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || (root.child('users').child(auth.uid).child('role').val() === 'estate_admin' && root.child('users').child(auth.uid).child('estateId').val() === root.child('users').child($uid).child('estateId').val()))"
+        },
+        "approvedBy": {
+          ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || (root.child('users').child(auth.uid).child('role').val() === 'estate_admin' && root.child('users').child(auth.uid).child('estateId').val() === root.child('users').child($uid).child('estateId').val()))"
+        },
+        "isHouseholdHead": {
+          ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || (root.child('users').child(auth.uid).child('role').val() === 'estate_admin' && root.child('users').child(auth.uid).child('estateId').val() === root.child('users').child($uid).child('estateId').val()))"
+        }
+      }
+    },
+    "pendingUsers": {
+      ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'estate_admin')",
+      "$uid": {
+        ".write": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'estate_admin')"
+      }
+    },
+    "households": {
+      ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'guard')",
+      "$householdId": {
+        ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'guard' || root.child('households').child($householdId).child('headId').val() === auth.uid || root.child('households').child($householdId).child('members').child(auth.uid).val() === true)",
+        ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('households').child($householdId).child('headId').val() === auth.uid || (!data.exists() && auth != null))",
+        ".validate": "newData.hasChildren(['name', 'headId', 'members', 'createdAt'])"
+      }
+    },
+    "accessCodes": {
+      ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'guard')",
+      ".indexOn": ["code", "userId", "householdId"],
+      "$codeId": {
+        ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'guard' || data.child('userId').val() === auth.uid || root.child('households').child(data.child('householdId').val()).child('members').child(auth.uid).val() === true)",
+        ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || data.child('userId').val() === auth.uid || (!data.exists() && auth != null))",
+        ".validate": "newData.hasChildren(['code', 'userId', 'householdId', 'createdAt', 'isActive'])"
+      }
+    },
+    "accessCodesByCode": {
+      ".read": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'guard'",
+      "$code": {
+        ".write": "auth != null"
+      }
+    },
+    "accessCodesByUser": {
+      "$userId": {
+        ".read": "auth != null && (auth.uid === $userId || root.child('users').child(auth.uid).child('role').val() === 'admin')",
+        ".write": "auth != null && (auth.uid === $userId || root.child('users').child(auth.uid).child('role').val() === 'admin')"
+      }
+    },
+    "accessCodesByHousehold": {
+      "$householdId": {
+        ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('households').child($householdId).child('headId').val() === auth.uid || root.child('households').child($householdId).child('members').child(auth.uid).val() === true)",
+        ".write": "auth != null"
+      }
+    },
+    "accessCodesByEstate": {
+      "$estateId": {
+        "$codeId": {
+          ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || (root.child('users').child(auth.uid).child('role').val() === 'estate_admin' && root.child('users').child(auth.uid).child('estateId').val() === $estateId) || root.child('users').child(auth.uid).child('estateId').val() === $estateId)",
+          ".write": "auth != null && root.child('users').child(auth.uid).child('estateId').val() === $estateId"
+        }
+      }
+    },
+    "householdInvites": {
+      ".read": "auth != null",
+      ".indexOn": ["email", "householdId"],
+      "$inviteId": {
+        ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || data.child('invitedBy').val() === auth.uid || data.child('email').val() === root.child('users').child(auth.uid).child('email').val())",
+        ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || (!data.exists() && auth != null) || (data.exists() && data.child('invitedBy').val() === auth.uid))",
+        ".validate": "newData.hasChildren(['householdId', 'invitedBy', 'email', 'status', 'createdAt', 'expiresAt'])"
+      }
+    },
+    "guardActivity": {
+      "$uid": {
+        ".read": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('role').val() === 'admin')",
+        ".write": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('role').val() === 'admin')",
+        "verifications": {
+          ".indexOn": "timestamp"
+        }
+      }
+    },
+    "invitesByEmail": {
+      ".indexOn": ".value",
+      "$email": {
+        ".read": "auth != null",
+        ".write": "auth != null"
+      }
+    },
+    "usersByEstate": {
+      "$estateId": {
+        "$uid": {
+          ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || (root.child('users').child(auth.uid).child('role').val() === 'estate_admin' && root.child('users').child(auth.uid).child('estateId').val() === $estateId))",
+          ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || (root.child('users').child(auth.uid).child('role').val() === 'estate_admin' && root.child('users').child(auth.uid).child('estateId').val() === $estateId))"
+        }
+      }
+    },
+    "emergencyAlerts": {
+      "$estateId": {
+        ".read": "auth != null && root.child('users').child(auth.uid).child('estateId').val() === $estateId",
+        ".indexOn": ["createdAt", "status"],
+        "$alertId": {
+          ".write": "auth != null && root.child('users').child(auth.uid).child('estateId').val() === $estateId"
+        }
+      }
+    },
+    "notifications": {
+      "$userId": {
+        ".read": "auth != null && auth.uid === $userId",
+        "$notificationId": {
+          ".write": "auth != null",
+          "read": {
+            ".write": "auth != null && auth.uid === $userId"
+          }
+        }
+      }
+    },
+    "notificationIndex": {
+      "$notificationId": {
+        ".write": "auth != null",
+        ".read": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'"
+      }
+    },
+    "activity": {
+      ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'estate_admin')",
+      "$activityId": {
+        ".write": "auth != null"
+      }
+    },
+    "estateActivity": {
+      "$estateId": {
+        ".read": "auth != null && root.child('users').child(auth.uid).child('estateId').val() === $estateId",
+        "log": {
+          "$logId": {
+            ".write": "auth != null && root.child('users').child(auth.uid).child('estateId').val() === $estateId"
+          }
+        },
+        "verifications": {
+          "$verId": {
+            ".write": "auth != null"
+          }
+        }
+      }
+    },
+    "serviceRequests": {
+      "$estateId": {
+        ".read": "auth != null && root.child('users').child(auth.uid).child('estateId').val() === $estateId",
+        ".indexOn": ["createdAt", "status", "residentId"],
+        "$requestId": {
+          ".write": "auth != null && root.child('users').child(auth.uid).child('estateId').val() === $estateId"
+        }
+      }
+    },
+    "vendors": {
+      "$estateId": {
+        ".read": "auth != null && root.child('users').child(auth.uid).child('estateId').val() === $estateId",
+        "$vendorId": {
+          ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'estate_admin') && root.child('users').child(auth.uid).child('estateId').val() === $estateId"
+        }
+      }
+    },
+    "securityLogs": {
+      "$logId": {
+        ".write": "auth != null",
+        ".read": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'"
+      }
+    },
+    "estateFeed": {
+      "$estateId": {
+        "posts": {
+          ".read": "auth != null && root.child('users').child(auth.uid).child('estateId').val() === $estateId",
+          ".indexOn": ["createdAt", "authorId"],
+          "$postId": {
+            ".write": "auth != null && root.child('users').child(auth.uid).child('estateId').val() === $estateId && root.child('users').child(auth.uid).child('status').val() === 'approved' && (!data.exists() || data.child('authorId').val() === auth.uid || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'estate_admin')",
+            "likes": {
+              "$uid": {
+                ".write": "auth != null && auth.uid === $uid && root.child('users').child(auth.uid).child('estateId').val() === $estateId"
+              }
+            },
+            "dislikes": {
+              "$uid": {
+                ".write": "auth != null && auth.uid === $uid && root.child('users').child(auth.uid).child('estateId').val() === $estateId"
+              }
+            },
+            "commentCount": {
+              ".write": "auth != null && root.child('users').child(auth.uid).child('estateId').val() === $estateId"
+            }
+          }
+        },
+        "comments": {
+          "$postId": {
+            ".read": "auth != null && root.child('users').child(auth.uid).child('estateId').val() === $estateId",
+            ".indexOn": ["createdAt"],
+            "$commentId": {
+              ".write": "auth != null && root.child('users').child(auth.uid).child('estateId').val() === $estateId && root.child('users').child(auth.uid).child('status').val() === 'approved' && (!data.exists() || data.child('authorId').val() === auth.uid || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'estate_admin')"
+            }
+          }
+        }
+      }
+    }
+  }
+}

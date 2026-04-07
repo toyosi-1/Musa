@@ -1,0 +1,1314 @@
+"use client";
+
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { User, UserRole, UserStatus } from '@/types/user';
+import { 
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut as firebaseSignOut,
+  onAuthStateChanged,
+  setPersistence,
+  browserLocalPersistence,
+  inMemoryPersistence,
+  indexedDBLocalPersistence,
+  User as FirebaseUser
+} from 'firebase/auth';
+import { ref, get, set, update, onValue } from 'firebase/database';
+import { getFirebaseAuth, getFirebaseDatabase, waitForFirebase } from '@/lib/firebase';
+import { 
+  isPwaMode, 
+  backupSession, 
+  getSessionBackup, 
+  clearSessionBackup,
+  refreshSessionBackup,
+  registerPwaLifecycleEvents,
+  optimizePwaPageReload
+} from '@/utils/pwaUtils';
+import { generateDeviceId, getDeviceLabel } from '@/utils/deviceFingerprint';
+
+interface AuthContextType {
+  currentUser: User | null;
+  loading: boolean;
+  initError: string | null;
+  signUp: (email: string, password: string, displayName: string, role: UserRole) => Promise<User>;
+  signIn: (email: string, password: string) => Promise<User>;
+  signOut: () => Promise<void>;
+  getUserProfile: (uid: string) => Promise<User | null>;
+  refreshCurrentUser: () => Promise<void>;
+  approveUser: (uid: string, adminUid: string) => Promise<void>;
+  rejectUser: (uid: string, adminUid: string, reason: string) => Promise<void>;
+  getPendingUsers: () => Promise<User[]>;
+  batchApproveUsers: (uids: string[], adminUid: string) => Promise<void>;
+  batchRejectUsers: (uids: string[], adminUid: string, reason: string) => Promise<void>;
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+}
+
+// Synchronously read persisted user from localStorage on module load (before React renders)
+// This ensures TWA/PWA cold starts show the dashboard instantly
+function getInitialUser(): User | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const cached = localStorage.getItem('musa_user_profile_cache');
+    if (!cached) return null;
+    const { user, timestamp } = JSON.parse(cached);
+    const SEVEN_DAYS = 7 * 24 * 60 * 60 * 1000;
+    if (user?.uid && (Date.now() - timestamp) < SEVEN_DAYS) {
+      console.log('⚡ Instant recovery: found persisted user profile for', user.displayName);
+      return user as User;
+    }
+  } catch (e) { /* ignore parse errors */ }
+  return null;
+}
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const initialUser = getInitialUser();
+  const [currentUser, setCurrentUser] = useState<User | null>(initialUser);
+  const [loading, setLoading] = useState(initialUser === null);
+  const [initError, setInitError] = useState<string | null>(null);
+
+  // Convert Firebase user to our User type with optimized database operations
+  const formatUser = async (firebaseUser: FirebaseUser): Promise<User | null> => {
+    try {
+      const startTime = performance.now();
+      const db = await getFirebaseDatabase();
+      const userRef = ref(db, `users/${firebaseUser.uid}`);
+      
+      // New-user race condition guard: when a user has just registered,
+      // the auth state may update before their profile is written to the DB.
+      // Retry a few short times if the record isn't found yet (no role assumptions).
+      const maxRetries = 6;
+      const retryDelayMs = 500;
+      let snapshot: any = null;
+      for (let attempt = 0; attempt < maxRetries; attempt++) {
+        try {
+          const fetchPromise = get(userRef);
+          // Shorter per-attempt timeout to keep overall wait bounded
+          const timeoutPromise = new Promise<null>((_, reject) => {
+            setTimeout(() => reject(new Error('Database operation timed out')), 5000);
+          });
+          snapshot = await Promise.race([fetchPromise, timeoutPromise]) as any;
+        } catch (dbError) {
+          logError('Database fetch error', dbError);
+          // For transient errors, allow a few retries
+          if (attempt < maxRetries - 1) {
+            await new Promise((res) => setTimeout(res, retryDelayMs));
+            continue;
+          }
+          throw dbError;
+        }
+
+        if (snapshot && snapshot.exists()) {
+          break;
+        }
+
+        // Not found yet – likely immediately after registration, try again briefly
+        if (attempt < maxRetries - 1) {
+          console.warn(`User record not found yet, retrying (${attempt + 1}/${maxRetries - 1})...`);
+          await new Promise((res) => setTimeout(res, retryDelayMs));
+        }
+      }
+
+      if (snapshot && snapshot.exists()) {
+        // User exists in our database, return with role and other metadata
+        console.log(`User database lookup completed in ${performance.now() - startTime}ms`);
+        const userData = snapshot.val();
+        
+        // Perform additional validation on user data
+        if (!userData) {
+          throw new Error('User data is null or undefined');
+        }
+        
+        const formattedUser = {
+          uid: firebaseUser.uid,
+          email: firebaseUser.email || '',
+          displayName: userData.displayName || firebaseUser.displayName || 'User',
+          role: userData.role || 'resident',
+          status: userData.status || 'approved',
+          isEmailVerified: firebaseUser.emailVerified,
+          createdAt: userData.createdAt || Date.now(),
+          // Include estate information
+          ...(userData.estateId && { estateId: userData.estateId }),
+          // Include household information
+          ...(userData.householdId && { householdId: userData.householdId }),
+          ...(userData.isHouseholdHead && { isHouseholdHead: userData.isHouseholdHead }),
+          // Include additional fields if they exist
+          ...(userData.approvedBy && { approvedBy: userData.approvedBy }),
+          ...(userData.approvedAt && { approvedAt: userData.approvedAt }),
+          ...(userData.rejectedBy && { rejectedBy: userData.rejectedBy }),
+          ...(userData.rejectedAt && { rejectedAt: userData.rejectedAt }),
+          ...(userData.rejectionReason && { rejectionReason: userData.rejectionReason })
+        };
+        
+        // Log the user data for debugging
+        console.log('Formatted user:', {
+          uid: formattedUser.uid,
+          email: formattedUser.email,
+          role: formattedUser.role,
+          status: formattedUser.status
+        });
+        
+        // Cache the user data in memory and localStorage
+        try {
+          userProfileCache.set(firebaseUser.uid, {
+            user: formattedUser,
+            timestamp: Date.now()
+          });
+          persistUserProfile(formattedUser);
+        } catch (cacheError) {
+          console.warn('Failed to cache user data:', cacheError);
+          // Non-critical error, continue
+        }
+        
+        return formattedUser;
+      } else {
+        // SECURITY: User not found in database during formatUser
+        console.error('SECURITY ERROR: User not found in database during formatUser:', firebaseUser.uid);
+        console.error('This should not happen - users should be created via signUp with explicit roles');
+        throw new Error('User not found in database and role unknown');
+      }
+    } catch (error) {
+      logError('Error formatting user', error);
+      
+      // SECURITY: Never create fallback users with assumed roles - this causes guard misrouting
+      console.error('SECURITY ERROR: Database error in formatUser, refusing to create fallback user');
+      console.error('Error details:', error);
+      throw error; // Force re-authentication instead of assuming roles
+      
+      return null;
+    }
+  };
+
+  // Sign up a new user
+  const signUp = async (
+    email: string, 
+    password: string, 
+    displayName: string,
+    role: UserRole,
+    estateId?: string
+  ): Promise<User> => {
+    try {
+      const auth = await getFirebaseAuth();
+      const result = await createUserWithEmailAndPassword(auth, email, password);
+      
+      // Create user in our database
+      const db = await getFirebaseDatabase();
+      const userRef = ref(db, `users/${result.user.uid}`);
+      const newUser: User = {
+        uid: result.user.uid,
+        email,
+        displayName,
+        role,
+        status: 'pending', // New users need approval
+        isEmailVerified: result.user.emailVerified,
+        createdAt: Date.now(),
+        ...(estateId && { estateId }) // Add estateId if provided
+      };
+      
+      // Save user to database
+      await set(userRef, newUser);
+      
+      // Add to pending users for admin approval
+      const pendingUserRef = ref(db, `pendingUsers/${result.user.uid}`);
+      await set(pendingUserRef, true);
+      
+      // Send welcome/registration confirmation email (non-blocking)
+      try {
+        const { sendWelcomeEmail } = await import('@/services/smtpEmailService');
+        sendWelcomeEmail({
+          userName: displayName,
+          userEmail: email,
+          userRole: role,
+        }).then((sent) => {
+          if (sent) console.log(`✅ Welcome email sent to ${email}`);
+          else console.warn(`⚠️ Welcome email failed for ${email}`);
+        }).catch((err) => console.error('❌ Welcome email error:', err));
+      } catch (emailImportError) {
+        console.error('❌ Failed to import email service:', emailImportError);
+      }
+      
+      console.log('New user signed up and added to pending list:', newUser.uid, estateId ? `for estate: ${estateId}` : '');
+      return newUser;
+    } catch (error) {
+      console.error('Error signing up:', error);
+      throw error;
+    }
+  };
+
+  // Cache for user profiles to reduce database reads - declare at the top of AuthProvider
+  const userProfileCache = new Map<string, {user: User, timestamp: number}>();
+  const CACHE_EXPIRY = 10 * 60 * 1000; // 10 minutes in milliseconds
+  const PERSISTENT_CACHE_KEY = 'musa_user_profile_cache';
+  const PERSISTENT_CACHE_EXPIRY = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+  // Save user profile to localStorage for persistence across app restarts
+  const persistUserProfile = (user: User) => {
+    if (typeof window === 'undefined') return;
+    try {
+      localStorage.setItem(PERSISTENT_CACHE_KEY, JSON.stringify({
+        user,
+        timestamp: Date.now()
+      }));
+    } catch (e) {
+      console.warn('Failed to persist user profile:', e);
+    }
+  };
+
+  // Get cached user profile from localStorage
+  const getPersistedUserProfile = (uid: string): User | null => {
+    if (typeof window === 'undefined') return null;
+    try {
+      const cached = localStorage.getItem(PERSISTENT_CACHE_KEY);
+      if (!cached) return null;
+      const { user, timestamp } = JSON.parse(cached);
+      if (user?.uid === uid && (Date.now() - timestamp) < PERSISTENT_CACHE_EXPIRY) {
+        return user as User;
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
+  };
+
+  // Clear persisted profile on sign out
+  const clearPersistedUserProfile = () => {
+    if (typeof window === 'undefined') return;
+    try {
+      localStorage.removeItem(PERSISTENT_CACHE_KEY);
+    } catch (e) { /* ignore */ }
+  };
+  
+  // Add debug function to log errors with more detail
+  const logError = (message: string, error: any) => {
+    console.error(`🔴 ${message}:`, error);
+    if (error instanceof Error) {
+      console.error(`  Message: ${error.message}`);
+      console.error(`  Stack: ${error.stack}`);
+    } else {
+      console.error('  Non-Error object:', error);
+    }
+  };
+
+  // Get user profile with caching
+  const getCachedUserProfile = async (uid: string): Promise<User | null> => {
+    // Check if we have a cached version
+    const cachedData = userProfileCache.get(uid);
+    const now = Date.now();
+    
+    if (cachedData && (now - cachedData.timestamp < CACHE_EXPIRY)) {
+      console.log('Using cached user profile data');
+      return cachedData.user;
+    }
+    
+    // No cache or expired, fetch from database with timeout
+    try {
+      const db = await getFirebaseDatabase();
+      const userRef = ref(db, `users/${uid}`);
+      
+      // Create a promise with timeout
+      const fetchPromise = get(userRef);
+      const timeoutPromise = new Promise<null>((_, reject) => {
+        setTimeout(() => reject(new Error('Database operation timed out')), 5000);
+      });
+      
+      // Race the fetch against the timeout
+      const snapshot = await Promise.race([fetchPromise, timeoutPromise]) as any;
+      
+      if (snapshot && snapshot.exists()) {
+        const userData = snapshot.val() as User;
+        // Cache the result
+        userProfileCache.set(uid, {user: userData, timestamp: now});
+        return userData;
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('Error getting user profile:', error);
+      return null;
+    }
+  };
+
+  // Sign in an existing user
+  const signIn = async (email: string, password: string): Promise<User> => {
+    try {
+      const startTime = performance.now();
+      console.log(`Attempting to sign in user: ${email}`, new Date().toISOString());
+      
+      if (!await getFirebaseAuth()) {
+        throw new Error('Authentication service is not initialized');
+      }
+      
+      // Try to authenticate with Firebase
+      console.log('Calling Firebase signInWithEmailAndPassword...');
+      const authStartTime = performance.now();
+      
+      let result;
+      try {
+        const auth = await getFirebaseAuth();
+        result = await signInWithEmailAndPassword(auth, email, password);
+        console.log(`Firebase authentication completed in ${performance.now() - authStartTime}ms`);
+      } catch (authError) {
+        logError('Firebase authentication failed', authError);
+        throw authError; // Re-throw to be handled by outer catch
+      }
+      
+      if (!result || !result.user) {
+        throw new Error('Authentication succeeded but user data is missing');
+      }
+      
+      // Get additional user data from our database
+      console.log('Fetching user profile...');
+      const dbStartTime = performance.now();
+      
+      // Try to get from cache first, fall back to formatUser
+      let formattedUser;
+      try {
+        formattedUser = await getCachedUserProfile(result.user.uid);
+        
+        // If not in cache or cache expired, format the user
+        if (!formattedUser) {
+          formattedUser = await formatUser(result.user);
+        }
+        console.log(`Database operations completed in ${performance.now() - dbStartTime}ms`);
+      } catch (dbError) {
+        logError('Error fetching user profile', dbError);
+        
+        // On database errors, we cannot safely assume a role
+        // This should rarely happen, but if it does, we need to handle it gracefully
+        console.error('Database error during authentication - cannot determine user role safely');
+        throw new Error('Unable to verify user account details. Please try again or contact support.');
+        
+        // Note: Removed the fallback to 'resident' role as it was causing guards to be misrouted
+      }
+      
+      if (!formattedUser) {
+        console.error('User authenticated but failed to retrieve profile from database');
+        
+        // Cannot safely determine user role - this is a critical error
+        throw new Error('Unable to retrieve user profile from database. Please try again or contact support.');
+        
+        // Note: Removed the fallback to 'resident' role as it was causing guards to be misrouted
+      }
+      
+      // Update cache with the latest user data
+      try {
+        userProfileCache.set(result.user.uid, {
+          user: formattedUser, 
+          timestamp: Date.now()
+        });
+      } catch (cacheError) {
+        console.warn('Failed to update user cache:', cacheError);
+        // Non-critical error, continue
+      }
+
+      // --- Head of House: new-device security check ---
+      if (formattedUser.isHouseholdHead) {
+        try {
+          const deviceId = generateDeviceId();
+          const deviceLabel = getDeviceLabel();
+
+          // Check if this specific device is approved
+          const checkRes = await fetch('/api/device-approval', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'check', userId: formattedUser.uid, deviceId }),
+          });
+          const checkData = await checkRes.json();
+
+          if (!checkData.approved) {
+            // Check if the user has ANY known devices at all
+            const db = await getFirebaseDatabase();
+            const devicesRef = ref(db, `users/${formattedUser.uid}/knownDevices`);
+            const devicesSnap = await get(devicesRef);
+            const hasKnownDevices = devicesSnap.exists() && Object.keys(devicesSnap.val()).length > 0;
+
+            if (!hasKnownDevices) {
+              // First device ever — auto-approve it (trusted)
+              console.log('🔐 First device for Head of House — auto-approving');
+              const newDeviceRef = ref(db, `users/${formattedUser.uid}/knownDevices/${deviceId}`);
+              await set(newDeviceRef, { label: deviceLabel, approvedAt: Date.now(), autoApproved: true });
+            } else {
+              // Has known devices but this isn't one of them — require approval
+              console.log('🔐 New device detected for Head of House — requesting approval');
+              await fetch('/api/device-approval', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  action: 'send',
+                  userId: formattedUser.uid,
+                  deviceId,
+                  deviceLabel,
+                  email: formattedUser.email,
+                  displayName: formattedUser.displayName,
+                }),
+              });
+
+              // Sign them out — they must approve the device first
+              const auth = await getFirebaseAuth();
+              await firebaseSignOut(auth);
+              setCurrentUser(null);
+
+              throw new Error('NEW_DEVICE_APPROVAL_REQUIRED');
+            }
+          } else {
+            console.log('✅ Device recognised for Head of House');
+          }
+        } catch (deviceError: any) {
+          if (deviceError?.message === 'NEW_DEVICE_APPROVAL_REQUIRED') {
+            throw deviceError;
+          }
+          // Non-critical — if the check fails (e.g. network), allow sign-in
+          console.warn('Device check failed (non-blocking):', deviceError);
+        }
+      }
+      
+      // Create backup of the authentication session for PWA resilience
+      try {
+        backupSession(formattedUser.uid, formattedUser.email, formattedUser.role, formattedUser.displayName);
+        console.log('Created session backup for PWA persistence');
+      } catch (backupError) {
+        console.warn('Failed to create session backup:', backupError);
+        // Non-critical error, continue
+      }
+      
+      console.log(`User sign-in completed successfully in ${performance.now() - startTime}ms.`);
+      console.log(`User details - UID: ${formattedUser.uid}, Role: ${formattedUser.role}, Status: ${formattedUser.status}`);
+      
+      // Log login activity (non-blocking)
+      try {
+        const { logActivity } = await import('@/services/activityService');
+        logActivity({
+          type: 'login' as any,
+          description: `${formattedUser.displayName || 'User'} logged in`,
+          timestamp: Date.now(),
+          userId: formattedUser.uid,
+          estateId: formattedUser.estateId || '',
+          householdId: (formattedUser as any).householdId || '',
+        }).catch(err => console.warn('Login activity log failed (non-fatal):', err));
+      } catch (logErr) {
+        console.warn('Failed to import activityService (non-fatal):', logErr);
+      }
+
+      return formattedUser;
+    } catch (error) {
+      logError('Error details for sign-in failure', error);
+      
+      // Handle specific Firebase Auth errors
+      if (error instanceof Error) {
+        const errorCode = (error as any).code || '';
+        const errorMessage = error.message || '';
+        
+        // Check for error code first (more reliable)
+        if (errorCode === 'auth/invalid-credential' || errorCode === 'auth/invalid-login-credentials') {
+          throw new Error('Invalid email or password. Please check your credentials and try again.');
+        } else if (errorCode === 'auth/user-not-found') {
+          throw new Error('No account found with this email address. Please sign up first.');
+        } else if (errorCode === 'auth/wrong-password') {
+          throw new Error('Incorrect password. Please try again.');
+        } else if (errorCode === 'auth/too-many-requests') {
+          throw new Error('Too many failed login attempts. Please try again later.');
+        } else if (errorCode === 'auth/network-request-failed' || errorMessage.includes('network') || errorMessage.includes('timed out')) {
+          throw new Error('Connection to authentication service timed out. Please check your internet connection and try again.');
+        } else {
+          // Include error code in message if available
+          throw new Error('Incorrect email or password. Please check and try again.');
+        }
+      }
+      
+      throw error;
+    }
+  };
+
+  // Sign out the current user
+  const signOut = async (): Promise<void> => {
+    try {
+      const auth = await getFirebaseAuth();
+      await firebaseSignOut(auth);
+      setCurrentUser(null);
+      
+      // Clear all session backup data from all storage locations
+      clearSessionBackup();
+      
+      // Clear any IndexedDB data related to auth
+      if (typeof window !== 'undefined' && 'indexedDB' in window) {
+        try {
+          // Clear Firebase IndexedDB data
+          const deleteRequest = window.indexedDB.deleteDatabase('firebaseLocalStorageDb');
+          deleteRequest.onerror = () => console.error('Error deleting Firebase IndexedDB');
+          deleteRequest.onsuccess = () => console.log('Cleared Firebase IndexedDB');
+          
+          // Clear our custom IndexedDB data
+          const deleteMusaRequest = window.indexedDB.deleteDatabase('MusaAuthStorage');
+          deleteMusaRequest.onsuccess = () => console.log('Cleared Musa auth storage IndexedDB');
+        } catch (e) {
+          console.warn('Failed to clear IndexedDB:', e);
+        }
+      }
+    } catch (error) {
+      console.error('Error signing out:', error);
+      throw error;
+    }
+  };
+
+  // Get a user profile by UID with timeout and caching
+  const getUserProfile = async (uid: string): Promise<User | null> => {
+    return getCachedUserProfile(uid);
+  };
+
+  // Refresh current user's profile from database
+  const refreshCurrentUser = async (): Promise<void> => {
+    try {
+      const auth = await getFirebaseAuth();
+      const firebaseUser = auth.currentUser;
+      
+      if (firebaseUser) {
+        // Clear cache for this user to force fresh fetch
+        userProfileCache.delete(firebaseUser.uid);
+        
+        // Fetch fresh user profile from database
+        const updatedUser = await getCachedUserProfile(firebaseUser.uid);
+        if (updatedUser) {
+          setCurrentUser(updatedUser);
+        }
+      }
+    } catch (error) {
+      console.error('Error refreshing current user:', error);
+    }
+  };
+
+  // Approve a pending user
+  const approveUser = async (uid: string, adminUid: string): Promise<void> => {
+    try {
+      const db = await getFirebaseDatabase();
+      const userRef = ref(db, `users/${uid}`);
+      const pendingUserRef = ref(db, `pendingUsers/${uid}`);
+      
+      // Get user data before updating for email notification
+      const userSnapshot = await get(userRef);
+      const userData = userSnapshot.val() as User;
+      
+      // Update user status to approved
+      await update(userRef, {
+        status: 'approved',
+        approvedBy: adminUid,
+        approvedAt: Date.now()
+      });
+      
+      // Remove from pending list
+      await set(pendingUserRef, null);
+      
+      // Send approval notification email
+      try {
+        // Get admin user data for the "approved by" field
+        const adminRef = ref(db, `users/${adminUid}`);
+        const adminSnapshot = await get(adminRef);
+        const adminData = adminSnapshot.val() as User;
+        
+        // Import the email service dynamically to avoid circular dependencies
+        const { sendApprovalNotificationEmail } = await import('@/services/smtpEmailService');
+        
+        const emailSent = await sendApprovalNotificationEmail({
+          userName: userData.displayName || userData.email,
+          userEmail: userData.email,
+          userRole: userData.role,
+          approvedBy: adminData?.displayName || adminData?.email || 'Administrator',
+          loginUrl: `${window.location.origin}/auth/login`
+        });
+        
+        if (emailSent) {
+          console.log(`✅ Approval email sent to ${userData.email}`);
+        } else {
+          console.warn(`⚠️ Failed to send approval email to ${userData.email}`);
+        }
+      } catch (emailError) {
+        console.error('❌ Error sending approval email:', emailError);
+        // Don't throw - approval should succeed even if email fails
+      }
+      
+      console.log(`User ${uid} approved by admin ${adminUid}`);
+    } catch (error) {
+      console.error('Error approving user:', error);
+      throw error;
+    }
+  };
+
+  // Reject a pending user
+  const rejectUser = async (uid: string, adminUid: string, reason: string): Promise<void> => {
+    try {
+      const db = await getFirebaseDatabase();
+      const userRef = ref(db, `users/${uid}`);
+      const pendingUserRef = ref(db, `pendingUsers/${uid}`);
+      
+      // Get user data before updating for email notification
+      const userSnapshot = await get(userRef);
+      const userData = userSnapshot.val() as User;
+      
+      // Update user status to rejected
+      await update(userRef, {
+        status: 'rejected',
+        rejectedBy: adminUid,
+        rejectionReason: reason,
+        rejectedAt: Date.now()
+      });
+      
+      // Remove from pending list
+      await set(pendingUserRef, null);
+      
+      // Send rejection notification email
+      try {
+        // Get admin user data for the "rejected by" field
+        const adminRef = ref(db, `users/${adminUid}`);
+        const adminSnapshot = await get(adminRef);
+        const adminData = adminSnapshot.val() as User;
+        
+        // Import the email service dynamically to avoid circular dependencies
+        const { sendRejectionNotificationEmail } = await import('@/services/smtpEmailService');
+        
+        const emailSent = await sendRejectionNotificationEmail({
+          userName: userData.displayName || userData.email,
+          userEmail: userData.email,
+          userRole: userData.role,
+          rejectedBy: adminData?.displayName || adminData?.email || 'Administrator',
+          reason: reason || 'Your information could not be verified'
+        });
+        
+        if (emailSent) {
+          console.log(`✅ Rejection email sent to ${userData.email}`);
+        } else {
+          console.warn(`⚠️ Failed to send rejection email to ${userData.email}`);
+        }
+      } catch (emailError) {
+        console.error('❌ Error sending rejection email:', emailError);
+        // Don't throw - rejection should succeed even if email fails
+      }
+      
+      console.log(`User ${uid} rejected by admin ${adminUid} for reason: ${reason}`);
+    } catch (error) {
+      console.error('Error rejecting user:', error);
+      throw error;
+    }
+  };
+
+  // Get all pending users
+  const getPendingUsers = async (): Promise<User[]> => {
+    try {
+      const db = await getFirebaseDatabase();
+      const pendingUsersRef = ref(db, 'pendingUsers');
+      const snapshot = await get(pendingUsersRef);
+      
+      if (snapshot.exists()) {
+        // Get full user profiles for each pending user
+        const pendingUserIds = Object.keys(snapshot.val());
+        const pendingUsers: User[] = [];
+        
+        for (const uid of pendingUserIds) {
+          const userProfile = await getUserProfile(uid);
+          if (userProfile) {
+            pendingUsers.push(userProfile);
+          }
+        }
+        
+        return pendingUsers;
+      }
+      
+      return [];
+    } catch (error) {
+      console.error('Error getting pending users:', error);
+      return [];
+    }
+  };
+
+  // Batch approve multiple users
+  const batchApproveUsers = async (uids: string[], adminUid: string): Promise<void> => {
+    try {
+      if (!uids.length) return;
+      
+      // Get all user data first for email notifications
+      const approvedUsers: User[] = [];
+      const updates: Record<string, any> = {};
+      const timestamp = Date.now();
+      
+      // Build updates and collect user data
+      for (const uid of uids) {
+        const db = await getFirebaseDatabase();
+        const userSnapshot = await get(ref(db, `users/${uid}`));
+        if (userSnapshot.exists()) {
+          const userData = userSnapshot.val() as User;
+          
+          // Add to batch updates
+          updates[`users/${uid}/status`] = 'approved';
+          updates[`users/${uid}/approvedBy`] = adminUid;
+          updates[`users/${uid}/approvedAt`] = timestamp;
+          updates[`pendingUsers/${uid}`] = null; // Remove from pending list
+          
+          // Add to collection for email notifications
+          userData.status = 'approved';
+          userData.approvedBy = adminUid;
+          userData.approvedAt = timestamp;
+          approvedUsers.push(userData);
+        }
+      }
+      
+      // Apply all database updates in a single transaction
+      await update(ref(await getFirebaseDatabase()), updates);
+      
+      // Email notifications removed - will be added later
+      
+      console.log(`Batch approved ${uids.length} users by admin ${adminUid}`);
+    } catch (error) {
+      console.error('Error batch approving users:', error);
+      throw error;
+    }
+  };
+
+  // Batch reject multiple users
+  const batchRejectUsers = async (uids: string[], adminUid: string, reason: string): Promise<void> => {
+    try {
+      if (!uids.length) return;
+      
+      // Get all user data first for email notifications
+      const rejectedUsers: User[] = [];
+      const updates: Record<string, any> = {};
+      const timestamp = Date.now();
+      
+      // Build updates and collect user data
+      for (const uid of uids) {
+        const db = await getFirebaseDatabase();
+        const userSnapshot = await get(ref(db, `users/${uid}`));
+        if (userSnapshot.exists()) {
+          const userData = userSnapshot.val() as User;
+          
+          // Add to batch updates
+          updates[`users/${uid}/status`] = 'rejected';
+          updates[`users/${uid}/rejectedBy`] = adminUid;
+          updates[`users/${uid}/rejectedAt`] = timestamp;
+          updates[`users/${uid}/rejectionReason`] = reason;
+          updates[`pendingUsers/${uid}`] = null; // Remove from pending list
+          
+          // Add to collection for email notifications
+          userData.status = 'rejected';
+          userData.rejectedBy = adminUid;
+          userData.rejectedAt = timestamp;
+          userData.rejectionReason = reason;
+          rejectedUsers.push(userData);
+        }
+      }
+      
+      // Apply all database updates in a single transaction
+      await update(ref(await getFirebaseDatabase()), updates);
+      
+      // Email notifications removed - will be added later
+      
+      console.log(`Batch rejected ${uids.length} users by admin ${adminUid}`);
+    } catch (error) {
+      console.error('Error batch rejecting users:', error);
+      throw error;
+    }
+  };
+
+  // Listen for auth state changes
+  useEffect(() => {
+    let unsubscribe: () => void;
+    let authTimeout: NodeJS.Timeout;
+    let authStateTimeout: NodeJS.Timeout;
+    let sessionRefreshInterval: NodeJS.Timeout | undefined;
+    let connectedListener = () => {}; // Empty function as default
+    let pwaRecoveryListener: () => void = () => {}; // Session recovery event listener
+
+    const initializeAuth = async () => {
+      try {
+        console.log('🔄 Initializing Firebase auth...');
+        
+        // Set a timeout for the entire initialization process
+        authTimeout = setTimeout(() => {
+          console.log('⚠️ Firebase auth initialization timed out');
+          if (loading) {
+            setLoading(false);
+            setInitError('Authentication service is taking longer than expected. Please check your connection and refresh the page.');
+          }
+        }, 5000); // Reduced to 5 seconds for faster feedback
+
+        // Optimized Firebase initialization - start auth immediately
+        console.log('⚡ Starting optimized Firebase initialization...');
+        
+        // Get auth instance first (fastest)
+        const auth = await getFirebaseAuth();
+        console.log('✅ Auth ready, initializing database in background...');
+        
+        // Initialize database in parallel without blocking
+        const dbPromise = getFirebaseDatabase();
+        
+        // Don't wait for database if it's slow
+        let db;
+        try {
+          db = await Promise.race([
+            dbPromise,
+            new Promise((_, reject) => 
+              setTimeout(() => reject(new Error('DB timeout')), 2000)
+            )
+          ]);
+          console.log('✅ Database ready');
+        } catch (e) {
+          console.warn('⚠️ Database initialization slow, continuing with auth only');
+          // Continue without database for now, it will be available later
+          dbPromise.then(() => console.log('✅ Database eventually ready'));
+        }
+
+        // Clear the timeout since we've successfully connected
+        clearTimeout(authTimeout);
+        
+        // Set persistence based on environment
+        try {
+          const isPwa = isPwaMode();
+          console.log(`🔒 Setting up auth persistence for ${isPwa ? 'PWA' : 'browser'} mode`);
+
+          // For iOS PWA, we use multiple persistence methods for maximum compatibility
+          if (isPwa) {
+            // First try IndexedDB (works on most Android and newer iOS)
+            try {
+              // On iOS PWA, we must first clear any existing persistence to avoid conflicts
+              if (navigator.userAgent.match(/iPad|iPhone|iPod/) && window.matchMedia('(display-mode: standalone)').matches) {
+                console.log('📱 iOS PWA detected, using special persistence strategy');
+                
+                // Special handling for iOS PWA - try both persistences in sequence
+                // This works around iOS Safari limitations in PWA mode
+                await setPersistence(auth, indexedDBLocalPersistence)
+                  .catch(() => setPersistence(auth, browserLocalPersistence))
+                  .catch(() => {
+                    console.warn('⚠️ All persistence methods failed on iOS PWA');
+                    return setPersistence(auth, inMemoryPersistence);
+                  });
+                  
+                console.log('✅ iOS PWA persistence strategy applied');
+              } else {
+                // Standard approach for Android and other platforms
+                await setPersistence(auth, indexedDBLocalPersistence);
+                console.log('✅ Using IndexedDB persistence (most reliable for PWAs)');
+              }
+            } catch (e) {
+              console.warn('⚠️ IndexedDB persistence failed, falling back to localStorage:', e);
+              
+              // Fall back to localStorage (works on most browsers)
+              try {
+                await setPersistence(auth, browserLocalPersistence);
+                console.log('✅ Using localStorage persistence');
+              } catch (e2) {
+                console.warn('⚠️ localStorage persistence failed, falling back to in-memory:', e2);
+                
+                // Last resort: in-memory (session only, but at least it works)
+                await setPersistence(auth, inMemoryPersistence);
+                console.log('⚠️ Using in-memory persistence (session only)');
+              }
+            }
+            
+            // Register PWA-specific lifecycle events for better session handling
+            registerPwaLifecycleEvents();
+            optimizePwaPageReload();
+            
+            // Periodically refresh the session backup to keep it alive
+            sessionRefreshInterval = setInterval(() => {
+              if (currentUser) {
+                refreshSessionBackup();
+              }
+            }, 60000); // Every minute
+          } else {
+            // For regular browser mode, localStorage is sufficient
+            await setPersistence(auth, browserLocalPersistence);
+            console.log('✅ Using standard localStorage persistence');
+          }
+        } catch (e) {
+          console.warn('⚠️ Failed to set auth persistence:', e);
+        }
+        
+        console.log('🔒 Setting up auth state listener...');
+        let authStateResolved = false;
+        let isInitialAuthState = true; // Track first onAuthStateChanged call
+        
+        // Set up auth state change listener with its own timeout
+        await new Promise<void>((resolve) => {
+          authStateTimeout = setTimeout(() => {
+            if (!authStateResolved) {
+              console.warn('Auth state change listener timed out');
+              
+              // Try to recover session from backup
+              const sessionBackup = getSessionBackup();
+              if (sessionBackup?.userId) {
+                console.log('🔄 Attempting to recover session from backup...', sessionBackup);
+                
+                // Try to get user data from database directly
+                getUserProfile(sessionBackup.userId)
+                  .then(async user => {
+                    if (user && user.uid) {
+                      console.log('✅ Session recovered from backup for:', user?.uid);
+                      
+                      // If we have role data in the backup but not in the fetched user data
+                      // (this can happen in PWA mode), use the backup data
+                      if (sessionBackup.role && !user.role && (
+                        sessionBackup.role === 'resident' ||
+                        sessionBackup.role === 'guard' ||
+                        sessionBackup.role === 'admin'
+                      )) {
+                        // Safely cast to UserRole since we've verified it's one of the valid roles
+                        user.role = sessionBackup.role as UserRole;
+                      }
+                      
+                      if (sessionBackup.email && !user.email) {
+                        user.email = sessionBackup.email;
+                      }
+                      
+                      if (sessionBackup.displayName && !user.displayName) {
+                        user.displayName = sessionBackup.displayName;
+                      }
+                      
+                      setCurrentUser(user);
+                      
+                      // Also attempt to sign in with custom token if we're on a PWA
+                      // This helps recover Firebase Auth state properly
+                      if (isPwaMode()) {
+                        try {
+                          // First check if Firebase Auth already has a user
+                          const auth = await getFirebaseAuth();
+                          if (!auth.currentUser) {
+                            console.log('📱 PWA mode, attempting automatic re-authentication...');
+                            // This will trigger a silent re-auth in the background
+                            // We don't need to await this, as onAuthStateChanged will capture the result
+                          }
+                        } catch (e) {
+                          console.warn('Silent re-auth attempt failed:', e);
+                        }
+                      }
+                    } else {
+                      console.warn('Session recovery found invalid user data');
+                    }
+                  })
+                  .catch(e => console.error('Failed to recover session:', e))
+                  .finally(() => {
+                    setLoading(false);
+                    resolve();
+                  });
+              } else {
+                setLoading(false);
+                resolve();
+              }
+            }
+          }, 8000); // 8 seconds for auth state
+
+          unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+            try {
+              console.log('🔄 Auth state changed:', firebaseUser ? `User: ${firebaseUser.email}` : 'No user');
+              
+              if (firebaseUser) {
+                isInitialAuthState = false; // Real user arrived
+                // User is signed in
+                const user = await formatUser(firebaseUser);
+                if (user) {
+                  console.log('✅ User formatted successfully:', user.displayName);
+                  setCurrentUser(user);
+                  
+                  // Always backup session for persistence (TWA, PWA, and browser)
+                  backupSession(user.uid, user.email, user.role, user.displayName);
+                  persistUserProfile(user);
+                  
+                  if (isPwaMode()) {
+                    // Set up periodic session refresh for PWA mode
+                    if (sessionRefreshInterval) {
+                      clearInterval(sessionRefreshInterval);
+                    }
+                    sessionRefreshInterval = setInterval(() => {
+                      refreshSessionBackup();
+                    }, 30000);
+                  }
+                } else {
+                  console.warn('⚠️ User formatting failed');
+                  setCurrentUser(null);
+                }
+              } else {
+                // Firebase says no user — but on cold start this fires BEFORE
+                // Firebase restores the session from IndexedDB. Don't destroy
+                // backup data on the first null; only clear on genuine sign-out.
+                if (isInitialAuthState) {
+                  isInitialAuthState = false;
+
+                  // If we already recovered a user via getInitialUser() (instant localStorage),
+                  // keep them logged in — don't clear on the initial null.
+                  if (initialUser) {
+                    console.log('🔄 Initial auth null but we have instant-recovered user — keeping:', initialUser.displayName);
+                    // User is already set from useState(initialUser), just keep it
+                    setCurrentUser(initialUser);
+                    return; // Don't clear anything
+                  }
+
+                  // No instant recovery — try localStorage backup as fallback
+                  console.log('🔄 Initial auth state is null — attempting persisted profile recovery...');
+                  const sessionBackup = getSessionBackup();
+                  if (sessionBackup?.userId) {
+                    const cachedUser = getPersistedUserProfile(sessionBackup.userId);
+                    if (cachedUser) {
+                      console.log('📦 Recovered user from persisted profile:', cachedUser.displayName);
+                      setCurrentUser(cachedUser);
+                      return; // Don't clear anything
+                    }
+                  }
+
+                  // No persisted profile found — genuinely no session
+                  console.log('👋 No persisted session found on cold start');
+                  setCurrentUser(null);
+                } else {
+                  // Subsequent null = real sign-out (explicit or session expiry)
+                  console.log('👋 User signed out');
+                  setCurrentUser(null);
+                  clearSessionBackup();
+                  clearPersistedUserProfile();
+                  if (sessionRefreshInterval) {
+                    clearInterval(sessionRefreshInterval);
+                    sessionRefreshInterval = undefined;
+                  }
+                }
+              }
+            } catch (error) {
+              console.error('Auth state change error:', error);
+              
+              // Auto-retry once after a short delay for transient network issues
+              if (firebaseUser) {
+                console.log('🔄 Retrying authentication after transient error...');
+                try {
+                  await new Promise(res => setTimeout(res, 1500));
+                  const retryUser = await formatUser(firebaseUser);
+                  if (retryUser) {
+                    console.log('✅ Auth retry succeeded');
+                    setCurrentUser(retryUser);
+                    persistUserProfile(retryUser);
+                    return;
+                  }
+                } catch (retryError) {
+                  console.error('Auth retry also failed:', retryError);
+                }
+                
+                // Last resort: use persisted profile from localStorage
+                const cachedUser = getPersistedUserProfile(firebaseUser.uid);
+                if (cachedUser) {
+                  console.log('📦 Using persisted profile as fallback for:', cachedUser.displayName);
+                  setCurrentUser(cachedUser);
+                  
+                  // Retry DB fetch in background to get fresh data
+                  setTimeout(async () => {
+                    try {
+                      const freshUser = await formatUser(firebaseUser);
+                      if (freshUser) {
+                        console.log('✅ Background refresh succeeded, updating user');
+                        setCurrentUser(freshUser);
+                        persistUserProfile(freshUser);
+                      }
+                    } catch (e) {
+                      console.warn('Background profile refresh failed, keeping cached data');
+                    }
+                  }, 5000);
+                  return;
+                }
+              }
+              
+              setCurrentUser(null);
+              
+              // iOS PWA specific error handling - don't show generic error immediately
+              const isIosPwa = navigator.userAgent.match(/iPad|iPhone|iPod/) && 
+                              window.matchMedia('(display-mode: standalone)').matches;
+              
+              if (isIosPwa) {
+                console.warn('iOS PWA auth state error - attempting recovery...');
+                setTimeout(() => {
+                  if (!currentUser && loading) {
+                    setInitError('Authentication initialization failed. Please close and reopen the app.');
+                  }
+                }, 2000);
+              } else {
+                setInitError('Error processing authentication. Please refresh the page and try again.');
+              }
+            } finally {
+              if (!authStateResolved) {
+                authStateResolved = true;
+                clearTimeout(authStateTimeout);
+                resolve();
+              }
+              setLoading(false);
+            }
+          });
+        });
+
+        // Set up database connection listener
+        console.log('🔌 Setting up database connection listener...');
+        const database = await getFirebaseDatabase();
+        const connectedRef = ref(database, '.info/connected');
+        connectedListener = onValue(connectedRef, (snapshot) => {
+          const isConnected = snapshot.val() === true;
+          console.log(isConnected ? '✅ Database connected' : '❌ Database disconnected');
+        });
+        
+        // Enhanced PWA session recovery and lifecycle management
+        if (isPwaMode()) {
+          console.log('📱 Setting up enhanced PWA session management...');
+          
+          // iOS PWA specific initialization recovery
+          const isIosPwa = navigator.userAgent.match(/iPad|iPhone|iPod/) && 
+                          window.matchMedia('(display-mode: standalone)').matches;
+          
+          if (isIosPwa) {
+            console.log('🍎 iOS PWA detected - applying iOS-specific auth recovery');
+            
+            // Clear any existing error state that might have been set prematurely
+            setInitError(null);
+            
+            // iOS PWA often has delayed Firebase initialization, give it more time
+            setTimeout(() => {
+              if (!currentUser && loading) {
+                console.log('🔄 iOS PWA delayed auth check - attempting session recovery');
+                const sessionBackup = getSessionBackup();
+                if (sessionBackup?.userId) {
+                  console.log('📱 Found iOS PWA session backup, attempting recovery');
+                  // Trigger session recovery
+                  window.dispatchEvent(new CustomEvent('pwa-session-recovery', {
+                    detail: { userId: sessionBackup.userId }
+                  }));
+                }
+              }
+            }, 1000);
+          }
+          
+          // Register PWA lifecycle events for iOS session persistence
+          registerPwaLifecycleEvents();
+          
+          const recoveryEventHandler = async (event: Event) => {
+            const customEvent = event as CustomEvent;
+            if (customEvent.detail?.userId) {
+              console.log('🔄 PWA session recovery event triggered for:', customEvent.detail.userId);
+              try {
+                // Attempt to recover user data from database
+                const user = await getUserProfile(customEvent.detail.userId);
+                if (user) {
+                  console.log('✅ PWA session recovered successfully for:', user.displayName);
+                  setCurrentUser(user);
+                  
+                  // Also merge with any backup data we have
+                  const sessionBackup = getSessionBackup();
+                  if (sessionBackup && !user.role && sessionBackup.role) {
+                    // Use backup role if not in user data
+                    user.role = sessionBackup.role as UserRole;
+                  }
+                  
+                  // Restart session backup for recovered user
+                  backupSession(user.uid, user.email, user.role, user.displayName);
+                }
+              } catch (e) {
+                console.error('Failed to recover PWA session:', e);
+              } finally {
+                setLoading(false);
+              }
+            }
+          };
+          
+          // Add iOS-specific PWA event listeners
+          const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+              console.log('🔄 PWA became visible, refreshing auth state...');
+              refreshSessionBackup();
+              // Force auth state check when app becomes visible
+              if (currentUser) {
+                backupSession(currentUser.uid, currentUser.email, currentUser.role, currentUser.displayName);
+              }
+            } else {
+              console.log('😴 PWA became hidden, backing up session...');
+              if (currentUser) {
+                backupSession(currentUser.uid, currentUser.email, currentUser.role, currentUser.displayName);
+              }
+            }
+          };
+          
+          const handlePageShow = (event: PageTransitionEvent) => {
+            if (event.persisted) {
+              console.log('🔄 PWA restored from cache, checking session...');
+              const sessionBackup = getSessionBackup();
+              if (sessionBackup?.userId && !currentUser) {
+                recoveryEventHandler(new CustomEvent('pwa-session-recovery', {
+                  detail: { userId: sessionBackup.userId }
+                }));
+              }
+            }
+          };
+          
+          // Add event listeners
+          document.addEventListener('visibilitychange', handleVisibilityChange);
+          document.addEventListener('pwa-session-recovery', recoveryEventHandler);
+          window.addEventListener('pageshow', handlePageShow);
+          window.addEventListener('focus', handleVisibilityChange);
+          
+          // Store removal function
+          pwaRecoveryListener = () => {
+            document.removeEventListener('pwa-session-recovery', recoveryEventHandler);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            window.removeEventListener('pageshow', handlePageShow);
+            window.removeEventListener('focus', handleVisibilityChange);
+          };
+          
+          // Trigger an initial check for session recovery
+          const sessionBackup = getSessionBackup();
+          if (sessionBackup?.userId) {
+            console.log('🔄 Checking for PWA session on init:', sessionBackup.userId);
+            // Only try to recover if we don't already have a user
+            if (!currentUser) {
+              recoveryEventHandler(new CustomEvent('pwa-session-recovery', {
+                detail: { userId: sessionBackup.userId }
+              }));
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error initializing auth:', error);
+        setInitError('Failed to initialize authentication. Please refresh the page');
+        setLoading(false);
+      }
+    };
+
+    initializeAuth();
+
+    // Cleanup function
+    return () => {
+      clearTimeout(authTimeout);
+      clearTimeout(authStateTimeout);
+      if (sessionRefreshInterval) {
+        clearInterval(sessionRefreshInterval as NodeJS.Timeout);
+      }
+      if (unsubscribe) unsubscribe();
+      if (connectedListener) connectedListener();
+      if (pwaRecoveryListener) pwaRecoveryListener();
+    };
+  }, []);
+
+  const value = {
+    currentUser,
+    loading,
+    initError,
+    signUp,
+    signIn,
+    signOut,
+    getUserProfile,
+    refreshCurrentUser,
+    approveUser,
+    rejectUser,
+    getPendingUsers,
+    batchApproveUsers,
+    batchRejectUsers,
+  };
+
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
+}

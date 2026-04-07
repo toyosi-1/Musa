@@ -1,0 +1,15 @@
+{
+  "name": "flw-proxy",
+  "version": "1.0.0",
+  "description": "Flutterwave bill payment proxy with static IP (Cloud Run + Cloud NAT)",
+  "main": "index.js",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}

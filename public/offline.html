@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#3b82f6">
+  <title>Offline Mode | Musa</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f3f4f6; color: #1f2937;
+      min-height: 100vh; display: flex; align-items: center; justify-content: center;
+      padding: 1rem;
+    }
+    .wrap { max-width: 28rem; width: 100%; }
+    .card { background: #fff; border-radius: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,.1); overflow: hidden; margin-bottom: .75rem; }
+    .banner { background: #fffbeb; border: 1px solid #fde68a; border-radius: 1rem; padding: 1rem; display: flex; align-items: center; gap: .75rem; margin-bottom: .75rem; }
+    .banner-icon { width: 2.5rem; height: 2.5rem; background: #fef3c7; border-radius: .75rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .banner-icon svg { width: 1.25rem; height: 1.25rem; color: #d97706; }
+    .banner h1 { font-size: .875rem; font-weight: 700; color: #92400e; }
+    .banner p { font-size: .75rem; color: #b45309; margin-top: .125rem; }
+    .card-body { padding: 1.25rem; }
+    .card-header { display: flex; align-items: center; gap: .625rem; margin-bottom: 1rem; }
+    .card-icon { width: 2.25rem; height: 2.25rem; background: linear-gradient(135deg, #10b981, #0d9488); border-radius: .75rem; display: flex; align-items: center; justify-content: center; }
+    .card-icon svg { width: 1.125rem; height: 1.125rem; color: #fff; }
+    .card-title { font-size: 1rem; font-weight: 700; color: #111827; }
+    .card-sub { font-size: .6875rem; color: #9ca3af; }
+    input[type=text] {
+      width: 100%; text-align: center; font-size: 1.25rem; font-weight: 700;
+      font-family: 'SF Mono', SFMono-Regular, Consolas, monospace;
+      letter-spacing: .15em; padding: 1rem; border: 2px solid #e5e7eb; border-radius: 1rem;
+      background: #f9fafb; color: #111827; outline: none; transition: border-color .2s;
+    }
+    input:focus { border-color: #10b981; box-shadow: 0 0 0 4px rgba(16,185,129,.1); }
+    input::placeholder { color: #d1d5db; letter-spacing: .1em; font-weight: 500; font-size: 1rem; }
+    .btn-verify {
+      width: 100%; padding: .875rem; font-size: .875rem; font-weight: 700; color: #fff;
+      background: linear-gradient(90deg, #059669, #0d9488); border: none; border-radius: 1rem;
+      cursor: pointer; display: flex; align-items: center; justify-content: center; gap: .5rem;
+      margin-top: .75rem; transition: opacity .2s;
+    }
+    .btn-verify:disabled { opacity: .5; cursor: not-allowed; }
+    .btn-retry {
+      width: 100%; padding: .75rem; font-size: .875rem; font-weight: 700; color: #fff;
+      background: linear-gradient(90deg, #2563eb, #4f46e5); border: none; border-radius: 1rem;
+      cursor: pointer; display: flex; align-items: center; justify-content: center; gap: .5rem;
+    }
+    .result { padding: 1.25rem; text-align: center; border-top: 1px solid; }
+    .result.granted { background: #ecfdf5; border-color: #a7f3d0; }
+    .result.denied { background: #fef2f2; border-color: #fecaca; }
+    .result-circle { width: 3.5rem; height: 3.5rem; border-radius: 50%; margin: 0 auto .75rem; display: flex; align-items: center; justify-content: center; }
+    .result-circle.granted { background: #10b981; }
+    .result-circle.denied { background: #ef4444; }
+    .result-circle svg { width: 2rem; height: 2rem; color: #fff; }
+    .result h3 { font-size: 1.125rem; font-weight: 700; }
+    .result h3.granted { color: #047857; }
+    .result h3.denied { color: #b91c1c; }
+    .result .msg { font-size: .875rem; margin-top: .25rem; }
+    .result .msg.granted { color: #059669; }
+    .result .msg.denied { color: #dc2626; }
+    .result .dest { font-size: .875rem; color: #4b5563; margin-top: .5rem; font-weight: 500; }
+    .links { background: #fff; border-radius: 1rem; padding: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,.1); }
+    .links h3 { font-size: .6875rem; font-weight: 600; color: #9ca3af; text-transform: uppercase; letter-spacing: .05em; margin-bottom: .75rem; }
+    .links-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; }
+    .links a { display: flex; align-items: center; gap: .5rem; padding: .75rem; font-size: .875rem; font-weight: 500; color: #374151; background: #f9fafb; border-radius: .75rem; text-decoration: none; transition: background .2s; }
+    .links a:hover { background: #f3f4f6; }
+    .footer { text-align: center; font-size: .75rem; color: #9ca3af; margin-top: .75rem; }
+    .hidden { display: none; }
+    @media (prefers-color-scheme: dark) {
+      body { background: #111827; color: #f3f4f6; }
+      .card { background: #1f2937; }
+      .banner { background: rgba(120,53,15,.15); border-color: rgba(180,83,9,.3); }
+      .banner h1 { color: #fde68a; } .banner p { color: #fbbf24; }
+      .banner-icon { background: rgba(180,83,9,.2); }
+      .card-title { color: #fff; }
+      input[type=text] { background: rgba(17,24,39,.5); border-color: #374151; color: #fff; }
+      input:focus { border-color: #10b981; }
+      input::placeholder { color: #4b5563; }
+      .result.granted { background: rgba(6,95,70,.15); border-color: rgba(16,185,129,.3); }
+      .result.denied { background: rgba(127,29,29,.15); border-color: rgba(239,68,68,.3); }
+      .result h3.granted { color: #6ee7b7; } .result h3.denied { color: #fca5a5; }
+      .result .msg.granted { color: #34d399; } .result .msg.denied { color: #f87171; }
+      .result .dest { color: #d1d5db; }
+      .links { background: #1f2937; } .links h3 { color: #6b7280; }
+      .links a { background: rgba(55,65,81,.5); color: #d1d5db; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="banner">
+      <div class="banner-icon">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M18.364 5.636a9 9 0 010 12.728m0 0l-2.829-2.829m2.829 2.829L21 21M15.536 8.464a5 5 0 010 7.072m0 0l-2.829-2.829m-4.243 2.829a4.978 4.978 0 01-1.414-2.83m-1.414 5.658a9 9 0 01-2.167-9.238m7.824 2.167a1 1 0 111.414 1.414m-1.414-1.414L3 3"/>
+        </svg>
+      </div>
+      <div>
+        <h1>You're Offline</h1>
+        <p id="bannerMsg">Limited features available</p>
+      </div>
+    </div>
+
+    <!-- Guard offline verification card -->
+    <div id="guardCard" class="card hidden">
+      <div class="card-body">
+        <div class="card-header">
+          <div class="card-icon">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+            </svg>
+          </div>
+          <div>
+            <div class="card-title" id="guardTitle">Offline Verification</div>
+            <div class="card-sub">Verify access codes from cached data</div>
+          </div>
+        </div>
+        <form id="verifyForm">
+          <input type="text" id="codeInput" placeholder="e.g. MUSA1234" autocapitalize="characters" autocomplete="off" maxlength="10"/>
+          <button type="submit" class="btn-verify" id="verifyBtn" disabled>
+            <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+            Verify Code (Offline)
+          </button>
+        </form>
+      </div>
+      <div id="resultBox" class="hidden"></div>
+    </div>
+
+    <!-- Non-guard card -->
+    <div id="generalCard" class="card">
+      <div class="card-body" style="text-align:center;padding:2rem 1.5rem;">
+        <div style="width:4rem;height:4rem;margin:0 auto 1rem;background:#f3f4f6;border-radius:1rem;display:flex;align-items:center;justify-content:center;">
+          <svg width="32" height="32" fill="none" viewBox="0 0 24 24" stroke="#9ca3af" stroke-width="1.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M18.364 5.636a9 9 0 010 12.728m0 0l-2.829-2.829m2.829 2.829L21 21M15.536 8.464a5 5 0 010 7.072m0 0l-2.829-2.829m-4.243 2.829a4.978 4.978 0 01-1.414-2.83m-1.414 5.658a9 9 0 01-2.167-9.238m7.824 2.167a1 1 0 111.414 1.414m-1.414-1.414L3 3"/>
+          </svg>
+        </div>
+        <h2 style="font-size:1.125rem;font-weight:700;margin-bottom:.5rem;">No Internet Connection</h2>
+        <p style="font-size:.875rem;color:#6b7280;margin-bottom:1.5rem;">Please check your Wi-Fi or mobile data and try again.</p>
+        <button class="btn-retry" onclick="location.reload()">
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+          Retry Connection
+        </button>
+      </div>
+    </div>
+
+    <div class="links">
+      <h3>Quick Links</h3>
+      <div class="links-grid">
+        <a href="/dashboard/">Dashboard</a>
+        <a href="/dashboard/profile/">Profile</a>
+      </div>
+    </div>
+    <div class="footer">Connection will be restored automatically when available.</div>
+  </div>
+
+  <script>
+    // Auto-reload when online
+    window.addEventListener('online', function() { location.href = '/'; });
+
+    // Detect guard role from cached profile
+    var role = null, name = null, estateId = null;
+    try {
+      var pc = localStorage.getItem('musa_user_profile_cache');
+      if (pc) { var u = JSON.parse(pc).user; if (u) { role = u.role; name = u.displayName; estateId = u.estateId; } }
+    } catch(e) {}
+    if (!role) {
+      try { var sb = localStorage.getItem('musa_session_backup'); if (sb) { var p = JSON.parse(sb); role = p.role; name = p.displayName; } } catch(e) {}
+    }
+
+    if (role === 'guard') {
+      document.getElementById('guardCard').classList.remove('hidden');
+      document.getElementById('generalCard').classList.add('hidden');
+      document.getElementById('bannerMsg').textContent = 'Guard mode — verify cached access codes';
+      if (name) document.getElementById('guardTitle').textContent = 'Hi ' + name.split(' ')[0] + ' — Offline Verification';
+
+      var input = document.getElementById('codeInput');
+      var btn = document.getElementById('verifyBtn');
+      input.addEventListener('input', function() {
+        this.value = this.value.toUpperCase();
+        btn.disabled = !this.value.trim();
+      });
+
+      document.getElementById('verifyForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        var code = input.value.trim();
+        if (!code) return;
+        var rBox = document.getElementById('resultBox');
+
+        try {
+          var raw = localStorage.getItem('musa_guard_codes_' + (estateId || ''));
+          if (!raw) { showResult(rBox, false, 'No cached codes. Sync when online.'); return; }
+          var map = JSON.parse(raw);
+          var ac = map[code];
+          if (!ac) { showResult(rBox, false, 'Invalid access code'); return; }
+          if (ac.expiresAt && ac.expiresAt < Date.now()) { showResult(rBox, false, 'Access code has expired'); return; }
+          if (!ac.isActive) { showResult(rBox, false, 'Access code is inactive'); return; }
+
+          var dest = '';
+          try {
+            var hh = JSON.parse(localStorage.getItem('musa_guard_households_' + (estateId || '')) || '{}')[ac.householdId];
+            if (hh) { var parts = []; if (hh.address) parts.push(hh.address); if (hh.city) parts.push(hh.city); dest = parts.join(', '); }
+          } catch(e) {}
+          showResult(rBox, true, 'Access granted (offline)', dest);
+        } catch(err) {
+          showResult(rBox, false, 'Error verifying code');
+        }
+      });
+    }
+
+    function showResult(box, valid, msg, dest) {
+      var cls = valid ? 'granted' : 'denied';
+      var icon = valid
+        ? '<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>'
+        : '<path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>';
+      box.className = 'result ' + cls;
+      box.innerHTML =
+        '<div class="result-circle ' + cls + '"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">' + icon + '</svg></div>' +
+        '<h3 class="' + cls + '">' + (valid ? 'Access Granted' : 'Access Denied') + '</h3>' +
+        '<p class="msg ' + cls + '">' + msg + '</p>' +
+        (dest ? '<p class="dest">📍 ' + dest + '</p>' : '');
+      setTimeout(function() { box.className = 'hidden'; document.getElementById('codeInput').value = ''; document.getElementById('verifyBtn').disabled = true; }, 8000);
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,254 @@
+const fs = require('fs');
+const path = require('path');
+
+// Create HTML page to generate proper icons from SVG
+const iconGeneratorHTML = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced Musa Icon Generator</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #4F46E5, #312E81);
+            color: white;
+            text-align: center;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(255,255,255,0.1);
+            padding: 30px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+        h1 {
+            color: #FFD700;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            margin-bottom: 20px;
+        }
+        .preview {
+            margin: 20px 0;
+        }
+        .preview img {
+            border-radius: 15px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+        }
+        .size-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .size-button {
+            padding: 15px 20px;
+            background: linear-gradient(45deg, #FFD700, #DAA520);
+            color: #2F1B14;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(255,215,0,0.3);
+        }
+        .size-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255,215,0,0.4);
+        }
+        .download-all {
+            padding: 20px 40px;
+            background: linear-gradient(45deg, #4F46E5, #312E81);
+            color: white;
+            border: 2px solid #FFD700;
+            border-radius: 15px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 18px;
+            margin: 20px 0;
+            transition: all 0.3s ease;
+        }
+        .download-all:hover {
+            background: linear-gradient(45deg, #312E81, #4F46E5);
+            transform: scale(1.05);
+        }
+        .instructions {
+            background: rgba(255,255,255,0.1);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            text-align: left;
+        }
+        .instructions h3 {
+            color: #FFD700;
+            margin-bottom: 10px;
+        }
+        .instructions ol {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        .instructions li {
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 Enhanced Musa Character Icon Generator</h1>
+        
+        <div class="preview">
+            <img id="preview" src="/images/musa-icon.svg" alt="Musa Character" width="200" height="200">
+        </div>
+        
+        <div class="instructions">
+            <h3>📋 Instructions:</h3>
+            <ol>
+                <li>Click individual size buttons to download specific icon sizes</li>
+                <li>Or click "Download All Icons" to get all sizes at once</li>
+                <li>Replace the files in your <code>/public/images/</code> folder</li>
+                <li>Restart your development server to see the new icons</li>
+            </ol>
+        </div>
+        
+        <div class="size-buttons">
+            <button class="size-button" onclick="generateIcon(72)">📱 72x72 (iOS)</button>
+            <button class="size-button" onclick="generateIcon(96)">📱 96x96 (Android)</button>
+            <button class="size-button" onclick="generateIcon(128)">💻 128x128 (Desktop)</button>
+            <button class="size-button" onclick="generateIcon(144)">📱 144x144 (Windows)</button>
+            <button class="size-button" onclick="generateIcon(152)">📱 152x152 (iPad)</button>
+            <button class="size-button" onclick="generateIcon(192)">🌐 192x192 (PWA)</button>
+            <button class="size-button" onclick="generateIcon(384)">🌐 384x384 (PWA)</button>
+            <button class="size-button" onclick="generateIcon(512)">💯 512x512 (High-res)</button>
+        </div>
+        
+        <button class="download-all" onclick="downloadAllIcons()">🚀 Download All Icons</button>
+        
+        <div class="instructions">
+            <h3>✨ What's New:</h3>
+            <ul>
+                <li><strong>Enhanced Character Detail:</strong> More detailed beard, cap, and facial features</li>
+                <li><strong>Better Colors:</strong> Proper golden cap and traditional kurta colors</li>
+                <li><strong>Improved Proportions:</strong> Better scaled for icon visibility</li>
+                <li><strong>Professional Background:</strong> Gradient background for better contrast</li>
+                <li><strong>Decorative Elements:</strong> Subtle golden accents around the character</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        async function generateIcon(size) {
+            try {
+                const response = await fetch('/images/musa-icon.svg');
+                const svgText = await response.text();
+                
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = size;
+                canvas.height = size;
+                
+                // Create SVG blob
+                const svgBlob = new Blob([svgText], { type: 'image/svg+xml' });
+                const url = URL.createObjectURL(svgBlob);
+                
+                const img = new Image();
+                img.onload = function() {
+                    // Clear canvas with transparent background
+                    ctx.clearRect(0, 0, size, size);
+                    
+                    // Draw the SVG
+                    ctx.drawImage(img, 0, 0, size, size);
+                    
+                    // Convert to PNG and download
+                    canvas.toBlob(function(blob) {
+                        const a = document.createElement('a');
+                        a.href = URL.createObjectURL(blob);
+                        a.download = \`icon-\${size}x\${size}.png\`;
+                        a.click();
+                        URL.revokeObjectURL(a.href);
+                    }, 'image/png', 1.0);
+                    
+                    URL.revokeObjectURL(url);
+                };
+                img.src = url;
+                
+            } catch (error) {
+                console.error('Error generating icon:', error);
+                alert('Error generating icon. Please try again.');
+            }
+        }
+        
+        async function downloadAllIcons() {
+            const sizes = [72, 96, 128, 144, 152, 192, 384, 512];
+            
+            for (let i = 0; i < sizes.length; i++) {
+                setTimeout(() => {
+                    generateIcon(sizes[i]);
+                }, i * 500); // Delay between downloads
+            }
+            
+            // Also generate favicon
+            setTimeout(() => {
+                generateFavicon();
+            }, sizes.length * 500);
+        }
+        
+        async function generateFavicon() {
+            try {
+                const response = await fetch('/images/musa-icon.svg');
+                const svgText = await response.text();
+                
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = 32;
+                canvas.height = 32;
+                
+                const svgBlob = new Blob([svgText], { type: 'image/svg+xml' });
+                const url = URL.createObjectURL(svgBlob);
+                
+                const img = new Image();
+                img.onload = function() {
+                    ctx.clearRect(0, 0, 32, 32);
+                    ctx.drawImage(img, 0, 0, 32, 32);
+                    
+                    canvas.toBlob(function(blob) {
+                        const a = document.createElement('a');
+                        a.href = URL.createObjectURL(blob);
+                        a.download = 'favicon.ico';
+                        a.click();
+                        URL.revokeObjectURL(a.href);
+                    }, 'image/png', 1.0);
+                    
+                    URL.revokeObjectURL(url);
+                };
+                img.src = url;
+                
+            } catch (error) {
+                console.error('Error generating favicon:', error);
+            }
+        }
+    </script>
+</body>
+</html>
+`;
+
+// Write the HTML file
+fs.writeFileSync('public/enhanced-icon-generator.html', iconGeneratorHTML);
+
+console.log('✅ Enhanced icon generator created at: public/enhanced-icon-generator.html');
+console.log('🚀 Visit http://localhost:3001/enhanced-icon-generator.html to generate better icons!');
+console.log('');
+console.log('✨ New features:');
+console.log('   - Enhanced Musa character with detailed features');
+console.log('   - Proper golden cap and traditional kurta colors');
+console.log('   - Better proportions and visibility');
+console.log('   - Professional gradient background');
+console.log('   - Decorative golden accents');
+console.log('');
+console.log('📋 Instructions:');
+console.log('   1. Open the generator in your browser');
+console.log('   2. Click "Download All Icons" to get all sizes');
+console.log('   3. Replace the files in /public/images/');
+console.log('   4. Restart your server to see the new icons');

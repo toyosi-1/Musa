@@ -1,0 +1,186 @@
+export type UserRole = 'guard' | 'resident' | 'admin' | 'estate_admin' | 'vendor' | 'operator';
+
+export type UserStatus = 'pending' | 'approved' | 'rejected';
+
+export interface User {
+  uid: string;
+  email: string;
+  displayName?: string;
+  role: UserRole;
+  status: UserStatus;
+  isEmailVerified: boolean;
+  // Each user belongs to a specific estate (multi-tenant boundary)
+  estateId?: string;
+  householdId?: string;
+  isHouseholdHead?: boolean;
+  createdAt: number;
+  lastLogin?: number;
+  approvedBy?: string; // UID of admin who approved
+  approvedAt?: number; // Timestamp of approval
+  rejectedBy?: string; // UID of admin who rejected
+  rejectedAt?: number; // Timestamp of rejection
+  rejectionReason?: string; // Reason if rejected
+  // Estate admin specific fields
+  canApproveUsers?: boolean; // For estate_admin role
+  canAssignHoH?: boolean; // For estate_admin role
+  createdBy?: string; // UID of admin who created this user
+}
+
+export interface Household {
+  id: string;
+  name: string;
+  headId: string; // The family head's user ID
+  members: Record<string, boolean>; // User IDs of household members
+  // The estate this household belongs to
+  estateId?: string;
+  address?: string;
+  addressLine2?: string;
+  city?: string;
+  state?: string;
+  postalCode?: string;
+  country?: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface AccessCode {
+  id: string;
+  code: string;
+  userId: string;
+  householdId: string;
+  // The estate this code belongs to (enforces cross-estate isolation)
+  estateId?: string;
+  description?: string;
+  qrCode?: string;
+  createdAt: number;
+  expiresAt?: number;
+  isActive: boolean;
+  usageCount: number;
+}
+
+export interface HouseholdInvite {
+  id: string;
+  householdId: string;
+  invitedBy: string;
+  email: string;
+  status: 'pending' | 'accepted' | 'rejected';
+  createdAt: number;
+  expiresAt: number;
+}
+
+export interface Estate {
+  id: string;
+  name: string;
+  createdAt: number;
+  updatedAt: number;
+  // Admin who created the estate
+  createdBy?: string;
+  // If true, estate is locked for new approvals/creations depending on policy
+  isLocked?: boolean;
+}
+
+export type EmergencyType = 'robbery' | 'fire' | 'medical';
+
+export interface EmergencyAlert {
+  id: string;
+  estateId: string;
+  triggeredBy: string; // UID of resident
+  triggeredByName: string;
+  householdId?: string;
+  householdName?: string;
+  type: EmergencyType;
+  description?: string;
+  status: 'active' | 'acknowledged' | 'resolved';
+  acknowledgedBy?: string; // UID of guard/admin who acknowledged
+  acknowledgedAt?: number;
+  resolvedBy?: string;
+  resolvedAt?: number;
+  createdAt: number;
+}
+
+export interface FeedPost {
+  id: string;
+  estateId: string;
+  authorId: string;
+  authorName: string;
+  authorRole: UserRole;
+  content: string;
+  imageUrl?: string;
+  likes: Record<string, boolean>;
+  dislikes: Record<string, boolean>;
+  commentCount: number;
+  createdAt: number;
+  updatedAt?: number;
+}
+
+export type ServiceType = 'plumber' | 'electrician' | 'gardener' | 'carpenter' | 'painter' | 'security' | 'cleaner' | 'it_support' | 'other';
+
+export type ServiceRequestStatus = 'pending' | 'assigned' | 'in_progress' | 'completed' | 'cancelled';
+
+export interface Vendor {
+  id: string;
+  estateId: string;
+  name: string;
+  phone: string;
+  serviceTypes: ServiceType[];
+  isAvailable: boolean;
+  addedBy: string;
+  addedAt: number;
+  notes?: string;
+  businessName?: string;
+  email?: string;
+  bankName?: string;
+  bankAccount?: string;
+  licenseStatus?: 'verified' | 'pending' | 'expired' | 'none';
+  coverageAreas?: string[];
+  rating?: number;
+}
+
+export interface ServiceRequest {
+  id: string;
+  estateId: string;
+  residentId: string;
+  residentName: string;
+  householdId?: string;
+  serviceType: ServiceType;
+  description: string;
+  imageUrls?: string[];
+  status: ServiceRequestStatus;
+  vendorId?: string;
+  vendorName?: string;
+  vendorPhone?: string;
+  assignedBy?: string;
+  assignedAt?: number;
+  vendorCompletedAt?: number;
+  residentCompletedAt?: number;
+  completedAt?: number;
+  createdAt: number;
+  updatedAt: number;
+  notes?: string;
+  rating?: number;
+  reviewComment?: string;
+  reviewedAt?: number;
+}
+
+export interface VendorReview {
+  id: string;
+  estateId: string;
+  vendorId: string;
+  requestId: string;
+  residentId: string;
+  residentName: string;
+  rating: number;
+  comment: string;
+  serviceType: ServiceType;
+  createdAt: number;
+}
+
+export interface FeedComment {
+  id: string;
+  postId: string;
+  authorId: string;
+  authorName: string;
+  authorRole: UserRole;
+  content: string;
+  createdAt: number;
+}
