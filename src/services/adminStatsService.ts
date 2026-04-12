@@ -25,15 +25,15 @@ export interface RecentActivity {
 
 export async function getAdminStats(): Promise<AdminStats> {
   try {
-    console.log('Fetching admin statistics from Firestore...');
-    return await getFirestoreStats();
-  } catch (firestoreError) {
-    console.warn('Error fetching from Firestore, falling back to Realtime Database:', firestoreError);
+    console.log('Fetching admin statistics from Realtime Database...');
+    return await getRealtimeDatabaseStats();
+  } catch (rtdbError) {
+    console.warn('Error fetching from Realtime Database, falling back to Firestore:', rtdbError);
     try {
-      return await getRealtimeDatabaseStats();
-    } catch (rtdbError) {
-      console.error('Error fetching from Realtime Database:', rtdbError);
-      throw new Error('Failed to fetch admin statistics from both Firestore and Realtime Database');
+      return await getFirestoreStats();
+    } catch (firestoreError) {
+      console.error('Error fetching from Firestore:', firestoreError);
+      throw new Error('Failed to fetch admin statistics from both Realtime Database and Firestore');
     }
   }
 }

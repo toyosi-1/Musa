@@ -65,8 +65,8 @@ export async function POST(request: NextRequest) {
 
     console.log('Bill payment payload:', JSON.stringify(billPayload));
 
-    const proxyUrl    = process.env.BILL_PAYMENT_PROXY_URL;
-    const proxySecret = process.env.BILL_PAYMENT_PROXY_SECRET;
+    const proxyUrl    = process.env.FLW_PROXY_URL;
+    const proxySecret = process.env.FLW_PROXY_SECRET;
 
     let data: any;
 
@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
     if (proxyUrl && proxySecret) {
       console.log('[purchase-power] Using proxy:', proxyUrl);
       try {
-        const proxyRes = await fetch(proxyUrl, {
+        const proxyRes = await fetch(`${proxyUrl}/bill`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ proxySecret, ...billPayload }),

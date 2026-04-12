@@ -39,7 +39,9 @@ export const approveUserWithEstate = async (
   updates[`users/${userId}/status`] = 'approved';
   updates[`users/${userId}/approvedAt`] = now;
   updates[`users/${userId}/approvedBy`] = adminId;
+  updates[`users/${userId}/estateId`] = estateId;
   updates[`usersByEstate/${estateId}/${userId}`] = true;
+  updates[`pendingUsers/${userId}`] = null;
   
   // Set HoH status if provided
   if (isHouseholdHead !== undefined) {

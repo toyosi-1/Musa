@@ -30,7 +30,7 @@ interface AuthContextType {
   currentUser: User | null;
   loading: boolean;
   initError: string | null;
-  signUp: (email: string, password: string, displayName: string, role: UserRole) => Promise<User>;
+  signUp: (email: string, password: string, displayName: string, role: UserRole, estateId?: string) => Promise<User>;
   signIn: (email: string, password: string) => Promise<User>;
   signOut: () => Promise<void>;
   getUserProfile: (uid: string) => Promise<User | null>;
@@ -199,9 +199,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const auth = await getFirebaseAuth();
       const result = await createUserWithEmailAndPassword(auth, email, password);
       
-      // Create user in our database
+      // Create user in our database (atomic write: user profile + pending flag together)
       const db = await getFirebaseDatabase();
-      const userRef = ref(db, `users/${result.user.uid}`);
       const newUser: User = {
         uid: result.user.uid,
         email,
@@ -213,12 +212,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         ...(estateId && { estateId }) // Add estateId if provided
       };
       
-      // Save user to database
-      await set(userRef, newUser);
-      
-      // Add to pending users for admin approval
-      const pendingUserRef = ref(db, `pendingUsers/${result.user.uid}`);
-      await set(pendingUserRef, true);
+      // Write both user record and pending flag atomically
+      const atomicUpdates: Record<string, any> = {};
+      atomicUpdates[`users/${result.user.uid}`] = newUser;
+      atomicUpdates[`pendingUsers/${result.user.uid}`] = true;
+      await update(ref(db), atomicUpdates);
       
       // Send welcome/registration confirmation email (non-blocking)
       try {

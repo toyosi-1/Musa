@@ -325,13 +325,10 @@ export default function AuthForm({ mode, defaultRole }: AuthFormProps) {
           router.push('/auth/pending');
           return; // Exit early on success
         } catch (signUpError: any) {
-          // Filter out misleading permission errors that occur during successful registration
           const errorMsg = signUpError?.message || '';
           if (errorMsg.includes('PERMISSION_DENIED') || errorMsg.includes('Permission denied')) {
-            // Account was likely created successfully despite the error
-            console.log('Registration completed despite permission warning');
-            router.push('/auth/pending');
-            return;
+            console.error('Registration failed due to database permission error:', errorMsg);
+            throw new Error('Registration could not be completed due to a server configuration issue. Please contact the administrator.');
           }
           throw signUpError; // Re-throw other errors
         }
