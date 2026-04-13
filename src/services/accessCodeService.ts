@@ -619,6 +619,24 @@ export const deactivateAccessCode = async (codeId: string, userId: string): Prom
     
     // Deactivate the code
     await update(codeRef, { isActive: false });
+
+    // Log to activity feed
+    try {
+      await logActivity({
+        type: 'access_code_deactivated',
+        description: `Deactivated access code${accessCode.description ? `: "${accessCode.description}"` : ''}`,
+        timestamp: Date.now(),
+        userId,
+        estateId: accessCode.estateId || '',
+        householdId: accessCode.householdId || '',
+        metadata: {
+          accessCodeId: codeId,
+          visitorDescription: accessCode.description,
+        },
+      });
+    } catch (e) {
+      console.warn('[accessCodeService] Activity log failed (non-fatal):', e);
+    }
   } catch (error) {
     console.error('Error deactivating access code:', error);
     throw new Error('Failed to deactivate access code');

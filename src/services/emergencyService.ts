@@ -34,6 +34,26 @@ export const triggerEmergencyAlert = async (data: {
   await set(newAlertRef, alert);
   console.log('🚨 Emergency alert triggered:', alert.id);
 
+  // Log to activity feed
+  try {
+    const { logActivity } = await import('./activityService');
+    await logActivity({
+      type: 'emergency_alert',
+      description: `🚨 Emergency alert: ${data.type}${data.description ? ' — ' + data.description.slice(0, 80) : ''}`,
+      timestamp: alert.createdAt,
+      userId: data.triggeredBy,
+      estateId: data.estateId,
+      householdId: data.householdId,
+      metadata: {
+        emergencyType: data.type,
+        householdName: data.householdName,
+        memberName: data.triggeredByName,
+      },
+    });
+  } catch (e) {
+    console.warn('[emergencyService] Activity log failed (non-fatal):', e);
+  }
+
   // Send notifications to all guards and estate admins in this estate
   try {
     const usersRef = ref(db, 'users');

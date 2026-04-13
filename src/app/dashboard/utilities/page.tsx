@@ -9,6 +9,7 @@ import { getFirebaseDatabase } from '@/lib/firebase';
 import { ref, get, set, push, remove } from 'firebase/database';
 import { getDiscoBrand } from '@/utils/discoLogos';
 import ModernBanner, { AlertBanner } from '@/components/ui/ModernBanner';
+import { logActivity } from '@/services/activityService';
 
 declare global {
   interface Window {
@@ -372,6 +373,25 @@ export default function UtilitiesPage() {
                   (m) => m.meterNumber === meterNumber && m.itemCode === selectedItem?.itemCode
                 );
                 if (!alreadySaved) saveMeterToFirebase();
+              }
+              // Log electricity purchase to activity
+              if (currentUser?.estateId) {
+                logActivity({
+                  type: 'electricity_purchase',
+                  description: `Purchased ₦${totalAmount} electricity from ${selectedBiller?.name || 'provider'} for meter ${meterNumber}`,
+                  timestamp: Date.now(),
+                  userId: currentUser.uid,
+                  estateId: currentUser.estateId,
+                  householdId: (currentUser as any).householdId || '',
+                  metadata: {
+                    amount: totalAmount,
+                    billerName: selectedBiller?.name,
+                    meterNumber,
+                    reference: data.reference || txRef,
+                    token: data.token || undefined,
+                    memberName: meterInfo?.customer_name || meterInfo?.name,
+                  },
+                }).catch(e => console.warn('Activity log failed:', e));
               }
               setStep('success');
             } else {

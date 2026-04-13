@@ -103,6 +103,22 @@ export const createPost = async (
   };
 
   await set(newPostRef, post);
+
+  // Log to activity feed
+  try {
+    const { logActivity } = await import('./activityService');
+    await logActivity({
+      type: 'feed_post_created',
+      description: `Posted in estate feed: "${content.slice(0, 60)}${content.length > 60 ? '...' : ''}"`,
+      timestamp: post.createdAt,
+      userId: authorId,
+      estateId,
+      metadata: { postId: post.id, postContent: content.slice(0, 200) },
+    });
+  } catch (e) {
+    console.warn('[feedService] Activity log failed (non-fatal):', e);
+  }
+
   return post;
 };
 

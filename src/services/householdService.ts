@@ -181,6 +181,22 @@ export const createHousehold = async (
     updates[`users/${userId}/householdId`] = newHouseholdRef.key;
     updates[`users/${userId}/isHouseholdHead`] = true;
     await update(ref(db), updates);
+
+    // Log to activity feed
+    try {
+      const { logActivity } = await import('./activityService');
+      await logActivity({
+        type: 'household_created',
+        description: `Created household "${name}"`,
+        timestamp: now,
+        userId,
+        estateId: estateId!,
+        householdId: newHouseholdRef.key,
+        metadata: { householdName: name },
+      });
+    } catch (e) {
+      console.warn('[householdService] Activity log failed (non-fatal):', e);
+    }
     
     return household;
   } catch (error) {
@@ -417,6 +433,22 @@ export const acceptHouseholdInvite = async (
     updates[`users/${userId}/isHouseholdHead`] = false;
     
     await update(ref(db), updates);
+
+    // Log to activity feed
+    try {
+      const { logActivity } = await import('./activityService');
+      await logActivity({
+        type: 'household_joined',
+        description: `Joined household "${household.name}"`,
+        timestamp: Date.now(),
+        userId,
+        estateId: household.estateId || '',
+        householdId: invite.householdId,
+        metadata: { householdName: household.name },
+      });
+    } catch (e) {
+      console.warn('[householdService] Activity log failed (non-fatal):', e);
+    }
   } catch (error) {
     console.error('Error accepting household invite:', error);
     throw new Error('Failed to accept invitation');

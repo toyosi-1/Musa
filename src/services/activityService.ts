@@ -1,7 +1,25 @@
 import { getFirebaseDatabase } from '@/lib/firebase';
 import { ref, set, get } from 'firebase/database';
 
-export type ActivityType = 'access_code_created' | 'guest_checkin' | 'guest_denied' | 'user_registered' | 'user_approved' | 'login';
+export type ActivityType =
+  | 'access_code_created'
+  | 'access_code_deactivated'
+  | 'guest_checkin'
+  | 'guest_denied'
+  | 'user_registered'
+  | 'user_approved'
+  | 'login'
+  | 'electricity_purchase'
+  | 'feed_post_created'
+  | 'emergency_alert'
+  | 'service_request'
+  | 'household_created'
+  | 'household_joined'
+  | 'household_left'
+  | 'household_member_removed'
+  | 'meter_validated'
+  | 'payment_initiated'
+  | 'profile_updated';
 
 export interface ActivityEntry {
   id: string;
@@ -18,6 +36,18 @@ export interface ActivityEntry {
     guardName?: string;
     destinationAddress?: string;
     visitorDescription?: string;
+    amount?: number;
+    reference?: string;
+    billerName?: string;
+    meterNumber?: string;
+    token?: string;
+    postId?: string;
+    postContent?: string;
+    emergencyType?: string;
+    serviceType?: string;
+    householdName?: string;
+    memberName?: string;
+    [key: string]: any;
   };
 }
 
@@ -58,7 +88,9 @@ export const getHouseholdActivity = async (userId: string, householdId: string, 
     const all = Object.values(snapshot.val()) as ActivityEntry[];
     return all
       .filter(e =>
-        (e.userId === userId && (e.type === 'access_code_created' || e.type === 'login')) ||
+        // Show all activities by this user
+        e.userId === userId ||
+        // Show guest check-ins/denials for the user's household
         ((e.type === 'guest_checkin' || e.type === 'guest_denied') && e.householdId === householdId)
       )
       .sort((a, b) => b.timestamp - a.timestamp)

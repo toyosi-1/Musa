@@ -6,21 +6,45 @@ import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import { useRouter } from 'next/navigation';
 import { ArrowLeftIcon, UserCircleIcon } from '@heroicons/react/24/solid';
 import ModernBanner from '@/components/ui/ModernBanner';
-import { getHousehold } from '@/services/householdService';
+import { getHousehold, getHouseholdMembers } from '@/services/householdService';
+import { getUserProfile } from '@/services/userService';
+import { Household } from '@/types/user';
 
 export default function ProfilePage() {
   const { currentUser, signOut } = useAuth();
   const router = useRouter();
 
-  const [householdName, setHouseholdName] = useState<string | null>(null);
+  const [household, setHousehold] = useState<Household | null>(null);
+  const [headName, setHeadName] = useState<string | null>(null);
+  const [members, setMembers] = useState<{ uid: string; name: string; isHead: boolean }[]>([]);
 
-  // Fetch household name
+  // Fetch household data with members
   useEffect(() => {
-    if (currentUser?.householdId) {
-      getHousehold(currentUser.householdId)
-        .then((h) => setHouseholdName(h?.name || null))
-        .catch(() => setHouseholdName(null));
-    }
+    if (!currentUser?.householdId) return;
+    (async () => {
+      try {
+        const h = await getHousehold(currentUser.householdId!);
+        if (!h) return;
+        setHousehold(h);
+
+        // Fetch head name
+        const headProfile = await getUserProfile(h.headId).catch(() => null);
+        setHeadName(headProfile?.displayName || headProfile?.email || 'Unknown');
+
+        // Fetch all member profiles
+        const memberIds = await getHouseholdMembers(currentUser.householdId!).catch(() => Object.keys(h.members || {}));
+        const profiles = await Promise.all(
+          memberIds.map(async (uid) => {
+            const p = await getUserProfile(uid).catch(() => null);
+            return { uid, name: p?.displayName || p?.email || uid.slice(0, 8), isHead: uid === h.headId };
+          })
+        );
+        // Head first, then others
+        setMembers(profiles.sort((a, b) => (a.isHead === b.isHead ? 0 : a.isHead ? -1 : 1)));
+      } catch (e) {
+        console.warn('Failed to load household data:', e);
+      }
+    })();
   }, [currentUser?.householdId]);
 
   // Notification settings state
@@ -174,19 +198,77 @@ export default function ProfilePage() {
               {new Date(currentUser.createdAt).toLocaleDateString()}
             </span>
           </div>
-          {householdName && (
+          {household && (
             <div className="flex justify-between py-3">
               <span className="text-sm text-gray-500 dark:text-gray-400">Household</span>
               <span className="text-sm font-medium text-gray-800 dark:text-gray-200 flex items-center gap-1.5">
                 <svg className="w-3.5 h-3.5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
                 </svg>
-                {householdName}
+                {household.name}
               </span>
             </div>
           )}
         </div>
       </div>
+
+      {/* Household Tree */}
+      {household && members.length > 0 && (
+        <div className="bg-white dark:bg-gray-800/80 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden">
+          <div className="p-4 border-b border-gray-100 dark:border-gray-800 flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center">
+              <svg className="h-4 w-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-gray-900 dark:text-white">{household.name}</h3>
+              <p className="text-[11px] text-gray-400 dark:text-gray-500">{members.length} member{members.length !== 1 ? 's' : ''}</p>
+            </div>
+          </div>
+          <div className="p-4 space-y-2">
+            {members.map((m, i) => (
+              <div key={m.uid} className="flex items-center gap-3">
+                {/* Tree connector */}
+                <div className="flex flex-col items-center w-5">
+                  {i === 0 ? (
+                    <svg className="w-4 h-4 text-amber-500" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M10 2a1 1 0 011 1v1.323l3.954 1.582 1.599-.8a1 1 0 01.894 1.79l-1.233.616 1.738 5.42a1 1 0 01-.285 1.05A3.989 3.989 0 0115 15a3.989 3.989 0 01-2.667-1.019 1 1 0 01-.285-1.05l1.715-5.349L11 6.477V16h2a1 1 0 110 2H7a1 1 0 110-2h2V6.477L6.237 7.582l1.715 5.349a1 1 0 01-.285 1.05A3.989 3.989 0 015 15a3.989 3.989 0 01-2.667-1.019 1 1 0 01-.285-1.05l1.738-5.42-1.233-.617a1 1 0 01.894-1.788l1.599.799L9 4.323V3a1 1 0 011-1z" />
+                    </svg>
+                  ) : (
+                    <div className="w-px h-full min-h-[8px] bg-gray-200 dark:bg-gray-700" />
+                  )}
+                </div>
+                {/* Member info */}
+                <div className={`flex-1 flex items-center gap-2.5 p-2.5 rounded-xl ${
+                  m.isHead
+                    ? 'bg-amber-50 dark:bg-amber-900/15 border border-amber-200/60 dark:border-amber-800/40'
+                    : 'bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700/50'
+                }`}>
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold ${
+                    m.isHead
+                      ? 'bg-amber-500 text-white'
+                      : 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
+                  }`}>
+                    {m.name.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{m.name}</p>
+                    {m.isHead && (
+                      <p className="text-[10px] font-medium text-amber-600 dark:text-amber-400">Head of Household</p>
+                    )}
+                  </div>
+                  {m.isHead && (
+                    <svg className="w-4 h-4 text-amber-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
+                    </svg>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       
       {/* Notification Settings */}
       <div className="bg-white dark:bg-gray-800/80 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden">

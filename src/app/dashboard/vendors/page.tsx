@@ -142,6 +142,19 @@ export default function VendorRequestPage() {
       const all = await getServiceRequests(currentUser.estateId);
       setHistory(all.filter(r => r.residentId === currentUser.uid));
       setSelectedFiles([]); setFilePreviews([]); setUploadProgress('');
+      // Log service request to activity
+      try {
+        const { logActivity } = await import('@/services/activityService');
+        await logActivity({
+          type: 'service_request',
+          description: `Requested ${SERVICES.find(s => s.type === selected)?.label || selected} service${description.trim() ? `: "${description.trim().slice(0, 60)}"` : ''}`,
+          timestamp: Date.now(),
+          userId: currentUser.uid,
+          estateId: currentUser.estateId,
+          householdId: currentUser.householdId || '',
+          metadata: { serviceType: selected },
+        });
+      } catch (e) { console.warn('Activity log failed:', e); }
       setStep('done');
     } catch { setError('Failed to submit. Please try again.'); setUploadProgress(''); }
     finally { setSubmitting(false); }
