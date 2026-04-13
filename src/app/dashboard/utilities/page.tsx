@@ -74,6 +74,7 @@ export default function UtilitiesPage() {
   const [billersError, setBillersError] = useState('');
   const [serviceAvailable, setServiceAvailable] = useState<boolean | null>(null);
   const [serviceMessage, setServiceMessage] = useState('');
+  const [billersSource, setBillersSource] = useState<'live' | 'fallback' | ''>('');
 
   // Selection state
   const [step, setStep] = useState<PurchaseStep>('loading');
@@ -120,6 +121,7 @@ export default function UtilitiesPage() {
       const data = await res.json();
       if (data.success && Array.isArray(data.billers)) {
         setBillers(data.billers);
+        setBillersSource(data.source || '');
         setStep('select-disco');
       } else {
         setBillersError(data.message || 'Unable to load electricity providers.');
@@ -575,6 +577,15 @@ export default function UtilitiesPage() {
             </div>
           ) : (
             <>
+              {billersSource === 'fallback' && (
+                <div className="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/50 rounded-xl mb-3">
+                  <p className="text-xs text-amber-700 dark:text-amber-300">
+                    <strong>Note:</strong> Using cached provider data. If your purchase fails, please{' '}
+                    <button onClick={fetchBillers} className="font-bold underline">refresh providers</button>{' '}
+                    and try again.
+                  </p>
+                </div>
+              )}
               <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
                 Select Your Distribution Company
               </h3>
@@ -916,10 +927,15 @@ export default function UtilitiesPage() {
           </button>
 
           <button
-            onClick={resetForm}
+            onClick={() => {
+              if (errorMessage.toLowerCase().includes('invalid biller')) {
+                fetchBillers();
+              }
+              resetForm();
+            }}
             className="w-full py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-2xl font-medium hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all"
           >
-            Start Over
+            {errorMessage.toLowerCase().includes('invalid biller') ? 'Refresh Providers & Start Over' : 'Start Over'}
           </button>
         </div>
       )}

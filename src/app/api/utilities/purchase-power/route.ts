@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
     // Docs: https://developer.flutterwave.com/v3.0/reference/create-a-bill-payment
     const billPayload = {
       country: 'NG',
-      customer_id: String(meterNumber),
+      customer: String(meterNumber),
       amount: Number(amount),
       recurrence: 'ONCE',
       type: String(itemCode),

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { invalidateBillersCache } from '../billers/route';
 
 const FLUTTERWAVE_SECRET_KEY = process.env.FLUTTERWAVE_SECRET_KEY;
 const FLUTTERWAVE_BASE_URL = 'https://api.flutterwave.com/v3';
@@ -23,9 +24,9 @@ export async function POST(request: NextRequest) {
     const { transactionId, itemCode, billerCode, meterNumber, amount, phoneNumber, email } =
       await request.json();
 
-    if (!transactionId || !meterNumber || !amount) {
+    if (!transactionId || !itemCode || !meterNumber || !amount) {
       return NextResponse.json(
-        { success: false, message: 'Missing required fields (transactionId, meterNumber, amount)' },
+        { success: false, message: 'Missing required fields (transactionId, itemCode, meterNumber, amount)' },
         { status: 400 }
       );
     }
@@ -164,7 +165,11 @@ export async function POST(request: NextRequest) {
       const flwMsg = (billData.message || '').toLowerCase();
       let userMessage: string;
 
-      if (flwMsg.includes('unauthorized') || flwMsg.includes('authentication') || flwMsg.includes('ip') || flwMsg.includes('whitelist')) {
+      if (flwMsg.includes('invalid biller') || flwMsg.includes('invalid item') || flwMsg.includes('biller not found')) {
+        userMessage = `Invalid Biller selected. Your payment of ₦${paidAmount} was verified — please contact support. Ref: ${reference}`;
+        console.error(`[CompletePurchase] Invalid biller/item code. itemCode=${itemCode}, billerCode=${billerCode}. Codes may be stale — clearing billers cache.`);
+        invalidateBillersCache();
+      } else if (flwMsg.includes('unauthorized') || flwMsg.includes('authentication') || flwMsg.includes('ip') || flwMsg.includes('whitelist')) {
         userMessage = `Server authorization failed. Your payment of ₦${paidAmount} was verified — please contact support. Ref: ${reference}`;
       } else if (flwMsg.includes('cannot be processed') || flwMsg.includes('account administrator')) {
         userMessage = `Electricity service temporarily unavailable. Your payment of ₦${paidAmount} was verified — please contact support for your token or refund. Ref: ${reference}`;
