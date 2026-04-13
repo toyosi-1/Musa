@@ -603,7 +603,7 @@ export default function FeedPage() {
 
       {/* Create Post Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={() => setShowCreateModal(false)}>
+        <div className="fixed inset-0 bg-black/50 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={() => setShowCreateModal(false)}>
           <div
             className="bg-white dark:bg-gray-800 w-full sm:max-w-lg sm:rounded-2xl rounded-t-2xl shadow-xl max-h-[80vh] flex flex-col"
             onClick={(e) => e.stopPropagation()}
@@ -670,7 +670,7 @@ export default function FeedPage() {
             </div>
 
             {/* Modal Footer */}
-            <div className="p-4 border-t border-gray-100 dark:border-gray-700 flex items-center gap-3 pb-safe" style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom, 1rem))' }}>
+            <div className="p-4 border-t border-gray-100 dark:border-gray-700 flex items-center gap-3" style={{ paddingBottom: 'max(1.5rem, calc(5rem + env(safe-area-inset-bottom, 0px)))' }}>
               {/* Add Photo Button */}
               <button
                 onClick={() => fileInputRef.current?.click()}

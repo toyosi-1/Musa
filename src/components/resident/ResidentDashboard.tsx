@@ -24,6 +24,7 @@ interface ResidentDashboardProps {
 }
 
 export default function ResidentDashboard({ user }: ResidentDashboardProps) {
+  const { refreshCurrentUser } = useAuth();
   const router = useRouter();
   const [accessCodes, setAccessCodes] = useState<AccessCode[]>([]);
   const [household, setHousehold] = useState<Household | null>(null);
@@ -195,6 +196,8 @@ export default function ResidentDashboard({ user }: ResidentDashboardProps) {
       setLoading(true);
       const newHousehold = await createHousehold(user.uid, name, addressData);
       setHousehold(newHousehold);
+      // Refresh the AuthContext so user.householdId is updated
+      await refreshCurrentUser();
       return newHousehold;
     } catch (err) {
       console.error('Error creating household:', err);
