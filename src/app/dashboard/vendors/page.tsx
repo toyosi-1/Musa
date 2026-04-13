@@ -90,6 +90,7 @@ export default function VendorRequestPage() {
     if (!currentUser?.estateId) { setLoadingHistory(false); return; }
     getServiceRequests(currentUser.estateId)
       .then(all => setHistory(all.filter(r => r.residentId === currentUser.uid)))
+      .catch(err => console.error('Error loading service request history:', err))
       .finally(() => setLoadingHistory(false));
   }, [currentUser]);
 
@@ -119,7 +120,11 @@ export default function VendorRequestPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!selected || !currentUser?.estateId) return;
+    if (!selected) return;
+    if (!currentUser?.estateId) {
+      setError('You must be assigned to an estate before requesting a service. Please contact your administrator.');
+      return;
+    }
     setSubmitting(true); setError('');
     try {
       // Create request first
@@ -161,42 +166,40 @@ export default function VendorRequestPage() {
   const serviceLabel = SERVICES.find(s => s.type === selected);
 
   return (
-    <div className="min-h-screen bg-[#080d1a] text-white" style={{ paddingBottom: 'calc(6rem + env(safe-area-inset-bottom, 0px))' }}>
-      {/* Sticky header */}
-      <div className="sticky top-0 z-10 bg-[#080d1a]/90 backdrop-blur-xl border-b border-white/[0.06] px-5 py-3.5">
-        <div className="max-w-2xl mx-auto flex items-center gap-3">
-          <Link href="/dashboard/resident" className="w-9 h-9 rounded-xl bg-white/[0.06] hover:bg-white/[0.10] border border-white/[0.08] flex items-center justify-center transition-colors flex-shrink-0">
-            <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/></svg>
-          </Link>
-          <div className="flex-1">
-            <h1 className="text-base font-bold">Request a Service</h1>
-            <p className="text-gray-500 text-xs">Book a technician for your home</p>
-          </div>
-          <div className="flex items-center gap-1.5">
-            {(['select','describe','done'] as const).map((s, i) => (
-              <div key={s} className={`h-1.5 rounded-full transition-all duration-300 ${
-                step === s ? 'w-5 bg-blue-500' : i < (['select','describe','done'] as const).indexOf(step) ? 'w-3 bg-emerald-500' : 'w-3 bg-white/10'
-              }`} />
-            ))}
-          </div>
+    <div className="max-w-2xl mx-auto" style={{ paddingBottom: 'calc(6rem + env(safe-area-inset-bottom, 0px))' }}>
+      {/* Header */}
+      <div className="flex items-center gap-3 mb-5">
+        <Link href="/dashboard/resident" className="w-9 h-9 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 flex items-center justify-center transition-colors flex-shrink-0">
+          <svg className="w-4 h-4 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/></svg>
+        </Link>
+        <div className="flex-1">
+          <h1 className="text-lg font-bold text-gray-900 dark:text-white">Request a Service</h1>
+          <p className="text-gray-500 dark:text-gray-400 text-xs">Book a technician for your home</p>
+        </div>
+        <div className="flex items-center gap-1.5">
+          {(['select','describe','done'] as const).map((s, i) => (
+            <div key={s} className={`h-1.5 rounded-full transition-all duration-300 ${
+              step === s ? 'w-5 bg-blue-500' : i < (['select','describe','done'] as const).indexOf(step) ? 'w-3 bg-emerald-500' : 'w-3 bg-gray-200 dark:bg-gray-700'
+            }`} />
+          ))}
         </div>
       </div>
-      <div className="max-w-2xl mx-auto px-5 py-6">
+      <div>
 
       {step === 'select' && (
         <div>
           <div className="mb-5">
-            <h2 className="text-xl font-bold">What do you need?</h2>
-            <p className="text-gray-500 text-sm mt-1">Choose a service type to get started</p>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white">What do you need?</h2>
+            <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Choose a service type to get started</p>
           </div>
           <div className="grid grid-cols-3 gap-3">
             {SERVICES.map(s => (
               <button key={s.type} onClick={() => { setSelected(s.type); setStep('describe'); }}
-                className={`group flex flex-col items-center gap-2.5 p-4 rounded-2xl border border-white/[0.08] bg-white/[0.04] hover:bg-white/[0.08] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg active:scale-[0.97] ${SERVICE_GLOW[s.type]}`}>
+                className={`group flex flex-col items-center gap-2.5 p-4 rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/80 hover:bg-gray-50 dark:hover:bg-gray-700/80 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg active:scale-[0.97] ${SERVICE_GLOW[s.type]}`}>
                 <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${SERVICE_GRADIENTS[s.type]} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-200`}>
                   <ServiceIcon type={s.type} className="w-5 h-5 text-white" />
                 </div>
-                <span className="text-xs font-semibold text-gray-300 text-center">{s.label}</span>
+                <span className="text-xs font-semibold text-gray-700 dark:text-gray-300 text-center">{s.label}</span>
               </button>
             ))}
           </div>
@@ -206,37 +209,37 @@ export default function VendorRequestPage() {
       {step === 'describe' && (() => { const svc = SERVICES.find(s => s.type === selected); return (
         <form onSubmit={handleSubmit} className="space-y-5">
           <div className="mb-2">
-            <h2 className="text-xl font-bold">Describe the issue</h2>
-            <p className="text-gray-500 text-sm mt-1">The more detail, the better</p>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Describe the issue</h2>
+            <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">The more detail, the better</p>
           </div>
-          <div className="flex items-center gap-3 p-4 rounded-2xl bg-white/[0.06] border border-white/[0.10]">
+          <div className="flex items-center gap-3 p-4 rounded-2xl bg-white dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700">
             {selected && (
               <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${SERVICE_GRADIENTS[selected]} flex items-center justify-center shadow-md flex-shrink-0`}>
                 <ServiceIcon type={selected} className="w-5 h-5 text-white" />
               </div>
             )}
             <div className="flex-1">
-              <p className="text-white font-semibold text-sm">{svc?.label}</p>
-              <p className="text-gray-500 text-xs">Selected service</p>
+              <p className="text-gray-900 dark:text-white font-semibold text-sm">{svc?.label}</p>
+              <p className="text-gray-500 dark:text-gray-400 text-xs">Selected service</p>
             </div>
             <button type="button" onClick={() => setStep('select')}
-              className="text-xs text-blue-400 hover:text-blue-300 font-medium px-3 py-1.5 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 transition-colors">
+              className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300 font-medium px-3 py-1.5 rounded-xl bg-blue-50 dark:bg-blue-500/10 hover:bg-blue-100 dark:hover:bg-blue-500/20 border border-blue-200 dark:border-blue-500/20 transition-colors">
               Change
             </button>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Description <span className="text-gray-600 font-normal">(optional)</span></label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Description <span className="text-gray-400 dark:text-gray-600 font-normal">(optional)</span></label>
             <textarea value={description} onChange={e => setDescription(e.target.value)} rows={4}
               placeholder="e.g. Kitchen tap is leaking badly under the sink..."
-              className="w-full px-4 py-3 rounded-2xl bg-white/[0.06] border border-white/[0.10] text-white placeholder:text-gray-600 focus:outline-none focus:border-blue-500/60 focus:ring-1 focus:ring-blue-500/30 resize-none text-sm transition-colors" />
+              className="w-full px-4 py-3 rounded-2xl bg-gray-50 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-600 focus:outline-none focus:border-blue-500/60 focus:ring-1 focus:ring-blue-500/30 resize-none text-sm transition-colors" />
           </div>
           {/* Photo upload */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Photos <span className="text-gray-600 font-normal">(up to 4)</span></label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Photos <span className="text-gray-400 dark:text-gray-600 font-normal">(up to 4)</span></label>
             {filePreviews.length > 0 && (
               <div className="grid grid-cols-4 gap-2 mb-3">
                 {filePreviews.map((src, i) => (
-                  <div key={i} className="relative aspect-square rounded-xl overflow-hidden border border-white/[0.10] group">
+                  <div key={i} className="relative aspect-square rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 group">
                     <img src={src} alt={`Photo ${i+1}`} className="w-full h-full object-cover" />
                     <button type="button" onClick={() => removeFile(i)}
                       className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/70 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-xs">
@@ -247,20 +250,20 @@ export default function VendorRequestPage() {
               </div>
             )}
             {selectedFiles.length < 4 && (
-              <label className="flex items-center gap-3 p-4 rounded-2xl border border-dashed border-white/[0.15] bg-white/[0.03] hover:bg-white/[0.06] cursor-pointer transition-colors">
-                <div className="w-10 h-10 rounded-xl bg-blue-500/15 border border-blue-500/25 flex items-center justify-center flex-shrink-0">
-                  <svg className="w-5 h-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path strokeLinecap="round" strokeLinejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+              <label className="flex items-center gap-3 p-4 rounded-2xl border border-dashed border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800/40 hover:bg-gray-100 dark:hover:bg-gray-800/60 cursor-pointer transition-colors">
+                <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-500/15 border border-blue-200 dark:border-blue-500/25 flex items-center justify-center flex-shrink-0">
+                  <svg className="w-5 h-5 text-blue-500 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path strokeLinecap="round" strokeLinejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-300 font-medium">Add photos of the issue</p>
-                  <p className="text-xs text-gray-600">Tap to take a photo or choose from gallery</p>
+                  <p className="text-sm text-gray-700 dark:text-gray-300 font-medium">Add photos of the issue</p>
+                  <p className="text-xs text-gray-400 dark:text-gray-600">Tap to take a photo or choose from gallery</p>
                 </div>
                 <input type="file" accept="image/*" multiple onChange={handleFileSelect} className="hidden" />
               </label>
             )}
           </div>
           {error && (
-            <div className="flex items-center gap-2 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+            <div className="flex items-center gap-2 p-3 rounded-xl bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 text-red-600 dark:text-red-400 text-sm">
               <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"/></svg>
               {error}
             </div>
@@ -275,17 +278,17 @@ export default function VendorRequestPage() {
       {step === 'done' && (
         <div className="text-center py-14 space-y-5">
           <div className="relative w-20 h-20 mx-auto">
-            <div className="absolute inset-0 rounded-full bg-emerald-500/20 animate-ping opacity-40" />
-            <div className="relative w-20 h-20 rounded-full bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center">
+            <div className="absolute inset-0 rounded-full bg-emerald-100 dark:bg-emerald-500/20 animate-ping opacity-40" />
+            <div className="relative w-20 h-20 rounded-full bg-emerald-100 dark:bg-emerald-500/20 border border-emerald-200 dark:border-emerald-500/30 flex items-center justify-center">
               <svg className="w-9 h-9 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/></svg>
             </div>
           </div>
           <div>
-            <h2 className="text-2xl font-bold mb-2">Request Submitted!</h2>
-            <p className="text-gray-400 text-sm max-w-xs mx-auto">An operator will assign a vendor shortly. Track your request below.</p>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Request Submitted!</h2>
+            <p className="text-gray-500 dark:text-gray-400 text-sm max-w-xs mx-auto">An operator will assign a vendor shortly. Track your request below.</p>
           </div>
           <button onClick={() => { setStep('select'); setSelected(null); setDescription(''); setSelectedFiles([]); setFilePreviews([]); }}
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-white/[0.06] border border-white/[0.10] text-sm font-medium hover:bg-white/[0.10] transition-colors">
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4"/></svg>
             New Request
           </button>
@@ -295,50 +298,50 @@ export default function VendorRequestPage() {
       {/* Request History */}
       <div className="mt-10">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-base font-bold">My Requests</h2>
-          {history.length > 0 && <span className="text-xs text-gray-500 px-2.5 py-1 rounded-full bg-white/[0.04] border border-white/[0.08]">{history.length} total</span>}
+          <h2 className="text-base font-bold text-gray-900 dark:text-white">My Requests</h2>
+          {history.length > 0 && <span className="text-xs text-gray-500 px-2.5 py-1 rounded-full bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">{history.length} total</span>}
         </div>
         {loadingHistory ? (
-          <div className="space-y-3">{[1,2].map(i => <div key={i} className="h-20 rounded-2xl bg-white/[0.04] border border-white/[0.06] animate-pulse" />)}</div>
+          <div className="space-y-3">{[1,2].map(i => <div key={i} className="h-20 rounded-2xl bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 animate-pulse" />)}</div>
         ) : history.length === 0 ? (
-          <div className="text-center py-12 rounded-2xl border border-dashed border-white/[0.08]">
+          <div className="text-center py-12 rounded-2xl border border-dashed border-gray-300 dark:border-gray-700">
             <div className="text-3xl mb-3">📋</div>
-            <p className="text-gray-500 text-sm">No requests yet.</p>
-            <p className="text-gray-600 text-xs mt-1">Submitted requests will appear here</p>
+            <p className="text-gray-500 dark:text-gray-400 text-sm">No requests yet.</p>
+            <p className="text-gray-400 dark:text-gray-500 text-xs mt-1">Submitted requests will appear here</p>
           </div>
         ) : (
           <div className="space-y-3">
             {history.map(r => {
               const svc = SERVICES.find(s => s.type === r.serviceType);
               return (
-                <div key={r.id} className="p-4 rounded-2xl bg-white/[0.04] border border-white/[0.08] hover:border-white/[0.12] transition-colors">
+                <div key={r.id} className="p-4 rounded-2xl bg-white dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-colors">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-2.5">
                       {svc && <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${SERVICE_GRADIENTS[svc.type]} flex items-center justify-center shadow-md flex-shrink-0`}><ServiceIcon type={svc.type} className="w-4 h-4 text-white" /></div>}
                       <div>
-                        <p className="font-semibold text-white text-sm capitalize">{r.serviceType.replace('_',' ')}</p>
-                        <p className="text-gray-600 text-xs">{new Date(r.createdAt).toLocaleDateString('en-NG',{day:'numeric',month:'short',year:'numeric'})}</p>
+                        <p className="font-semibold text-gray-900 dark:text-white text-sm capitalize">{r.serviceType.replace('_',' ')}</p>
+                        <p className="text-gray-500 dark:text-gray-400 text-xs">{new Date(r.createdAt).toLocaleDateString('en-NG',{day:'numeric',month:'short',year:'numeric'})}</p>
                       </div>
                     </div>
                     <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border flex-shrink-0 ${STATUS_COLOR[r.status]}`}>{STATUS_ICON[r.status]} {STATUS_LABEL[r.status]}</span>
                   </div>
-                  {r.description && <p className="text-gray-400 text-xs mt-2 leading-relaxed">{r.description}</p>}
+                  {r.description && <p className="text-gray-600 dark:text-gray-400 text-xs mt-2 leading-relaxed">{r.description}</p>}
                   {r.imageUrls && r.imageUrls.length > 0 && (
                     <div className="mt-2.5 grid grid-cols-4 gap-1.5">
                       {r.imageUrls.map((url, i) => (
-                        <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="aspect-square rounded-lg overflow-hidden border border-white/[0.08] hover:border-white/[0.20] transition-colors">
+                        <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="aspect-square rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-500 transition-colors">
                           <img src={url} alt={`Issue photo ${i+1}`} className="w-full h-full object-cover" />
                         </a>
                       ))}
                     </div>
                   )}
                   {r.vendorName && (
-                    <div className="mt-2.5 pt-2.5 border-t border-white/[0.06]">
-                      <div className="flex items-center gap-2 text-xs text-gray-400">
-                        <div className="w-5 h-5 rounded-full bg-blue-500/20 flex items-center justify-center">
-                          <svg className="w-3 h-3 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                    <div className="mt-2.5 pt-2.5 border-t border-gray-100 dark:border-gray-700">
+                      <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                        <div className="w-5 h-5 rounded-full bg-blue-50 dark:bg-blue-500/20 flex items-center justify-center">
+                          <svg className="w-3 h-3 text-blue-500 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
                         </div>
-                        <span className="text-gray-300 font-medium">{r.vendorName}</span>
+                        <span className="text-gray-700 dark:text-gray-300 font-medium">{r.vendorName}</span>
                         {r.vendorPhone && <span className="text-gray-500">· {r.vendorPhone}</span>}
                       </div>
 
@@ -354,8 +357,8 @@ export default function VendorRequestPage() {
                             {r.reviewComment && <p className="text-[11px] text-gray-500 truncate">&ldquo;{r.reviewComment}&rdquo;</p>}
                           </div>
                         ) : ratingRequestId === r.id ? (
-                          <div className="mt-3 p-3 rounded-xl bg-white/[0.04] border border-white/[0.10] space-y-3">
-                            <p className="text-xs font-semibold text-gray-300">Rate {r.vendorName}</p>
+                          <div className="mt-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700 space-y-3">
+                            <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">Rate {r.vendorName}</p>
                             <div className="flex gap-1">
                               {[1,2,3,4,5].map(s => (
                                 <button key={s} type="button"
@@ -369,7 +372,7 @@ export default function VendorRequestPage() {
                             </div>
                             <textarea value={ratingComment} onChange={e => setRatingComment(e.target.value)} rows={2}
                               placeholder="Leave a comment about the work done..."
-                              className="w-full px-3 py-2 rounded-xl bg-white/[0.06] border border-white/[0.10] text-white placeholder:text-gray-600 text-xs focus:outline-none focus:border-blue-500/60 resize-none" />
+                              className="w-full px-3 py-2 rounded-xl bg-gray-50 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-600 text-xs focus:outline-none focus:border-blue-500/60 resize-none" />
                             {ratingError && <p className="text-xs text-red-400">{ratingError}</p>}
                             <div className="flex gap-2">
                               <button onClick={() => handleSubmitRating(r)} disabled={!ratingStars || submittingRating}
@@ -377,7 +380,7 @@ export default function VendorRequestPage() {
                                 {submittingRating ? 'Submitting...' : 'Submit Rating'}
                               </button>
                               <button onClick={() => { setRatingRequestId(null); setRatingStars(0); setRatingComment(''); setRatingHover(0); setRatingError(''); }}
-                                className="px-4 py-2 rounded-xl text-xs text-gray-400 border border-white/[0.10] hover:bg-white/[0.06] transition-colors">Cancel</button>
+                                className="px-4 py-2 rounded-xl text-xs text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">Cancel</button>
                             </div>
                           </div>
                         ) : (

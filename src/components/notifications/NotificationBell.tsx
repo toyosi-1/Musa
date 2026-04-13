@@ -77,8 +77,8 @@ export default function NotificationBell({ className = '' }: NotificationBellPro
     }
   };
 
-  // Don't show notification bell for guards (they don't receive scan notifications)
-  if (currentUser?.role !== 'resident') {
+  // Show notification bell for residents, guards, and estate admins
+  if (!currentUser?.role || currentUser.role === 'admin') {
     return null;
   }
 
@@ -136,7 +136,7 @@ export default function NotificationBell({ className = '' }: NotificationBellPro
                     No notifications yet
                   </p>
                   <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">
-                    You'll be notified when your access codes are used
+                    You&apos;ll be notified about important events
                   </p>
                 </div>
               ) : (
@@ -145,17 +145,25 @@ export default function NotificationBell({ className = '' }: NotificationBellPro
                     key={notification.id}
                     onClick={() => handleNotificationClick(notification)}
                     className={`px-4 py-3 border-b border-gray-100 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors ${
-                      !notification.read ? 'bg-blue-50 dark:bg-blue-900/20' : ''
+                      !notification.read 
+                        ? notification.type === 'emergency_alert' 
+                          ? 'bg-red-50 dark:bg-red-900/20 border-l-4 border-l-red-500' 
+                          : 'bg-blue-50 dark:bg-blue-900/20' 
+                        : ''
                     }`}
                   >
                     <div className="flex items-start space-x-3">
                       {/* Notification Icon */}
                       <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
-                        notification.data?.isValid 
-                          ? 'bg-green-100 dark:bg-green-900/30' 
-                          : 'bg-red-100 dark:bg-red-900/30'
+                        notification.type === 'emergency_alert'
+                          ? 'bg-red-100 dark:bg-red-900/40 animate-pulse'
+                          : notification.data?.isValid 
+                            ? 'bg-green-100 dark:bg-green-900/30' 
+                            : 'bg-red-100 dark:bg-red-900/30'
                       }`}>
-                        {notification.data?.isValid ? (
+                        {notification.type === 'emergency_alert' ? (
+                          <span className="text-base">🚨</span>
+                        ) : notification.data?.isValid ? (
                           <svg className="w-4 h-4 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                           </svg>

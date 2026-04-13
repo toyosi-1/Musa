@@ -119,6 +119,17 @@ export const getUserNotifications = async (userId: string): Promise<Notification
             originalMessage: scanNotification.message
           }
         });
+      } else if (notification.type === 'emergency_alert') {
+        notifications.push({
+          id: notification.id,
+          userId: notification.userId,
+          type: notification.type,
+          title: notification.title || '🚨 Emergency Alert',
+          message: notification.message || 'An emergency alert was triggered',
+          timestamp: notification.timestamp,
+          read: notification.read || false,
+          data: notification.data,
+        });
       }
     });
     

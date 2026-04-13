@@ -76,7 +76,16 @@ export const createPost = async (
 
   let imageUrl: string | undefined;
   if (imageFile) {
-    imageUrl = await uploadFeedImage(estateId, newPostRef.key, imageFile);
+    try {
+      imageUrl = await uploadFeedImage(estateId, newPostRef.key, imageFile);
+    } catch (uploadErr: any) {
+      console.error('Image upload failed:', uploadErr);
+      const msg = uploadErr?.message || '';
+      if (msg.includes('storage') || msg.includes('Storage') || msg.includes('bucket') || msg.includes('not found') || msg.includes('does not exist')) {
+        throw new Error('Image uploads are not available yet. Please post without an image for now.');
+      }
+      throw new Error('Failed to upload image. Please try again or post without an image.');
+    }
   }
 
   const post: FeedPost = {

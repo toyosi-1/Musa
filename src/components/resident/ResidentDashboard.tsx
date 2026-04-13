@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { User, AccessCode, Household, Estate } from '@/types/user';
 import { getResidentAccessCodes, createAccessCode, deactivateAccessCode } from '@/services/accessCodeService';
 import { getHousehold, createHousehold } from '@/services/householdService';
+import { getUserProfile } from '@/services/userService';
 import { useAuth } from '@/contexts/AuthContext';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import CreateHouseholdForm from './CreateHouseholdForm';
@@ -26,6 +27,7 @@ export default function ResidentDashboard({ user }: ResidentDashboardProps) {
   const router = useRouter();
   const [accessCodes, setAccessCodes] = useState<AccessCode[]>([]);
   const [household, setHousehold] = useState<Household | null>(null);
+  const [headOfHouseName, setHeadOfHouseName] = useState<string | null>(null);
   const [estate, setEstate] = useState<Estate | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -76,6 +78,15 @@ export default function ResidentDashboard({ user }: ResidentDashboardProps) {
           setHousehold(householdData);
           // Cache for offline use
           cacheHousehold(user.uid, householdData);
+          // Fetch head of household name
+          if (householdData?.headId) {
+            try {
+              const headProfile = await getUserProfile(householdData.headId);
+              setHeadOfHouseName(headProfile?.displayName || headProfile?.email || null);
+            } catch (e) {
+              console.warn('Could not fetch head of household name:', e);
+            }
+          }
         } catch (householdError) {
           console.error('Error loading household:', householdError);
           // If household doesn't exist but user has householdId, clear it
@@ -263,6 +274,50 @@ export default function ResidentDashboard({ user }: ResidentDashboardProps) {
           </div>
         </div>
       </div>
+
+      {/* ─── Household Card ─── */}
+      {household && (
+        <div className="bg-white dark:bg-gray-800/80 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-5">
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-md shadow-emerald-500/20 flex-shrink-0">
+              <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
+              </svg>
+            </div>
+            <div className="flex-1 min-w-0">
+              <h3 className="text-base font-bold text-gray-900 dark:text-white">{household.name}</h3>
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5">
+                {headOfHouseName && (
+                  <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+                    <svg className="w-3.5 h-3.5 text-amber-500" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M10 2a1 1 0 011 1v.586l2.707-2.707a1 1 0 011.414 1.414L12.414 5H14a1 1 0 011 1v3a6 6 0 01-12 0V6a1 1 0 011-1h1.586L2.879 2.293a1 1 0 011.414-1.414L7 3.586V3a1 1 0 012 0v.586l.293-.293A1 1 0 0110 3V2z" />
+                    </svg>
+                    <span><strong className="text-gray-700 dark:text-gray-300">Head:</strong> {headOfHouseName}</span>
+                  </div>
+                )}
+                <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  <span>{Object.keys(household.members || {}).length} member{Object.keys(household.members || {}).length !== 1 ? 's' : ''}</span>
+                </div>
+              </div>
+              {household.address && (
+                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1.5 truncate">
+                  {[household.address, household.city, household.state].filter(Boolean).join(', ')}
+                </p>
+              )}
+            </div>
+            <span className={`text-[10px] font-bold px-2 py-1 rounded-full flex-shrink-0 ${
+              user.isHouseholdHead 
+                ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400' 
+                : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
+            }`}>
+              {user.isHouseholdHead ? 'Head' : 'Member'}
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* ─── Quick Action Tiles ─── */}
       <div>

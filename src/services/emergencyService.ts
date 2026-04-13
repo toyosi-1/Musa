@@ -33,6 +33,51 @@ export const triggerEmergencyAlert = async (data: {
 
   await set(newAlertRef, alert);
   console.log('🚨 Emergency alert triggered:', alert.id);
+
+  // Send notifications to all guards and estate admins in this estate
+  try {
+    const usersRef = ref(db, 'users');
+    const usersSnap = await get(usersRef);
+    if (usersSnap.exists()) {
+      const typeInfo = getEmergencyTypeInfo(data.type);
+      const usersData = usersSnap.val();
+      const notifPromises: Promise<void>[] = [];
+      Object.entries(usersData).forEach(([uid, userData]: [string, any]) => {
+        if (
+          userData.estateId === data.estateId &&
+          (userData.role === 'guard' || userData.role === 'estate_admin') &&
+          uid !== data.triggeredBy
+        ) {
+          const notifId = `emergency-${alert.id}-${uid}`;
+          const notifRef = ref(db, `notifications/${uid}/${notifId}`);
+          notifPromises.push(
+            set(notifRef, {
+              id: notifId,
+              userId: uid,
+              type: 'emergency_alert',
+              title: `🚨 EMERGENCY: ${typeInfo.label}`,
+              message: `${data.triggeredByName} triggered an emergency alert${data.householdName ? ` from ${data.householdName}` : ''}`,
+              timestamp: Date.now(),
+              read: false,
+              data: {
+                alertId: alert.id,
+                emergencyType: data.type,
+                triggeredBy: data.triggeredBy,
+                triggeredByName: data.triggeredByName,
+                householdName: data.householdName,
+                description: data.description,
+              },
+            })
+          );
+        }
+      });
+      await Promise.allSettled(notifPromises);
+      console.log(`📢 Emergency notifications sent to ${notifPromises.length} guards/admins`);
+    }
+  } catch (notifErr) {
+    console.error('Failed to send emergency notifications (alert still active):', notifErr);
+  }
+
   return alert;
 };
 

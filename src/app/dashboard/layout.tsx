@@ -69,11 +69,12 @@ export default function DashboardLayout({
   const isGuard = currentUser.role === 'guard';
 
   // Active state helpers
-  const isHomePage = pathname === '/dashboard' || pathname === '/dashboard/resident' || pathname === '/dashboard/guard';
   const isFeedPage = pathname?.startsWith('/dashboard/feed');
   const isActivityPage = pathname?.startsWith('/dashboard/history');
   const isScanPage = pathname?.startsWith('/dashboard/scan');
   const isProfilePage = pathname?.startsWith('/dashboard/profile');
+  // Home is active on resident/guard pages and any sub-page not covered by other tabs
+  const isHomePage = pathname === '/dashboard' || pathname?.startsWith('/dashboard/resident') || pathname?.startsWith('/dashboard/guard') || (!isFeedPage && !isActivityPage && !isScanPage && !isProfilePage);
 
   // Greeting
   const getGreeting = () => {
