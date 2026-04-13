@@ -2,8 +2,8 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
-import { createServiceRequest, getServiceRequests, uploadServiceRequestImages, submitVendorReview } from '@/services/vendorService';
-import { ServiceRequest, ServiceType } from '@/types/user';
+import { createServiceRequest, getServiceRequests, uploadServiceRequestImages, submitVendorReview, getVendors } from '@/services/vendorService';
+import { ServiceRequest, ServiceType, Vendor } from '@/types/user';
 
 // SVG icon paths for each vendor service type
 const SERVICE_ICONS: Record<ServiceType, { path: string; viewBox?: string }> = {
@@ -67,8 +67,11 @@ const STATUS_LABEL: Record<string,string> = { pending:'Pending', assigned:'Vendo
 const STATUS_COLOR: Record<string,string> = { pending:'text-amber-400 bg-amber-500/15 border-amber-500/30', assigned:'text-blue-400 bg-blue-500/15 border-blue-500/30', in_progress:'text-indigo-400 bg-indigo-500/15 border-indigo-500/30', completed:'text-emerald-400 bg-emerald-500/15 border-emerald-500/30', cancelled:'text-gray-500 bg-gray-500/10 border-gray-500/20' };
 const STATUS_ICON: Record<string,string> = { pending:'⏳', assigned:'👤', in_progress:'🔄', completed:'✅', cancelled:'✕' };
 
+const SERVICE_LABEL: Record<ServiceType,string> = { plumber:'Plumber', electrician:'Electrician', gardener:'Gardener', carpenter:'Carpenter', painter:'Painter', security:'Security', cleaner:'Cleaner', it_support:'IT Support', other:'Other' };
+
 export default function VendorRequestPage() {
   const { currentUser } = useAuth();
+  const [activeTab, setActiveTab] = useState<'request'|'directory'>('request');
   const [step, setStep] = useState<'select'|'describe'|'done'>('select');
   const [selected, setSelected] = useState<ServiceType|null>(null);
   const [description, setDescription] = useState('');
@@ -85,12 +88,16 @@ export default function VendorRequestPage() {
   const [ratingComment, setRatingComment] = useState('');
   const [submittingRating, setSubmittingRating] = useState(false);
   const [ratingError, setRatingError] = useState('');
+  const [vendors, setVendors] = useState<Vendor[]>([]);
+  const [vendorFilter, setVendorFilter] = useState<ServiceType|'all'>('all');
 
   useEffect(() => {
     if (!currentUser?.estateId) { setLoadingHistory(false); return; }
-    getServiceRequests(currentUser.estateId)
-      .then(all => setHistory(all.filter(r => r.residentId === currentUser.uid)))
-      .catch(err => console.error('Error loading service request history:', err))
+    Promise.all([
+      getServiceRequests(currentUser.estateId).then(all => setHistory(all.filter(r => r.residentId === currentUser.uid))),
+      getVendors(currentUser.estateId).then(v => setVendors(v)),
+    ])
+      .catch(err => console.error('Error loading vendor data:', err))
       .finally(() => setLoadingHistory(false));
   }, [currentUser]);
 

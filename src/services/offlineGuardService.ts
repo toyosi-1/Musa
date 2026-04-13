@@ -238,6 +238,17 @@ export function verifyCodeOffline(code: string, estateId: string): OfflineVerify
 export function queuePendingEntry(entry: Omit<PendingEntry, 'id' | 'synced'>): void {
   try {
     const pending = getPendingEntries();
+
+    // Deduplicate: skip if same code+guard was queued in the last 30 seconds
+    const isDuplicate = pending.some(
+      e => e.code === entry.code && e.guardId === entry.guardId && !e.synced &&
+           Math.abs(e.timestamp - entry.timestamp) < 30_000
+    );
+    if (isDuplicate) {
+      console.log(`[OfflineGuard] Skipping duplicate entry for code ${entry.code}`);
+      return;
+    }
+
     const newEntry: PendingEntry = {
       ...entry,
       id: `offline-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -268,15 +279,31 @@ export function getPendingEntries(): PendingEntry[] {
  * Sync all pending entries to Firebase.
  * Returns the number of entries successfully synced.
  */
+let _syncLock = false;
+
 export async function syncPendingEntries(guardId: string): Promise<number> {
+  // Prevent concurrent syncs that cause duplicates
+  if (_syncLock) {
+    console.log('[OfflineGuard] Sync already in progress, skipping');
+    return 0;
+  }
+
   const pending = getPendingEntries().filter(e => !e.synced);
   if (pending.length === 0) return 0;
 
+  _syncLock = true;
   let synced = 0;
 
   try {
-    // Dynamic import to avoid issues
+    // Mark all as synced in localStorage FIRST to prevent re-processing
+    // If sync fails, we restore them
+    const allEntries = getPendingEntries();
+    const syncingIds = new Set(pending.map(e => e.id));
+    allEntries.forEach(e => { if (syncingIds.has(e.id)) e.synced = true; });
+    localStorage.setItem(KEYS.pendingEntries, JSON.stringify(allEntries));
+
     const { logVerificationAttempt } = await import('@/services/guardActivityService');
+    const failedIds: string[] = [];
 
     for (const entry of pending) {
       try {
@@ -288,20 +315,30 @@ export async function syncPendingEntries(guardId: string): Promise<number> {
           destinationAddress: entry.destinationAddress,
           accessCodeId: entry.accessCodeId,
         });
-        entry.synced = true;
         synced++;
       } catch (e) {
         console.warn(`[OfflineGuard] Failed to sync entry ${entry.id}:`, e);
+        failedIds.push(entry.id);
         break; // Stop on first failure — likely still offline
       }
     }
 
-    // Save updated state (mark synced ones)
-    const remaining = pending.filter(e => !e.synced);
-    localStorage.setItem(KEYS.pendingEntries, JSON.stringify(remaining));
-    console.log(`[OfflineGuard] Synced ${synced}/${pending.length} entries, ${remaining.length} remaining`);
+    // Restore failed entries as unsynced, remove successful ones
+    if (failedIds.length > 0) {
+      const updated = getPendingEntries();
+      updated.forEach(e => { if (failedIds.includes(e.id)) e.synced = false; });
+      localStorage.setItem(KEYS.pendingEntries, JSON.stringify(updated.filter(e => !e.synced || failedIds.includes(e.id))));
+    } else {
+      // All synced — clear everything
+      const remaining = getPendingEntries().filter(e => !e.synced && !syncingIds.has(e.id));
+      localStorage.setItem(KEYS.pendingEntries, JSON.stringify(remaining));
+    }
+
+    console.log(`[OfflineGuard] Synced ${synced}/${pending.length} entries`);
   } catch (e) {
     console.error('[OfflineGuard] Sync entries failed:', e);
+  } finally {
+    _syncLock = false;
   }
 
   return synced;
