@@ -147,7 +147,7 @@ export default function DashboardLayout({
       </header>
 
       {/* ─── Main Content ─── */}
-      <main className="flex-grow overflow-y-auto overflow-x-hidden md:pb-0" style={{ paddingBottom: 'calc(6rem + env(safe-area-inset-bottom, 0px))' }}>
+      <main className="flex-grow overflow-y-auto overflow-x-hidden md:pb-0" style={{ paddingBottom: 'calc(5.5rem + env(safe-area-inset-bottom, 16px))' }}>
         <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 md:py-8" style={{ paddingTop: 'max(1.25rem, env(safe-area-inset-top, 1.25rem))' }}>
           {/* Mobile Top Bar — premium feel */}
           <div className="md:hidden flex items-center justify-between mb-5">
@@ -176,9 +176,9 @@ export default function DashboardLayout({
       </main>
 
       {/* ─── Mobile Bottom Navigation — refined ─── */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 pb-safe pointer-events-none">
-        <div className="mx-3 mb-2 bg-white/90 dark:bg-gray-900/90 backdrop-blur-2xl rounded-2xl border border-gray-200/70 dark:border-gray-700/50 shadow-xl shadow-gray-900/10 dark:shadow-black/30 pointer-events-auto">
-          <nav className="h-[62px] flex items-stretch justify-around px-1">
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 pointer-events-none" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
+        <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-2xl border-t border-gray-200/60 dark:border-gray-800/60 pointer-events-auto">
+          <nav className="h-[56px] flex items-stretch justify-around px-2">
             {/* Tab: Feed */}
             <Link href="/dashboard/feed" className="flex-1" aria-label="Feed">
               <div className={`flex flex-col items-center justify-center h-full gap-0.5 transition-all duration-200 ${
@@ -186,7 +186,6 @@ export default function DashboardLayout({
               }`}>
                 {isFeedPage ? <NewspaperIconSolid className="w-[22px] h-[22px]" /> : <NewspaperIcon className="w-[22px] h-[22px]" />}
                 <span className={`text-[10px] ${isFeedPage ? 'font-bold' : 'font-medium'}`}>Feed</span>
-                {isFeedPage && <div className="w-1 h-1 rounded-full bg-blue-600 dark:bg-blue-400" />}
               </div>
             </Link>
 
@@ -197,7 +196,6 @@ export default function DashboardLayout({
               }`}>
                 {isHomePage ? <HomeIconSolid className="w-[22px] h-[22px]" /> : <HomeIcon className="w-[22px] h-[22px]" />}
                 <span className={`text-[10px] ${isHomePage ? 'font-bold' : 'font-medium'}`}>Home</span>
-                {isHomePage && <div className="w-1 h-1 rounded-full bg-blue-600 dark:bg-blue-400" />}
               </div>
             </Link>
 
@@ -208,7 +206,6 @@ export default function DashboardLayout({
               }`}>
                 {isActivityPage ? <ClockIconSolid className="w-[22px] h-[22px]" /> : <ClockIcon className="w-[22px] h-[22px]" />}
                 <span className={`text-[10px] ${isActivityPage ? 'font-bold' : 'font-medium'}`}>Activity</span>
-                {isActivityPage && <div className="w-1 h-1 rounded-full bg-blue-600 dark:bg-blue-400" />}
               </div>
             </Link>
 
@@ -219,7 +216,6 @@ export default function DashboardLayout({
               }`}>
                 {isProfilePage ? <UserIconSolid className="w-[22px] h-[22px]" /> : <UserIcon className="w-[22px] h-[22px]" />}
                 <span className={`text-[10px] ${isProfilePage ? 'font-bold' : 'font-medium'}`}>Profile</span>
-                {isProfilePage && <div className="w-1 h-1 rounded-full bg-blue-600 dark:bg-blue-400" />}
               </div>
             </Link>
           </nav>

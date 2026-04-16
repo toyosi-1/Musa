@@ -136,14 +136,16 @@ export default function GuardDashboard({ user }: GuardDashboardProps) {
     return () => clearInterval(interval);
   }, [user.estateId, user.uid]);
 
-  // When coming back online, sync pending entries
+  // When coming back online, sync pending entries (debounced to avoid duplicate work)
   useEffect(() => {
-    if (online && user.estateId) {
-      syncPendingEntries(user.uid).then(() => setPendingCount(getPendingCount()));
-      syncEstateCodes(user.estateId).then(count => {
-        if (count >= 0) { setOfflineSyncCount(count); setLastSync(Date.now()); }
-      });
-    }
+    if (!online || !user.estateId) return;
+    const timer = setTimeout(async () => {
+      try {
+        const synced = await syncPendingEntries(user.uid);
+        if (synced > 0) setPendingCount(getPendingCount());
+      } catch (e) { /* handled by sync lock */ }
+    }, 2000); // 2s debounce to avoid overlap with initial sync
+    return () => clearTimeout(timer);
   }, [online, user.estateId, user.uid]);
 
   // Handle manual code verification — with offline fallback
@@ -165,12 +167,16 @@ export default function GuardDashboard({ user }: GuardDashboardProps) {
         result = offlineResult;
         wasOffline = true;
       } else {
-        // ─── ONLINE: normal server verification ───
+        // ─── ONLINE: server verification with timeout ───
         try {
-          result = await verifyAccessCode(manualCode, { 
+          const verifyPromise = verifyAccessCode(manualCode, { 
             estateId: user.estateId,
             guardName: user.displayName || 'Security Guard'
           });
+          const timeoutPromise = new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error('Verification timeout')), 8000)
+          );
+          result = await Promise.race([verifyPromise, timeoutPromise]);
         } catch (networkErr) {
           // Network request failed — fall back to offline
           console.warn('[Guard] Online verify failed, falling back to offline:', networkErr);
@@ -236,13 +242,10 @@ export default function GuardDashboard({ user }: GuardDashboardProps) {
           }));
         }
       } else {
-        // Local stats update for offline
+        // Offline: only update today counter locally (totals sync from server later)
         setActivityStats(prev => ({
           ...prev,
-          totalVerifications: prev.totalVerifications + 1,
-          validAccess: prev.validAccess + (result.isValid ? 1 : 0),
-          deniedAccess: prev.deniedAccess + (result.isValid ? 0 : 1),
-          todayVerifications: prev.todayVerifications + 1
+          todayVerifications: prev.todayVerifications + 1,
         }));
       }
       
@@ -367,57 +370,19 @@ export default function GuardDashboard({ user }: GuardDashboardProps) {
             </div>
           </div>
           <div className="flex items-center gap-2 mt-3">
-            <div className={`px-3 py-1 rounded-full text-xs font-medium ${online ? 'bg-white/15 text-white' : 'bg-amber-400/20 text-amber-200'}`}>
-              <span className={`inline-block w-1.5 h-1.5 rounded-full mr-1.5 ${online ? 'bg-emerald-300' : 'bg-amber-400 animate-pulse'}`} />
-              {online ? 'Online' : 'Offline Mode'}
-            </div>
-            <div className="px-3 py-1 rounded-full bg-white/15 text-xs font-medium text-white">
+            <div className="px-3 py-1 rounded-full bg-white/15 text-xs font-medium text-white flex items-center gap-1.5">
+              <span className={`inline-block w-1.5 h-1.5 rounded-full ${online ? 'bg-emerald-300' : 'bg-amber-400 animate-pulse'}`} />
               {activityStats.todayVerifications} checks today
             </div>
           </div>
         </div>
       </div>
 
-      {/* ─── Offline Sync Status ─── */}
-      {(!online || pendingCount > 0 || offlineSyncCount !== null) && (
-        <div className={`mb-4 rounded-xl p-3 flex items-center justify-between text-xs font-medium ${
-          !online 
-            ? 'bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 text-amber-700 dark:text-amber-300'
-            : 'bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 text-blue-700 dark:text-blue-300'
-        }`}>
-          <div className="flex items-center gap-2">
-            {!online ? (
-              <>
-                <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-                <span>Offline Mode — verifying from {offlineSyncCount ?? 0} cached codes</span>
-              </>
-            ) : isSyncing ? (
-              <>
-                <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                </svg>
-                <span>Syncing codes...</span>
-              </>
-            ) : (
-              <>
-                <div className="w-2 h-2 rounded-full bg-green-500" />
-                <span>{offlineSyncCount ?? 0} codes cached for offline use</span>
-              </>
-            )}
-          </div>
-          <div className="flex items-center gap-3">
-            {pendingCount > 0 && (
-              <span className="bg-amber-200 dark:bg-amber-800 px-2 py-0.5 rounded-full text-amber-800 dark:text-amber-200">
-                {pendingCount} pending
-              </span>
-            )}
-            {lastSync && (
-              <span className="text-gray-400 dark:text-gray-500">
-                Synced {Math.round((Date.now() - lastSync) / 60000)}m ago
-              </span>
-            )}
-          </div>
+      {/* Minimal offline notice — only shown when actually offline */}
+      {!online && (
+        <div className="mb-4 rounded-xl px-3 py-2 flex items-center gap-2 text-xs font-medium bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 text-amber-700 dark:text-amber-300">
+          <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+          <span>No network — verification will use cached data</span>
         </div>
       )}
 

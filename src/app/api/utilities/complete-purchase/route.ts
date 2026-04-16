@@ -23,47 +23,54 @@ async function resolveFreshItemCode(
       },
     });
     const json = await res.json();
-    if (json.status !== 'success' || !Array.isArray(json.data)) return null;
-
-    // Find items matching this biller
-    const billerItems = json.data.filter((item: any) => item.biller_code === billerCode);
-
-    if (billerItems.length === 0) {
-      // Try fuzzy match by biller name
-      if (billerName) {
-        const nameKey = billerName.toLowerCase();
-        const fuzzy = json.data.filter((item: any) =>
-          (item.biller_name || '').toLowerCase().includes(nameKey) ||
-          (item.short_name || '').toLowerCase().includes(nameKey) ||
-          (item.name || '').toLowerCase().includes(nameKey)
-        );
-        if (fuzzy.length > 0) {
-          // Pick the prepaid one by default, or first match
-          const prepaid = fuzzy.find((i: any) => (i.biller_name || i.name || '').toLowerCase().includes('prepaid'));
-          const pick = prepaid || fuzzy[0];
-          console.log(`[resolveFreshItemCode] Fuzzy matched: ${pick.item_code} (${pick.biller_name}) for billerName="${billerName}"`);
-          return { itemCode: pick.item_code, billerCode: pick.biller_code };
-        }
-      }
+    if (json.status !== 'success' || !Array.isArray(json.data)) {
+      console.error('[resolveFreshItemCode] API returned non-success:', json.status, json.message);
       return null;
     }
 
-    // If client code is still valid, keep it
-    if (billerItems.some((item: any) => item.item_code === clientItemCode)) {
-      return { itemCode: clientItemCode, billerCode };
+    console.log(`[resolveFreshItemCode] Got ${json.data.length} items from Flutterwave. Looking for billerCode=${billerCode}, clientItemCode=${clientItemCode}, billerName=${billerName}, itemName=${itemName}`);
+
+    // Step 1: Check if client item_code exists as-is in the live data
+    const exactMatch = json.data.find((item: any) => item.item_code === clientItemCode);
+    if (exactMatch) {
+      console.log(`[resolveFreshItemCode] Client item_code ${clientItemCode} is still valid`);
+      return { itemCode: clientItemCode, billerCode: exactMatch.biller_code };
     }
 
-    // Client code is stale — pick the correct replacement
-    // Determine if user wanted prepaid or postpaid from the item name
-    const wantsPrepaid = (itemName || clientItemCode || '').toLowerCase().includes('prepaid') ||
-                         !(itemName || '').toLowerCase().includes('postpaid');
+    // Step 2: Match by biller_code
+    const billerItems = json.data.filter((item: any) => item.biller_code === billerCode);
+    console.log(`[resolveFreshItemCode] Found ${billerItems.length} items for billerCode=${billerCode}`);
 
-    const match = billerItems.find((item: any) => {
-      const name = (item.biller_name || item.name || '').toLowerCase();
+    // Step 3: If no biller_code match, fuzzy match by name
+    let candidates = billerItems;
+    if (candidates.length === 0 && billerName) {
+      // Extract key words from the biller name (e.g. "Ikeja Electric (IKEDC)" → ["ikeja", "ikedc"])
+      const nameWords = billerName.toLowerCase().replace(/[()]/g, ' ').split(/\s+/).filter(w => w.length > 2);
+      candidates = json.data.filter((item: any) => {
+        const text = `${item.biller_name || ''} ${item.short_name || ''} ${item.name || ''}`.toLowerCase();
+        return nameWords.some(w => text.includes(w));
+      });
+      console.log(`[resolveFreshItemCode] Fuzzy name match found ${candidates.length} candidates for "${billerName}"`);
+    }
+
+    if (candidates.length === 0) {
+      console.warn(`[resolveFreshItemCode] No candidates found at all`);
+      // Last resort: log all available biller codes for debugging
+      const uniqueBillers = Array.from(new Set(json.data.map((i: any) => `${i.biller_code}:${i.short_name || i.biller_name}`))).slice(0, 20);
+      console.log(`[resolveFreshItemCode] Available billers: ${uniqueBillers.join(', ')}`);
+      return null;
+    }
+
+    // Determine if user wanted prepaid or postpaid
+    const nameHint = `${itemName || ''} ${clientItemCode || ''}`.toLowerCase();
+    const wantsPrepaid = nameHint.includes('prepaid') || !nameHint.includes('postpaid');
+
+    const match = candidates.find((item: any) => {
+      const name = `${item.biller_name || ''} ${item.name || ''}`.toLowerCase();
       return wantsPrepaid ? name.includes('prepaid') : name.includes('postpaid');
-    }) || billerItems[0];
+    }) || candidates[0];
 
-    console.log(`[resolveFreshItemCode] Resolved stale ${clientItemCode} → ${match.item_code} (${match.biller_name})`);
+    console.log(`[resolveFreshItemCode] Resolved: ${clientItemCode} → ${match.item_code} (${match.biller_name}), billerCode: ${match.biller_code}`);
     return { itemCode: match.item_code, billerCode: match.biller_code };
   } catch (err) {
     console.error('[resolveFreshItemCode] Failed to fetch fresh codes:', err);
@@ -201,8 +208,9 @@ export async function POST(request: NextRequest) {
       recurrence: 'ONCE',
       type: resolvedItemCode,
       reference: reference,
-      ...(resolvedBillerCode ? { biller_name: resolvedBillerCode } : {}),
     };
+
+    console.log('[CompletePurchase] Bill payload:', JSON.stringify(billPayload));
 
     try {
       let billRes: Response;
