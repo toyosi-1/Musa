@@ -1,0 +1,10 @@
+#!/usr/bin/env sh
+# Runs before every `git commit`. Bypass with `git commit --no-verify` in genuine emergencies.
+
+echo "> lint-staged (ESLint on changed files)"
+npx lint-staged || exit 1
+
+echo "> vitest (all tests)"
+npm test -- --reporter=dot || exit 1
+
+echo "✅ pre-commit checks passed"
