@@ -185,21 +185,27 @@ export default function AdminVendorsPage() {
   const [importMsg, setImportMsg] = useState('');
 
   async function handleBulkImport() {
-    if (!estateId || !currentUser) return;
-    if (!confirm('Import vendor contacts from COG spreadsheet? This will add new vendors to the directory.')) return;
-    setImporting(true); setImportMsg('');
+    console.log('[BulkImport] Starting. estateId=', estateId, 'user=', currentUser?.uid);
+    if (!estateId) { setImportMsg('Error: No estate ID found. Make sure you are logged in as admin.'); return; }
+    if (!currentUser) { setImportMsg('Error: Not logged in.'); return; }
+    setImporting(true); setImportMsg('Importing vendors...');
     try {
       const res = await fetch('/api/vendors/seed', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ estateId, adminUid: currentUser.uid, vendors: COG_VENDORS }),
       });
+      console.log('[BulkImport] Response status:', res.status);
       const data = await res.json();
+      console.log('[BulkImport] Response:', data);
       if (data.success) {
-        setImportMsg(`Imported ${data.count} vendors`);
+        setImportMsg(`Successfully imported ${data.count} vendors!`);
         await load();
-      } else { setImportMsg(data.message || 'Import failed'); }
-    } catch (err: any) { setImportMsg(err?.message || 'Import failed'); }
+      } else { setImportMsg(`Import failed: ${data.message || 'Unknown error'}`); }
+    } catch (err: any) {
+      console.error('[BulkImport] Error:', err);
+      setImportMsg(`Import error: ${err?.message || 'Network error'}`);
+    }
     finally { setImporting(false); }
   }
 
@@ -434,13 +440,11 @@ export default function AdminVendorsPage() {
               <div className="flex items-center justify-between mb-3">
                 <h2 className="text-[13px] font-bold text-[#2d2d2d]">Vendor Directory</h2>
                 <div className="flex items-center gap-1.5">
-                  {vendors.length === 0 && (
-                    <button onClick={handleBulkImport} disabled={importing}
-                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-blue-600 text-white text-[11px] font-semibold hover:bg-blue-700 disabled:opacity-50 transition-colors">
-                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
-                      {importing ? 'Importing...' : 'Import Vendors'}
-                    </button>
-                  )}
+                  <button onClick={handleBulkImport} disabled={importing}
+                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-blue-600 text-white text-[11px] font-semibold hover:bg-blue-700 disabled:opacity-50 transition-colors">
+                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                    {importing ? 'Importing...' : 'Import COG Vendors'}
+                  </button>
                   <button onClick={() => { setShowAddVendor(true); setEditingId(null); setForm(EMPTY_FORM); }}
                     className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#4a7c59] text-white text-[11px] font-semibold hover:bg-[#3d6a4b] transition-colors">
                     <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4"/></svg>
@@ -450,7 +454,7 @@ export default function AdminVendorsPage() {
               </div>
 
               {importMsg && (
-                <div className={`mb-2 text-[11px] font-medium px-3 py-1.5 rounded-lg ${importMsg.startsWith('Imported') ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-600'}`}>
+                <div className={`mb-2 text-[11px] font-medium px-3 py-1.5 rounded-lg ${importMsg.includes('imported') || importMsg.includes('Importing') ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-600'}`}>
                   {importMsg}
                 </div>
               )}
