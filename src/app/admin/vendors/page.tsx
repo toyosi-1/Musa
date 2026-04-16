@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback } from 'react';
+import toast from 'react-hot-toast';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { getVendors, addVendor, updateVendor, deleteVendor, getServiceRequests, assignVendor } from '@/services/vendorService';
@@ -182,13 +183,13 @@ export default function AdminVendorsPage() {
   const availableVendorsForRequest = selectedRequest ? vendors.filter(v => v.isAvailable && v.serviceTypes.includes(selectedRequest.serviceType)) : [];
 
   const [importing, setImporting] = useState(false);
-  const [importMsg, setImportMsg] = useState('');
 
   async function handleBulkImport() {
     console.log('[BulkImport] Starting. estateId=', estateId, 'user=', currentUser?.uid);
-    if (!estateId) { setImportMsg('Error: No estate ID found. Make sure you are logged in as admin.'); return; }
-    if (!currentUser) { setImportMsg('Error: Not logged in.'); return; }
-    setImporting(true); setImportMsg('Importing vendors...');
+    if (!estateId) { toast.error('No estate ID found. Make sure you are logged in as admin.'); return; }
+    if (!currentUser) { toast.error('Not logged in.'); return; }
+    setImporting(true);
+    const toastId = toast.loading('Importing vendors...');
     try {
       const res = await fetch('/api/vendors/seed', {
         method: 'POST',
@@ -199,12 +200,14 @@ export default function AdminVendorsPage() {
       const data = await res.json();
       console.log('[BulkImport] Response:', data);
       if (data.success) {
-        setImportMsg(`Successfully imported ${data.count} vendors!`);
+        toast.success(`Imported ${data.count} vendors!`, { id: toastId });
         await load();
-      } else { setImportMsg(`Import failed: ${data.message || 'Unknown error'}`); }
+      } else {
+        toast.error(`Import failed: ${data.message || 'Unknown error'}`, { id: toastId });
+      }
     } catch (err: any) {
       console.error('[BulkImport] Error:', err);
-      setImportMsg(`Import error: ${err?.message || 'Network error'}`);
+      toast.error(`Import error: ${err?.message || 'Network error'}`, { id: toastId });
     }
     finally { setImporting(false); }
   }
@@ -452,12 +455,6 @@ export default function AdminVendorsPage() {
                   </button>
                 </div>
               </div>
-
-              {importMsg && (
-                <div className={`mb-2 text-[11px] font-medium px-3 py-1.5 rounded-lg ${importMsg.includes('imported') || importMsg.includes('Importing') ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-600'}`}>
-                  {importMsg}
-                </div>
-              )}
 
               <div className="flex gap-1.5 mb-3">
                 <select value={vendorFilter} onChange={e => setVendorFilter(e.target.value as ServiceType | 'all')}

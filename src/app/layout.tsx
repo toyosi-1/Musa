@@ -11,6 +11,7 @@ import { getPublicEnvScript } from '@/utils/env';
 import MobileInitializer from '@/components/layout/MobileInitializer';
 import DeviceApprovalNotice from '@/components/auth/DeviceApprovalNotice';
 import NetworkStatusBar from '@/components/ui/NetworkStatusBar';
+import { Toaster } from 'react-hot-toast';
 
 const inter = Inter({ 
   subsets: ['latin'], 
@@ -225,6 +226,19 @@ export default function RootLayout({
             </Suspense>
             <DeviceApprovalNotice />
           </AuthWrapper>
+          <Toaster
+            position="top-center"
+            toastOptions={{
+              duration: 4000,
+              style: {
+                fontSize: '14px',
+                borderRadius: '12px',
+                padding: '12px 16px',
+              },
+              success: { iconTheme: { primary: '#4a7c59', secondary: '#fff' } },
+              error: { duration: 6000 },
+            }}
+          />
         </ThemeProvider>
       </body>
     </html>

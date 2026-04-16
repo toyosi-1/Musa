@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
@@ -103,7 +104,7 @@ export default function AdminUsersPage() {
       // If promoting to estate_admin or guard, require estate assignment
       if (selectedRole === 'estate_admin' || selectedRole === 'guard') {
         if (!selectedEstateId) {
-          alert(`Please select an estate for the ${selectedRole === 'estate_admin' ? 'estate admin' : 'guard'}`);
+          toast.error(`Please select an estate for the ${selectedRole === 'estate_admin' ? 'estate admin' : 'guard'}`);
           setUpdating(false);
           return;
         }
@@ -139,7 +140,7 @@ export default function AdminUsersPage() {
           : u
       ));
       
-      alert(`Successfully promoted user to ${selectedRole}${selectedRole === 'estate_admin' ? ' for estate ' + selectedEstateId : ''}`);
+      toast.success(`Successfully promoted user to ${selectedRole}${selectedRole === 'estate_admin' ? ' for estate ' + selectedEstateId : ''}`);
       
       setEditingUserId(null);
       setSelectedRole('resident');
@@ -148,7 +149,7 @@ export default function AdminUsersPage() {
       console.error('❌ Error updating user role:', error);
       console.error('Error code:', error?.code);
       console.error('Error message:', error?.message);
-      alert(`Failed to update user role: ${error?.message || 'Unknown error'}`);
+      toast.error(`Failed to update user role: ${error?.message || 'Unknown error'}`);
     } finally {
       setUpdating(false);
     }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import toast from 'react-hot-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { FeedPost, FeedComment } from '@/types/user';
@@ -97,7 +98,7 @@ export default function FeedPage() {
     } catch (err: any) {
       console.error('Error creating post:', err);
       const errorMessage = err?.message || 'Failed to create post. Please try again.';
-      alert(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setCreating(false);
     }
@@ -107,11 +108,11 @@ export default function FeedPage() {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith('image/')) {
-      alert('Please select an image file.');
+      toast.error('Please select an image file.');
       return;
     }
     if (file.size > 10 * 1024 * 1024) {
-      alert('Image must be less than 10MB.');
+      toast.error('Image must be less than 10MB.');
       return;
     }
     setSelectedImage(file);
@@ -137,7 +138,7 @@ export default function FeedPage() {
       }
     } catch (err) {
       console.error('Error deleting post:', err);
-      alert('Failed to delete post.');
+      toast.error('Failed to delete post.');
     } finally {
       setDeletingPost(null);
     }
