@@ -18,6 +18,30 @@ const LICENSE_LABEL: Record<string,string> = { verified:'Verified', pending:'Pen
 
 const EMPTY_FORM = { name:'', phone:'', serviceTypes:[] as ServiceType[], notes:'', isAvailable:true, businessName:'', email:'', bankName:'', bankAccount:'', licenseStatus:'none' as 'verified'|'pending'|'expired'|'none', coverageAreas:'', rating:'' };
 
+// COG Contact spreadsheet data for bulk import
+const COG_VENDORS = [
+  { name: 'Raphael Etim', occupation: 'Civil Works', designation: 'Painter/Scroeding', company: 'NIL', contact: '08024175196 / 09052075189' },
+  { name: 'Seyi', occupation: 'Mechanical', designation: 'Generator Specialist', company: 'Mantrac', contact: '08160686300' },
+  { name: 'Mr Sodiq', occupation: 'Civil Works', designation: 'Scaffolding', company: 'SDQ Edge', contact: '07089265738' },
+  { name: 'Sesan', occupation: 'Civil', designation: 'Wood Work Specialist', company: 'S.T.K', contact: '08023901138' },
+  { name: 'Segun', occupation: 'Contracting', designation: 'General Services', company: 'Shygo', contact: '08023613499' },
+  { name: 'Sodiq Ishola', occupation: 'Electrician', designation: 'Snr Facility Manager', company: 'Rocmod Engineering', contact: '08131365772' },
+  { name: 'Segun', occupation: 'Supplier', designation: 'Diesel Supplier', company: 'Minat Diesel', contact: '07067126505' },
+  { name: 'Mr Sukanmi', occupation: 'Civil Works', designation: 'Floor and Buffering Professional', company: 'NIL', contact: '08086288464' },
+  { name: 'Mr sunny', occupation: 'Pool Management', designation: 'Tiles Flooring and Gen Cleaning', company: 'NIL', contact: '08123840040' },
+  { name: 'Elfad Concept', occupation: 'Waste Management', designation: 'Biodigester', company: 'NIL', contact: '08037217936' },
+  { name: 'Wasim', occupation: 'Interior Fittings', designation: 'Blinds', company: 'Problind', contact: '09070040399' },
+  { name: 'Bolaji', occupation: 'Construction', designation: 'Quantity Surveyor', company: 'NIL', contact: '08134644339' },
+  { name: 'Buknor', occupation: 'DSTV', designation: 'DSTV', company: 'NIL', contact: '08025148183' },
+  { name: 'Nil', occupation: 'Construction', designation: 'M & E', company: 'NIL', contact: '08056506178' },
+  { name: 'Ebube', occupation: 'Dealership', designation: 'Vehicle Dealer', company: 'GO Autos', contact: '07016493154' },
+  { name: 'Gift', occupation: 'Electrical Engineering', designation: 'UPS/FM200/Fire System', company: 'Electrified Engineering', contact: '08082099567' },
+  { name: 'Sunday Henry', occupation: 'Fabrications', designation: 'Glass Production', company: 'NIL', contact: '08128242773' },
+  { name: 'Anthony', occupation: 'Mechanical', designation: 'Gym Equipments', company: 'Everfitness', contact: '08132763579' },
+  { name: 'Ayolunde', occupation: 'Janitorial', designation: 'House Cleaning', company: 'Heywhy Cleaning Service', contact: '08023937844' },
+  { name: 'Nil', occupation: 'Electrician', designation: 'Kitchen Extractor', company: 'Kitchen and Accessories', contact: '08033089443' },
+];
+
 async function getHousehold(householdId: string): Promise<Household | null> {
   try {
     const db = await getFirebaseDatabase();
@@ -157,11 +181,33 @@ export default function AdminVendorsPage() {
 
   const availableVendorsForRequest = selectedRequest ? vendors.filter(v => v.isAvailable && v.serviceTypes.includes(selectedRequest.serviceType)) : [];
 
+  const [importing, setImporting] = useState(false);
+  const [importMsg, setImportMsg] = useState('');
+
+  async function handleBulkImport() {
+    if (!estateId || !currentUser) return;
+    if (!confirm('Import vendor contacts from COG spreadsheet? This will add new vendors to the directory.')) return;
+    setImporting(true); setImportMsg('');
+    try {
+      const res = await fetch('/api/vendors/seed', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ estateId, adminUid: currentUser.uid, vendors: COG_VENDORS }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setImportMsg(`Imported ${data.count} vendors`);
+        await load();
+      } else { setImportMsg(data.message || 'Import failed'); }
+    } catch (err: any) { setImportMsg(err?.message || 'Import failed'); }
+    finally { setImporting(false); }
+  }
+
   return (
     <StatusGuard requireStatus="approved" requireAdmin={true}>
-    <div className="min-h-screen bg-[#f5f5f0] flex">
-      {/* ─── Left Sidebar ─── */}
-      <aside className="w-[180px] bg-[#e8e6df] border-r border-[#d5d3cc] flex flex-col flex-shrink-0 sticky top-0 h-screen">
+    <div className="min-h-screen bg-[#f5f5f0] flex flex-col md:flex-row">
+      {/* ─── Left Sidebar (hidden on mobile) ─── */}
+      <aside className="hidden md:flex w-[180px] bg-[#e8e6df] border-r border-[#d5d3cc] flex-col flex-shrink-0 sticky top-0 h-screen">
         <div className="px-4 pt-5 pb-4">
           <Link href="/admin/dashboard" className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-lg bg-[#4a7c59] flex items-center justify-center flex-shrink-0">
@@ -227,7 +273,7 @@ export default function AdminVendorsPage() {
         </header>
 
         {/* Body */}
-        <div className="flex-1 flex overflow-hidden">
+        <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
           {/* ─── Requests Feed ─── */}
           <div className="flex-1 min-w-0 border-r border-[#e5e5e0] overflow-y-auto relative">
             <div className="p-4">
@@ -383,16 +429,31 @@ export default function AdminVendorsPage() {
           </div>
 
           {/* ─── Vendor Directory (always visible) ─── */}
-          <div className="w-[400px] flex-shrink-0 overflow-y-auto bg-white">
+          <div className="w-full lg:w-[400px] flex-shrink-0 overflow-y-auto bg-white border-t lg:border-t-0">
             <div className="p-4">
               <div className="flex items-center justify-between mb-3">
                 <h2 className="text-[13px] font-bold text-[#2d2d2d]">Vendor Directory</h2>
-                <button onClick={() => { setShowAddVendor(true); setEditingId(null); setForm(EMPTY_FORM); }}
-                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#4a7c59] text-white text-[11px] font-semibold hover:bg-[#3d6a4b] transition-colors">
-                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4"/></svg>
-                  Add vendor
-                </button>
+                <div className="flex items-center gap-1.5">
+                  {vendors.length === 0 && (
+                    <button onClick={handleBulkImport} disabled={importing}
+                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-blue-600 text-white text-[11px] font-semibold hover:bg-blue-700 disabled:opacity-50 transition-colors">
+                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                      {importing ? 'Importing...' : 'Import Vendors'}
+                    </button>
+                  )}
+                  <button onClick={() => { setShowAddVendor(true); setEditingId(null); setForm(EMPTY_FORM); }}
+                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#4a7c59] text-white text-[11px] font-semibold hover:bg-[#3d6a4b] transition-colors">
+                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4"/></svg>
+                    Add vendor
+                  </button>
+                </div>
               </div>
+
+              {importMsg && (
+                <div className={`mb-2 text-[11px] font-medium px-3 py-1.5 rounded-lg ${importMsg.startsWith('Imported') ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-600'}`}>
+                  {importMsg}
+                </div>
+              )}
 
               <div className="flex gap-1.5 mb-3">
                 <select value={vendorFilter} onChange={e => setVendorFilter(e.target.value as ServiceType | 'all')}
@@ -428,7 +489,7 @@ export default function AdminVendorsPage() {
                             <div className="w-7 h-7 rounded-lg bg-[#4a7c59]/10 flex items-center justify-center text-[#4a7c59] text-[10px] font-bold flex-shrink-0">{v.name.charAt(0).toUpperCase()}</div>
                             <div className="min-w-0">
                               <p className="text-[12px] font-medium text-[#2d2d2d] truncate">{v.name}</p>
-                              {v.businessName && <p className="text-[9px] text-[#999] truncate">{v.businessName}</p>}
+                              <p className="text-[9px] text-[#999] truncate">{v.phone}{v.businessName ? ` · ${v.businessName}` : ''}</p>
                             </div>
                           </div>
                         </td>

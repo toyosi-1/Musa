@@ -5,15 +5,18 @@ const FLUTTERWAVE_SECRET_KEY = process.env.FLUTTERWAVE_SECRET_KEY;
 const FLUTTERWAVE_BASE_URL = 'https://api.flutterwave.com/v3';
 
 /**
- * Fetch fresh biller codes from Flutterwave and resolve the correct item_code.
- * Matches by billerCode first, then tries to match prepaid/postpaid by name keywords.
+ * Fetch fresh biller codes from Flutterwave and return ALL candidate codes to try,
+ * ordered from most-likely to least-likely.
+ * Returns an array of { itemCode, billerCode, label } objects.
  */
-async function resolveFreshItemCode(
+async function resolveFreshCandidates(
   billerCode: string,
   clientItemCode: string,
   billerName?: string,
   itemName?: string
-): Promise<{ itemCode: string; billerCode: string } | null> {
+): Promise<Array<{ itemCode: string; billerCode: string; label: string }>> {
+  const candidates: Array<{ itemCode: string; billerCode: string; label: string }> = [];
+
   try {
     const res = await fetch(`${FLUTTERWAVE_BASE_URL}/bill-categories?power=1&country=NG`, {
       method: 'GET',
@@ -24,58 +27,127 @@ async function resolveFreshItemCode(
     });
     const json = await res.json();
     if (json.status !== 'success' || !Array.isArray(json.data)) {
-      console.error('[resolveFreshItemCode] API returned non-success:', json.status, json.message);
-      return null;
+      console.error('[resolveFresh] API error:', json.status, json.message);
+      // Still return client code as sole candidate
+      candidates.push({ itemCode: clientItemCode, billerCode, label: 'client-original' });
+      return candidates;
     }
 
-    console.log(`[resolveFreshItemCode] Got ${json.data.length} items from Flutterwave. Looking for billerCode=${billerCode}, clientItemCode=${clientItemCode}, billerName=${billerName}, itemName=${itemName}`);
+    console.log(`[resolveFresh] Got ${json.data.length} items from Flutterwave API`);
+    console.log(`[resolveFresh] Looking for: billerCode=${billerCode}, itemCode=${clientItemCode}, billerName=${billerName}, itemName=${itemName}`);
+    
+    // Log first 5 items for debugging
+    json.data.slice(0, 5).forEach((item: any, i: number) => {
+      console.log(`[resolveFresh] Sample[${i}]: item_code=${item.item_code}, biller_code=${item.biller_code}, biller_name=${item.biller_name}, name=${item.name}, short_name=${item.short_name}`);
+    });
 
-    // Step 1: Check if client item_code exists as-is in the live data
+    // Determine if user wanted prepaid or postpaid
+    const nameHint = `${itemName || ''} ${clientItemCode || ''} ${billerName || ''}`.toLowerCase();
+    const wantsPrepaid = nameHint.includes('prepaid') || !nameHint.includes('postpaid');
+    const typeLabel = wantsPrepaid ? 'prepaid' : 'postpaid';
+
+    // Step 1: Check if client item_code exists exactly in live data
     const exactMatch = json.data.find((item: any) => item.item_code === clientItemCode);
     if (exactMatch) {
-      console.log(`[resolveFreshItemCode] Client item_code ${clientItemCode} is still valid`);
-      return { itemCode: clientItemCode, billerCode: exactMatch.biller_code };
+      candidates.push({ itemCode: clientItemCode, billerCode: exactMatch.biller_code, label: 'exact-match' });
     }
 
     // Step 2: Match by biller_code
     const billerItems = json.data.filter((item: any) => item.biller_code === billerCode);
-    console.log(`[resolveFreshItemCode] Found ${billerItems.length} items for billerCode=${billerCode}`);
-
-    // Step 3: If no biller_code match, fuzzy match by name
-    let candidates = billerItems;
-    if (candidates.length === 0 && billerName) {
-      // Extract key words from the biller name (e.g. "Ikeja Electric (IKEDC)" → ["ikeja", "ikedc"])
-      const nameWords = billerName.toLowerCase().replace(/[()]/g, ' ').split(/\s+/).filter(w => w.length > 2);
-      candidates = json.data.filter((item: any) => {
-        const text = `${item.biller_name || ''} ${item.short_name || ''} ${item.name || ''}`.toLowerCase();
-        return nameWords.some(w => text.includes(w));
+    if (billerItems.length > 0) {
+      // Sort: preferred type first
+      const sorted = billerItems.sort((a: any, b: any) => {
+        const aName = `${a.biller_name || ''} ${a.name || ''}`.toLowerCase();
+        const bName = `${b.biller_name || ''} ${b.name || ''}`.toLowerCase();
+        const aMatch = aName.includes(typeLabel) ? 0 : 1;
+        const bMatch = bName.includes(typeLabel) ? 0 : 1;
+        return aMatch - bMatch;
       });
-      console.log(`[resolveFreshItemCode] Fuzzy name match found ${candidates.length} candidates for "${billerName}"`);
+      for (const item of sorted) {
+        if (item.item_code !== clientItemCode) { // avoid duplicate with exact match
+          candidates.push({ itemCode: item.item_code, billerCode: item.biller_code, label: `biller-code-match(${item.biller_name})` });
+        }
+      }
     }
 
+    // Step 3: Fuzzy name match if billerCode match failed or didn't produce results
+    if (billerItems.length === 0 && billerName) {
+      const nameWords = billerName.toLowerCase().replace(/[()]/g, ' ').split(/\s+/).filter((w: string) => w.length > 2);
+      const fuzzyItems = json.data.filter((item: any) => {
+        const text = `${item.biller_name || ''} ${item.short_name || ''} ${item.name || ''}`.toLowerCase();
+        return nameWords.some((w: string) => text.includes(w));
+      });
+      console.log(`[resolveFresh] Fuzzy name match: ${fuzzyItems.length} items for "${billerName}"`);
+      const sorted = fuzzyItems.sort((a: any, b: any) => {
+        const aName = `${a.biller_name || ''} ${a.name || ''}`.toLowerCase();
+        const bName = `${b.biller_name || ''} ${b.name || ''}`.toLowerCase();
+        const aMatch = aName.includes(typeLabel) ? 0 : 1;
+        const bMatch = bName.includes(typeLabel) ? 0 : 1;
+        return aMatch - bMatch;
+      });
+      for (const item of sorted) {
+        const alreadyAdded = candidates.some(c => c.itemCode === item.item_code);
+        if (!alreadyAdded) {
+          candidates.push({ itemCode: item.item_code, billerCode: item.biller_code, label: `fuzzy-name(${item.biller_name})` });
+        }
+      }
+    }
+
+    // If no candidates found at all, log available billers and fall back to client code
     if (candidates.length === 0) {
-      console.warn(`[resolveFreshItemCode] No candidates found at all`);
-      // Last resort: log all available biller codes for debugging
       const uniqueBillers = Array.from(new Set(json.data.map((i: any) => `${i.biller_code}:${i.short_name || i.biller_name}`))).slice(0, 20);
-      console.log(`[resolveFreshItemCode] Available billers: ${uniqueBillers.join(', ')}`);
-      return null;
+      console.warn(`[resolveFresh] No candidates found. Available billers: ${uniqueBillers.join(', ')}`);
+      candidates.push({ itemCode: clientItemCode, billerCode, label: 'client-fallback' });
     }
 
-    // Determine if user wanted prepaid or postpaid
-    const nameHint = `${itemName || ''} ${clientItemCode || ''}`.toLowerCase();
-    const wantsPrepaid = nameHint.includes('prepaid') || !nameHint.includes('postpaid');
-
-    const match = candidates.find((item: any) => {
-      const name = `${item.biller_name || ''} ${item.name || ''}`.toLowerCase();
-      return wantsPrepaid ? name.includes('prepaid') : name.includes('postpaid');
-    }) || candidates[0];
-
-    console.log(`[resolveFreshItemCode] Resolved: ${clientItemCode} → ${match.item_code} (${match.biller_name}), billerCode: ${match.biller_code}`);
-    return { itemCode: match.item_code, billerCode: match.biller_code };
+    console.log(`[resolveFresh] Returning ${candidates.length} candidates: ${candidates.map(c => `${c.itemCode}(${c.label})`).join(', ')}`);
+    return candidates;
   } catch (err) {
-    console.error('[resolveFreshItemCode] Failed to fetch fresh codes:', err);
-    return null;
+    console.error('[resolveFresh] Failed to fetch:', err);
+    candidates.push({ itemCode: clientItemCode, billerCode, label: 'error-fallback' });
+    return candidates;
   }
+}
+
+/**
+ * Attempt a bill payment with Flutterwave.
+ * Returns the parsed response or throws on network errors.
+ */
+async function attemptBillPurchase(
+  payload: { country: string; customer: string; amount: number; recurrence: string; type: string; reference: string },
+  flwHeaders: Record<string, string>,
+  useProxy: boolean
+): Promise<{ success: boolean; data: any; message: string; raw: string }> {
+  let billRes: Response;
+
+  if (useProxy) {
+    billRes = await fetch(`${FLW_PROXY_URL}/bill`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...payload, proxySecret: PROXY_SECRET }),
+    });
+  } else {
+    billRes = await fetch(`${FLUTTERWAVE_BASE_URL}/bills`, {
+      method: 'POST',
+      headers: flwHeaders,
+      body: JSON.stringify(payload),
+    });
+  }
+
+  const raw = await billRes.text();
+  let parsed: any;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return { success: false, data: null, message: 'Non-JSON response', raw };
+  }
+
+  return {
+    success: parsed.status === 'success',
+    data: parsed.data,
+    message: parsed.message || '',
+    raw,
+  };
 }
 
 // Proxy for Flutterwave bill payments (needed because Flutterwave requires whitelisted IPs
@@ -172,103 +244,85 @@ export async function POST(request: NextRequest) {
 
     const reference = `MUSA-PWR-${Date.now()}-${transactionId}`;
 
-    // ── Step 1.5: Resolve fresh biller codes from Flutterwave ──
-    let resolvedItemCode = String(clientItemCode);
-    let resolvedBillerCode = clientBillerCode ? String(clientBillerCode) : '';
+    // ── Step 1.5: Resolve ALL possible biller codes from Flutterwave's live API ──
+    const resolvedBillerCode = clientBillerCode ? String(clientBillerCode) : '';
+    const candidates = await resolveFreshCandidates(
+      resolvedBillerCode,
+      String(clientItemCode),
+      billerName,
+      itemName
+    );
 
-    try {
-      const fresh = await resolveFreshItemCode(
-        resolvedBillerCode,
-        resolvedItemCode,
-        billerName,
-        itemName
-      );
-      if (fresh) {
-        if (fresh.itemCode !== resolvedItemCode || fresh.billerCode !== resolvedBillerCode) {
-          console.log(`[CompletePurchase] Codes updated: itemCode ${resolvedItemCode} → ${fresh.itemCode}, billerCode ${resolvedBillerCode} → ${fresh.billerCode}`);
-          invalidateBillersCache(); // clear stale cache so future requests use fresh codes
-        }
-        resolvedItemCode = fresh.itemCode;
-        resolvedBillerCode = fresh.billerCode;
-      } else {
-        console.warn('[CompletePurchase] Could not resolve fresh codes, using client-provided codes');
-      }
-    } catch (resolveErr) {
-      console.warn('[CompletePurchase] Fresh code resolution failed, using client-provided codes:', resolveErr);
-    }
+    console.log(`[CompletePurchase] Got ${candidates.length} candidate codes to try`);
 
-    // ── Step 2: Purchase electricity via Flutterwave bills API (via proxy if configured) ──
+    // ── Step 2: Try each candidate code until one succeeds ──
     const useProxy = !!FLW_PROXY_URL && !!PROXY_SECRET;
-    console.log('[CompletePurchase] Purchasing via Flutterwave bills API...', useProxy ? '(via proxy)' : '(direct)', { resolvedItemCode, resolvedBillerCode });
-
-    const billPayload = {
-      country: 'NG',
-      customer: String(meterNumber),
-      amount: Number(amount),
-      recurrence: 'ONCE',
-      type: resolvedItemCode,
-      reference: reference,
-    };
-
-    console.log('[CompletePurchase] Bill payload:', JSON.stringify(billPayload));
+    console.log('[CompletePurchase] Purchasing via Flutterwave bills API...', useProxy ? '(via proxy)' : '(direct)');
 
     try {
-      let billRes: Response;
+      let lastError = '';
+      let lastRaw = '';
 
-      if (useProxy) {
-        // Route through proxy (has a static IP whitelisted on Flutterwave)
-        billRes = await fetch(`${FLW_PROXY_URL}/bill`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...billPayload, proxySecret: PROXY_SECRET }),
-        });
-      } else {
-        // Direct call (will fail if server IP not whitelisted)
-        billRes = await fetch(`${FLUTTERWAVE_BASE_URL}/bills`, {
-          method: 'POST',
-          headers: flwHeaders,
-          body: JSON.stringify(billPayload),
-        });
+      for (const candidate of candidates) {
+        const billPayload = {
+          country: 'NG',
+          customer: String(meterNumber),
+          amount: Number(amount),
+          recurrence: 'ONCE',
+          type: candidate.itemCode,
+          reference: reference,
+        };
+
+        console.log(`[CompletePurchase] Trying candidate: type=${candidate.itemCode} (${candidate.label})`);
+
+        const result = await attemptBillPurchase(billPayload, flwHeaders, useProxy);
+        console.log(`[CompletePurchase] Result for ${candidate.itemCode}: success=${result.success}, message=${result.message}`);
+
+        if (result.success) {
+          const flwRef = result.data?.flw_ref || result.data?.tx_ref || '';
+          const token = result.data?.extra || result.data?.recharge_token || result.data?.token || null;
+
+          // If we succeeded with a different code than the client sent, clear cache
+          if (candidate.itemCode !== String(clientItemCode)) {
+            console.log(`[CompletePurchase] Succeeded with different code: ${clientItemCode} → ${candidate.itemCode}. Clearing billers cache.`);
+            invalidateBillersCache();
+          }
+
+          return NextResponse.json({
+            success: true,
+            reference: flwRef || reference,
+            token,
+            transactionId,
+            provider: 'flutterwave',
+            message: token
+              ? 'Purchase successful! Your electricity token is ready.'
+              : 'Purchase initiated! Your meter will be credited shortly.',
+          });
+        }
+
+        const msg = (result.message || '').toLowerCase();
+        lastError = result.message;
+        lastRaw = result.raw;
+
+        // If error is NOT about invalid biller, stop trying — it's a different kind of error
+        if (!msg.includes('invalid biller') && !msg.includes('invalid item') && !msg.includes('biller not found') && !msg.includes('not found')) {
+          console.log(`[CompletePurchase] Non-biller error, stopping retries: ${result.message}`);
+          break;
+        }
+
+        console.log(`[CompletePurchase] Invalid biller for ${candidate.itemCode}, trying next candidate...`);
       }
 
-      const billText = await billRes.text();
-      console.log('[CompletePurchase] Flutterwave bills response:', billText.substring(0, 800));
+      // All candidates failed
+      console.log('[CompletePurchase] Last error response:', lastRaw.substring(0, 800));
+      invalidateBillersCache();
 
-      let billData: any;
-      try {
-        billData = JSON.parse(billText);
-      } catch {
-        return NextResponse.json({
-          success: false,
-          message: `Electricity service returned unexpected response. Your payment of ₦${paidAmount} was verified — please contact support. Ref: ${reference}`,
-          paymentVerified: true,
-        });
-      }
-
-      if (billData.status === 'success') {
-        const flwRef = billData.data?.flw_ref || billData.data?.tx_ref || '';
-        const token = billData.data?.extra || billData.data?.recharge_token || billData.data?.token || null;
-
-        return NextResponse.json({
-          success: true,
-          reference: flwRef || reference,
-          token,
-          transactionId,
-          provider: 'flutterwave',
-          message: token
-            ? 'Purchase successful! Your electricity token is ready.'
-            : 'Purchase initiated! Your meter will be credited shortly.',
-        });
-      }
-
-      // Flutterwave error
-      const flwMsg = (billData.message || '').toLowerCase();
+      const flwMsg = (lastError || '').toLowerCase();
       let userMessage: string;
 
       if (flwMsg.includes('invalid biller') || flwMsg.includes('invalid item') || flwMsg.includes('biller not found')) {
         userMessage = `Invalid Biller selected. Your payment of ₦${paidAmount} was verified — please contact support. Ref: ${reference}`;
-        console.error(`[CompletePurchase] Invalid biller/item code. resolvedItemCode=${resolvedItemCode}, resolvedBillerCode=${resolvedBillerCode}, original=${clientItemCode}/${clientBillerCode}. Codes may be stale — clearing billers cache.`);
-        invalidateBillersCache();
+        console.error(`[CompletePurchase] ALL candidates failed with invalid biller. Tried: ${candidates.map(c => c.itemCode).join(', ')}. Client sent: ${clientItemCode}/${clientBillerCode}`);
       } else if (flwMsg.includes('unauthorized') || flwMsg.includes('authentication') || flwMsg.includes('ip') || flwMsg.includes('whitelist')) {
         userMessage = `Server authorization failed. Your payment of ₦${paidAmount} was verified — please contact support. Ref: ${reference}`;
       } else if (flwMsg.includes('cannot be processed') || flwMsg.includes('account administrator')) {
@@ -276,7 +330,7 @@ export async function POST(request: NextRequest) {
       } else if (flwMsg.includes('balance') || flwMsg.includes('insufficient')) {
         userMessage = `Electricity service temporarily unavailable. Your payment of ₦${paidAmount} was verified — please contact support. Ref: ${reference}`;
       } else {
-        userMessage = `${billData.message || 'Electricity purchase could not be completed'}. Your payment of ₦${paidAmount} was verified — please contact support. Ref: ${reference}`;
+        userMessage = `${lastError || 'Electricity purchase could not be completed'}. Your payment of ₦${paidAmount} was verified — please contact support. Ref: ${reference}`;
       }
 
       return NextResponse.json({ success: false, message: userMessage, paymentVerified: true });
