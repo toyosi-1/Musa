@@ -1,22 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { invalidateBillersCache } from '../billers/route';
+import { rankBillerCandidates, type BillerCandidate, type FlutterwaveBillItem } from '@/utils/billerMatching';
 
 const FLUTTERWAVE_SECRET_KEY = process.env.FLUTTERWAVE_SECRET_KEY;
 const FLUTTERWAVE_BASE_URL = 'https://api.flutterwave.com/v3';
 
 /**
  * Fetch fresh biller codes from Flutterwave and return ALL candidate codes to try,
- * ordered from most-likely to least-likely.
- * Returns an array of { itemCode, billerCode, label } objects.
+ * ordered from most-likely to least-likely. Pure matching logic lives in
+ * `@/utils/billerMatching` where it is unit-tested.
  */
 async function resolveFreshCandidates(
   billerCode: string,
   clientItemCode: string,
   billerName?: string,
   itemName?: string
-): Promise<Array<{ itemCode: string; billerCode: string; label: string }>> {
-  const candidates: Array<{ itemCode: string; billerCode: string; label: string }> = [];
-
+): Promise<BillerCandidate[]> {
   try {
     const res = await fetch(`${FLUTTERWAVE_BASE_URL}/bill-categories?power=1&country=NG`, {
       method: 'GET',
@@ -28,84 +27,24 @@ async function resolveFreshCandidates(
     const json = await res.json();
     if (json.status !== 'success' || !Array.isArray(json.data)) {
       console.error('[resolveFresh] API error:', json.status, json.message);
-      // Still return client code as sole candidate
-      candidates.push({ itemCode: clientItemCode, billerCode, label: 'client-original' });
-      return candidates;
+      return [{ itemCode: clientItemCode, billerCode, label: 'client-original' }];
     }
 
     console.log(`[resolveFresh] Got ${json.data.length} items from Flutterwave API`);
     console.log(`[resolveFresh] Looking for: billerCode=${billerCode}, itemCode=${clientItemCode}, billerName=${billerName}, itemName=${itemName}`);
-    
-    // Log first 5 items for debugging
-    json.data.slice(0, 5).forEach((item: any, i: number) => {
-      console.log(`[resolveFresh] Sample[${i}]: item_code=${item.item_code}, biller_code=${item.biller_code}, biller_name=${item.biller_name}, name=${item.name}, short_name=${item.short_name}`);
-    });
 
-    // Determine if user wanted prepaid or postpaid
-    const nameHint = `${itemName || ''} ${clientItemCode || ''} ${billerName || ''}`.toLowerCase();
-    const wantsPrepaid = nameHint.includes('prepaid') || !nameHint.includes('postpaid');
-    const typeLabel = wantsPrepaid ? 'prepaid' : 'postpaid';
+    const candidates = rankBillerCandidates(json.data as FlutterwaveBillItem[], billerCode, clientItemCode, billerName, itemName);
 
-    // Step 1: Check if client item_code exists exactly in live data
-    const exactMatch = json.data.find((item: any) => item.item_code === clientItemCode);
-    if (exactMatch) {
-      candidates.push({ itemCode: clientItemCode, billerCode: exactMatch.biller_code, label: 'exact-match' });
-    }
-
-    // Step 2: Match by biller_code
-    const billerItems = json.data.filter((item: any) => item.biller_code === billerCode);
-    if (billerItems.length > 0) {
-      // Sort: preferred type first
-      const sorted = billerItems.sort((a: any, b: any) => {
-        const aName = `${a.biller_name || ''} ${a.name || ''}`.toLowerCase();
-        const bName = `${b.biller_name || ''} ${b.name || ''}`.toLowerCase();
-        const aMatch = aName.includes(typeLabel) ? 0 : 1;
-        const bMatch = bName.includes(typeLabel) ? 0 : 1;
-        return aMatch - bMatch;
-      });
-      for (const item of sorted) {
-        if (item.item_code !== clientItemCode) { // avoid duplicate with exact match
-          candidates.push({ itemCode: item.item_code, billerCode: item.biller_code, label: `biller-code-match(${item.biller_name})` });
-        }
-      }
-    }
-
-    // Step 3: Fuzzy name match if billerCode match failed or didn't produce results
-    if (billerItems.length === 0 && billerName) {
-      const nameWords = billerName.toLowerCase().replace(/[()]/g, ' ').split(/\s+/).filter((w: string) => w.length > 2);
-      const fuzzyItems = json.data.filter((item: any) => {
-        const text = `${item.biller_name || ''} ${item.short_name || ''} ${item.name || ''}`.toLowerCase();
-        return nameWords.some((w: string) => text.includes(w));
-      });
-      console.log(`[resolveFresh] Fuzzy name match: ${fuzzyItems.length} items for "${billerName}"`);
-      const sorted = fuzzyItems.sort((a: any, b: any) => {
-        const aName = `${a.biller_name || ''} ${a.name || ''}`.toLowerCase();
-        const bName = `${b.biller_name || ''} ${b.name || ''}`.toLowerCase();
-        const aMatch = aName.includes(typeLabel) ? 0 : 1;
-        const bMatch = bName.includes(typeLabel) ? 0 : 1;
-        return aMatch - bMatch;
-      });
-      for (const item of sorted) {
-        const alreadyAdded = candidates.some(c => c.itemCode === item.item_code);
-        if (!alreadyAdded) {
-          candidates.push({ itemCode: item.item_code, billerCode: item.biller_code, label: `fuzzy-name(${item.biller_name})` });
-        }
-      }
-    }
-
-    // If no candidates found at all, log available billers and fall back to client code
-    if (candidates.length === 0) {
+    if (candidates.length === 1 && candidates[0].label.startsWith('client-fallback')) {
       const uniqueBillers = Array.from(new Set(json.data.map((i: any) => `${i.biller_code}:${i.short_name || i.biller_name}`))).slice(0, 20);
-      console.warn(`[resolveFresh] No candidates found. Available billers: ${uniqueBillers.join(', ')}`);
-      candidates.push({ itemCode: clientItemCode, billerCode, label: 'client-fallback' });
+      console.warn(`[resolveFresh] No matches found. Available billers: ${uniqueBillers.join(', ')}`);
     }
 
     console.log(`[resolveFresh] Returning ${candidates.length} candidates: ${candidates.map(c => `${c.itemCode}(${c.label})`).join(', ')}`);
     return candidates;
   } catch (err) {
     console.error('[resolveFresh] Failed to fetch:', err);
-    candidates.push({ itemCode: clientItemCode, billerCode, label: 'error-fallback' });
-    return candidates;
+    return [{ itemCode: clientItemCode, billerCode, label: 'error-fallback' }];
   }
 }
 

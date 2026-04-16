@@ -1,0 +1,107 @@
+import { describe, it, expect } from 'vitest';
+import { mapOccupation, normalizePhone, shouldSkipVendor } from './vendorMapping';
+
+describe('mapOccupation', () => {
+  it('maps electrical occupations to electrician', () => {
+    expect(mapOccupation('Electrician', 'Snr Facility Manager')).toContain('electrician');
+    expect(mapOccupation('Electrical Engineering', 'UPS/FM200/Fire System')).toContain('electrician');
+    expect(mapOccupation('Mechanical', 'Generator Specialist')).toContain('electrician');
+  });
+
+  it('maps civil/construction/wood work to carpenter', () => {
+    expect(mapOccupation('Civil', 'Wood Work Specialist')).toContain('carpenter');
+    expect(mapOccupation('Civil Works', 'Scaffolding')).toContain('carpenter');
+    expect(mapOccupation('Construction', 'Quantity Surveyor')).toContain('carpenter');
+    expect(mapOccupation('Interior Fittings', 'Blinds')).toContain('carpenter');
+    expect(mapOccupation('Fabrications', 'Glass Production')).toContain('carpenter');
+  });
+
+  it('maps painting to painter', () => {
+    expect(mapOccupation('Civil Works', 'Painter/Scroeding')).toContain('painter');
+  });
+
+  it('maps pool/flooring/tiles to plumber', () => {
+    expect(mapOccupation('Pool Management', 'Tiles Flooring and Gen Cleaning')).toContain('plumber');
+    expect(mapOccupation('Civil Works', 'Floor and Buffering Professional')).toContain('plumber');
+  });
+
+  it('maps cleaning/janitorial/waste to cleaner', () => {
+    expect(mapOccupation('Janitorial', 'House Cleaning')).toContain('cleaner');
+    expect(mapOccupation('Waste Management', 'Biodigester')).toContain('cleaner');
+  });
+
+  it('maps DSTV/gym/kitchen to it_support', () => {
+    expect(mapOccupation('DSTV', 'DSTV')).toContain('it_support');
+    expect(mapOccupation('Mechanical', 'Gym Equipments')).toContain('it_support');
+  });
+
+  it('maps supplier/dealer/vehicle to other', () => {
+    expect(mapOccupation('Supplier', 'Diesel Supplier')).toContain('other');
+    expect(mapOccupation('Dealership', 'Vehicle Dealer')).toContain('other');
+    expect(mapOccupation('Contracting', 'General Services')).toContain('other');
+  });
+
+  it('always returns at least one service type', () => {
+    expect(mapOccupation('', '')).toEqual(['other']);
+    expect(mapOccupation('Random Unknown Thing', '')).toEqual(['other']);
+  });
+
+  it('handles case-insensitively', () => {
+    expect(mapOccupation('ELECTRICIAN', 'SNR FACILITY MANAGER')).toContain('electrician');
+    expect(mapOccupation('electrician', 'snr facility manager')).toContain('electrician');
+  });
+
+  it('handles null/undefined inputs gracefully', () => {
+    expect(mapOccupation(null as any, null as any)).toEqual(['other']);
+    expect(mapOccupation(undefined as any, undefined as any)).toEqual(['other']);
+  });
+
+  it('can return multiple matching service types', () => {
+    // "Construction" matches carpenter, "Electrician" matches electrician, for a combined row
+    const result = mapOccupation('Construction Electrician', 'Civil Works');
+    expect(result).toContain('electrician');
+    expect(result).toContain('carpenter');
+  });
+});
+
+describe('normalizePhone', () => {
+  it('returns primary number when slash-separated', () => {
+    expect(normalizePhone('08024175196 / 09052075189')).toBe('08024175196');
+  });
+
+  it('strips whitespace', () => {
+    expect(normalizePhone('  08024175196  ')).toBe('08024175196');
+    expect(normalizePhone('080 241 75196')).toBe('08024175196');
+  });
+
+  it('returns single number as-is', () => {
+    expect(normalizePhone('08160686300')).toBe('08160686300');
+  });
+
+  it('returns N/A for empty/null input', () => {
+    expect(normalizePhone('')).toBe('N/A');
+    expect(normalizePhone(null as any)).toBe('N/A');
+    expect(normalizePhone(undefined as any)).toBe('N/A');
+  });
+});
+
+describe('shouldSkipVendor', () => {
+  it('skips empty names', () => {
+    expect(shouldSkipVendor('')).toBe(true);
+    expect(shouldSkipVendor('   ')).toBe(true);
+    expect(shouldSkipVendor(null)).toBe(true);
+    expect(shouldSkipVendor(undefined)).toBe(true);
+  });
+
+  it('skips Nil placeholder regardless of case', () => {
+    expect(shouldSkipVendor('Nil')).toBe(true);
+    expect(shouldSkipVendor('NIL')).toBe(true);
+    expect(shouldSkipVendor('nil')).toBe(true);
+    expect(shouldSkipVendor('  nil  ')).toBe(true);
+  });
+
+  it('does not skip real names', () => {
+    expect(shouldSkipVendor('Raphael Etim')).toBe(false);
+    expect(shouldSkipVendor('Ayolunde')).toBe(false);
+  });
+});
