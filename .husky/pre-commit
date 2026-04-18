@@ -2,6 +2,9 @@
 # Runs before every `git commit`. Bypass with `git commit --no-verify` in genuine emergencies.
 # Note: ESLint is currently disabled via .eslintignore; re-add lint-staged once that's tightened.
 
+echo "> tsc --noEmit (type check)"
+npx tsc --noEmit || exit 1
+
 echo "> vitest (all tests)"
 npm test -- --reporter=dot || exit 1
 

@@ -37,7 +37,7 @@ export default function BiometricSetupBanner() {
     const result = await registerBiometric(
       currentUser.uid,
       currentUser.email,
-      currentUser.displayName
+      currentUser.displayName || currentUser.email
     );
     if (result.success) {
       setStatus('success');

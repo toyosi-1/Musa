@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { invalidateBillersCache } from '../billers/route';
+import { invalidateBillersCache } from '@/lib/billersCache';
 import { rankBillerCandidates, type BillerCandidate, type FlutterwaveBillItem } from '@/utils/billerMatching';
 
 const FLUTTERWAVE_SECRET_KEY = process.env.FLUTTERWAVE_SECRET_KEY;

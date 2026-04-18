@@ -1,17 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getBillersCache, setBillersCache } from '@/lib/billersCache';
 
 const FLUTTERWAVE_SECRET_KEY = process.env.FLUTTERWAVE_SECRET_KEY;
 const FLUTTERWAVE_BASE_URL = 'https://api.flutterwave.com/v3';
 
-// In-memory cache to avoid hitting Flutterwave on every request
-let billersCache: { data: any; timestamp: number; source: 'live' | 'fallback' } | null = null;
 const CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes for live data
 const FALLBACK_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes for fallback data
-
-// Allow other routes to invalidate stale cache
-export function invalidateBillersCache() {
-  billersCache = null;
-}
 
 // Hardcoded fallback billers — Nigerian DisCos are stable and well-known.
 // Used when Flutterwave API is unreachable or returns an error.
@@ -137,17 +131,18 @@ const FALLBACK_BILLERS = [
 export async function GET(_request: NextRequest) {
   try {
     // Return cached data if fresh (use shorter TTL for fallback data)
-    if (billersCache) {
-      const ttl = billersCache.source === 'live' ? CACHE_TTL_MS : FALLBACK_CACHE_TTL_MS;
-      if (Date.now() - billersCache.timestamp < ttl) {
-        return NextResponse.json({ success: true, billers: billersCache.data, source: billersCache.source });
+    const cached = getBillersCache();
+    if (cached) {
+      const ttl = cached.source === 'live' ? CACHE_TTL_MS : FALLBACK_CACHE_TTL_MS;
+      if (Date.now() - cached.timestamp < ttl) {
+        return NextResponse.json({ success: true, billers: cached.data, source: cached.source });
       }
     }
 
     // If no API key, use fallback billers immediately
     if (!FLUTTERWAVE_SECRET_KEY) {
       console.warn('Flutterwave secret key not configured — using fallback billers');
-      billersCache = { data: FALLBACK_BILLERS, timestamp: Date.now(), source: 'fallback' };
+      setBillersCache({ data: FALLBACK_BILLERS, timestamp: Date.now(), source: 'fallback' });
       return NextResponse.json({ success: true, billers: FALLBACK_BILLERS, source: 'fallback' });
     }
 
@@ -166,13 +161,13 @@ export async function GET(_request: NextRequest) {
       categoriesJson = await res.json();
     } catch (fetchError) {
       console.error('Flutterwave API unreachable, using fallback billers:', fetchError);
-      billersCache = { data: FALLBACK_BILLERS, timestamp: Date.now(), source: 'fallback' };
+      setBillersCache({ data: FALLBACK_BILLERS, timestamp: Date.now(), source: 'fallback' });
       return NextResponse.json({ success: true, billers: FALLBACK_BILLERS, source: 'fallback' });
     }
 
     if (categoriesJson.status !== 'success' || !Array.isArray(categoriesJson.data)) {
       console.error('Flutterwave API error, using fallback billers:', JSON.stringify(categoriesJson));
-      billersCache = { data: FALLBACK_BILLERS, timestamp: Date.now(), source: 'fallback' };
+      setBillersCache({ data: FALLBACK_BILLERS, timestamp: Date.now(), source: 'fallback' });
       return NextResponse.json({ success: true, billers: FALLBACK_BILLERS, source: 'fallback' });
     }
 
@@ -207,7 +202,7 @@ export async function GET(_request: NextRequest) {
     const billers = Array.from(billerMap.values());
 
     // Cache the result
-    billersCache = { data: billers, timestamp: Date.now(), source: 'live' };
+    setBillersCache({ data: billers, timestamp: Date.now(), source: 'live' });
 
     console.log(`Fetched ${billers.length} electricity billers from Flutterwave`);
 

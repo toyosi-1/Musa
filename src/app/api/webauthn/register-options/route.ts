@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
       rpID: RP_ID,
       userName: email,
       userDisplayName: displayName || email,
-      userID: new TextEncoder().encode(userId),
+      userID: Uint8Array.from(new TextEncoder().encode(userId)),
       attestationType: 'none',
       excludeCredentials: existingCreds.map(c => ({
         id: c.id,

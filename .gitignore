@@ -3,6 +3,11 @@
 /.pnp
 .pnp.js
 
+# Firebase Functions nested build artifacts and deps
+functions/node_modules
+functions/lib
+functions/.eslintcache
+
 # testing
 /coverage
 
