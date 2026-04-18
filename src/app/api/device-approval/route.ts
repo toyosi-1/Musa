@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminDatabase } from '@/lib/firebaseAdmin';
+import { rateLimit, getClientIp, rateLimitResponse } from '@/lib/rateLimit';
 
 /**
  * POST /api/device-approval
@@ -17,6 +18,14 @@ export async function POST(request: NextRequest) {
     if (action === 'check') {
       return handleCheck(body);
     } else if (action === 'send') {
+      // Rate limit device-approval emails: 3 per 10 minutes per IP.
+      // Prevents flooding a user's inbox or exhausting Resend quota.
+      const rl = rateLimit({
+        key: `device-approval-send:${getClientIp(request)}`,
+        limit: 3,
+        windowMs: 10 * 60_000,
+      });
+      if (!rl.success) return rateLimitResponse(rl);
       return handleSend(body);
     } else if (action === 'verify') {
       return handleVerify(body);

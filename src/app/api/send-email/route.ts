@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
+import { rateLimit, getClientIp, rateLimitResponse } from '@/lib/rateLimit';
 
 // This API route handles email sending using Resend
 // It's a server-side route that safely uses the RESEND_API_KEY
@@ -24,6 +25,15 @@ interface EmailData {
 
 export async function POST(request: NextRequest) {
   try {
+    // Rate limit: 5 emails per minute per IP.
+    // Protects against spam/abuse of our Resend quota.
+    const rl = rateLimit({
+      key: `send-email:${getClientIp(request)}`,
+      limit: 5,
+      windowMs: 60_000,
+    });
+    if (!rl.success) return rateLimitResponse(rl);
+
     // Support both old format (with smtpConfig) and new format (just emailData)
     const body = await request.json();
     const emailData: EmailData = body.emailData || body;

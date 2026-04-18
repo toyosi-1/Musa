@@ -1,9 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getFirebaseDatabase } from '@/lib/firebase';
 import { ref, get } from 'firebase/database';
+import { rateLimit, getClientIp, rateLimitResponse } from '@/lib/rateLimit';
 
 export async function POST(request: NextRequest) {
   try {
+    // Rate limit: 20 check-ins per minute per IP.
+    // Guards legitimately burst during shift changes; 20/min leaves plenty of
+    // headroom while still capping runaway scripts.
+    const rl = rateLimit({
+      key: `guest-checkin:${getClientIp(request)}`,
+      limit: 20,
+      windowMs: 60_000,
+    });
+    if (!rl.success) return rateLimitResponse(rl);
+
     const { accessCodeId, guardName } = await request.json();
 
     if (!accessCodeId) {

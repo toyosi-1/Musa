@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminDatabase } from '@/lib/firebaseAdmin';
 import { mapOccupation, normalizePhone, shouldSkipVendor } from '@/utils/vendorMapping';
+import { rateLimit, getClientIp, rateLimitResponse } from '@/lib/rateLimit';
 
 /**
  * POST /api/vendors/seed
@@ -11,6 +12,15 @@ import { mapOccupation, normalizePhone, shouldSkipVendor } from '@/utils/vendorM
 
 export async function POST(request: NextRequest) {
   try {
+    // Rate limit: 2 bulk imports per hour per IP.
+    // Seeding is an admin-only one-off; this just caps damage on accidental repeats.
+    const rl = rateLimit({
+      key: `vendors-seed:${getClientIp(request)}`,
+      limit: 2,
+      windowMs: 60 * 60_000,
+    });
+    if (!rl.success) return rateLimitResponse(rl);
+
     const { estateId, vendors: rawVendors, adminUid } = await request.json();
 
     if (!estateId || !Array.isArray(rawVendors) || rawVendors.length === 0) {

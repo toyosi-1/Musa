@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import { createDeviceApprovalToken } from '@/services/deviceService';
+import { rateLimit, getClientIp, rateLimitResponse } from '@/lib/rateLimit';
 import {
   generateDeviceApprovalEmail,
   generateDeviceApprovalEmailPlainText,
@@ -20,6 +21,14 @@ const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'Musa Security <noreply@musa
 
 export async function POST(request: NextRequest) {
   try {
+    // Rate limit: 3 device-approval emails per 10 minutes per IP.
+    const rl = rateLimit({
+      key: `device-send-approval:${getClientIp(request)}`,
+      limit: 3,
+      windowMs: 10 * 60_000,
+    });
+    if (!rl.success) return rateLimitResponse(rl);
+
     const body = await request.json();
     const { deviceId, userId, userEmail, userName, deviceInfo } = body;
 
