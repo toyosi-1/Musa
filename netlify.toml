@@ -5,8 +5,8 @@
 
 
 [build.environment]
-
-  NPM_VERSION = "9.0.0"
+  NODE_VERSION = "20.9.0"
+  NPM_VERSION = "10.1.0"
   NEXT_TELEMETRY_DISABLED = "1"
   NODE_OPTIONS = "--max_old_space_size=4096"
   NETLIFY_NEXT_PLUGIN_SKIP = "false"
