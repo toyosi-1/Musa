@@ -19,7 +19,7 @@
     "firebase-functions": "^4.9.0",
     "handlebars": "^4.7.7",
     "nodemailer": "^6.10.1",
-    "protobufjs": "^7.5.3"
+    "protobufjs": "^7.5.5"
   },
   "devDependencies": {
     "firebase-functions-test": "^3.1.0",
