@@ -2,17 +2,28 @@ import { NextRequest, NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
 import { getMusaEmailMascotHTML } from '@/components/email/MusaEmailMascot';
+import { requireAuth, AuthError } from '@/lib/requireAuth';
 
 /**
  * API route that updates all email templates to use the email-friendly mascot
- * This is a utility API that should only be used in development
+ * This is a utility API that should only be used in development by admins.
  */
 export async function GET(req: NextRequest) {
-  // Security check to prevent execution in production
+  // Security check to prevent execution in production — this route rewrites
+  // source files on disk, which is intrinsically a dev-only tool.
   if (process.env.NODE_ENV === 'production') {
     return new NextResponse('This utility is only available in development mode', {
       status: 403
     });
+  }
+
+  // Even in dev, require an admin ID token — prevents any local/LAN attacker
+  // (or an accidentally-exposed dev server) from corrupting source files.
+  try {
+    await requireAuth(req, { roles: ['admin'] });
+  } catch (err) {
+    if (err instanceof AuthError) return err.toResponse();
+    throw err;
   }
 
   try {

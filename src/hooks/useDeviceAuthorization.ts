@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { fetchWithAuth } from '@/lib/fetchWithAuth';
 
 interface DeviceAuthStatus {
   isChecking: boolean;
@@ -124,9 +125,8 @@ export function useDeviceAuthorization() {
       const ua = navigator.userAgent;
       const platform = navigator.platform;
 
-      await fetch('/api/device/send-approval', {
+      await fetchWithAuth('/api/device/send-approval', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           deviceId,
           userId: currentUser.uid,

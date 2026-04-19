@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import { createDeviceApprovalToken } from '@/services/deviceService';
 import { rateLimit, getClientIp, rateLimitResponse } from '@/lib/rateLimit';
+import { requireAuth, AuthError } from '@/lib/requireAuth';
 import {
   generateDeviceApprovalEmail,
   generateDeviceApprovalEmailPlainText,
@@ -21,6 +22,17 @@ const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'Musa Security <noreply@musa
 
 export async function POST(request: NextRequest) {
   try {
+    // Auth first — a signed-in user may only request device-approval emails
+    // for their OWN account. Without this, anyone could fire approval emails
+    // at arbitrary users (inbox bombing / phishing dry-run).
+    let authUser;
+    try {
+      authUser = await requireAuth(request);
+    } catch (err) {
+      if (err instanceof AuthError) return err.toResponse();
+      throw err;
+    }
+
     // Rate limit: 3 device-approval emails per 10 minutes per IP.
     const rl = rateLimit({
       key: `device-send-approval:${getClientIp(request)}`,
@@ -36,6 +48,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { success: false, message: 'Missing required fields' },
         { status: 400 }
+      );
+    }
+
+    // The body-supplied userId/userEmail must match the verified token.
+    if (userId !== authUser.uid) {
+      return NextResponse.json(
+        { success: false, message: 'You can only request approval for your own account.' },
+        { status: 403 }
+      );
+    }
+    if (authUser.email && userEmail.toLowerCase() !== authUser.email.toLowerCase()) {
+      return NextResponse.json(
+        { success: false, message: 'Email must match your authenticated account.' },
+        { status: 403 }
       );
     }
 

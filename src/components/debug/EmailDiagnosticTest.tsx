@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { sendHouseholdInvitationEmail } from '@/services/smtpEmailService';
+import { fetchWithAuth } from '@/lib/fetchWithAuth';
 
 export default function EmailDiagnosticTest() {
   const [testEmail, setTestEmail] = useState('');
@@ -27,9 +28,8 @@ export default function EmailDiagnosticTest() {
       // Test 1: API Route Test
       addResult('1️⃣ Testing /api/send-email endpoint...');
       
-      const apiTestResponse = await fetch('/api/send-email', {
+      const apiTestResponse = await fetchWithAuth('/api/send-email', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           emailData: {
             to: testEmail,
@@ -43,15 +43,6 @@ export default function EmailDiagnosticTest() {
                 <p>If you received this email, the API route is working correctly!</p>
               </div>
             `
-          },
-          smtpConfig: {
-            host: 'mail.hspace.cloud',
-            port: 465,
-            secure: true,
-            auth: {
-              user: 'toyosiajibola@musa-security.com',
-              pass: 'Olatoyosi1'
-            }
           }
         })
       });

@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
+import { fetchWithAuth } from '@/lib/fetchWithAuth';
 import { getVendors, addVendor, updateVendor, deleteVendor, getServiceRequests, assignVendor } from '@/services/vendorService';
 import { Vendor, ServiceType, ServiceRequest, Household } from '@/types/user';
 import { getFirebaseDatabase } from '@/lib/firebase';
@@ -191,10 +192,9 @@ export default function AdminVendorsPage() {
     setImporting(true);
     const toastId = toast.loading('Importing vendors...');
     try {
-      const res = await fetch('/api/vendors/seed', {
+      const res = await fetchWithAuth('/api/vendors/seed', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ estateId, adminUid: currentUser.uid, vendors: COG_VENDORS }),
+        body: JSON.stringify({ estateId, vendors: COG_VENDORS }),
       });
       console.log('[BulkImport] Response status:', res.status);
       const data = await res.json();

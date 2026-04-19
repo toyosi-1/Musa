@@ -2,16 +2,31 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAdminDatabase } from '@/lib/firebaseAdmin';
 import { mapOccupation, normalizePhone, shouldSkipVendor } from '@/utils/vendorMapping';
 import { rateLimit, getClientIp, rateLimitResponse } from '@/lib/rateLimit';
+import { requireAuth, AuthError } from '@/lib/requireAuth';
 
 /**
  * POST /api/vendors/seed
  *
  * Seeds vendor data from the COG Contact spreadsheet into Firebase.
- * Body: { estateId: string, adminUid: string, vendors: Array<{ name, occupation, designation, company, contact }> }
+ * Body: { estateId: string, vendors: Array<{ name, occupation, designation, company, contact }> }
+ *
+ * Auth: requires 'admin' or 'estate_admin' role. The estate_admin must belong
+ * to the target estate.
  */
 
 export async function POST(request: NextRequest) {
   try {
+    // Auth first — seeding mutates estate-wide vendor data and must not be
+    // callable by unauthenticated users. The adminUid used to be passed in
+    // the body; we now derive it from the verified ID token.
+    let authUser;
+    try {
+      authUser = await requireAuth(request, { roles: ['admin', 'estate_admin'] });
+    } catch (err) {
+      if (err instanceof AuthError) return err.toResponse();
+      throw err;
+    }
+
     // Rate limit: 2 bulk imports per hour per IP.
     // Seeding is an admin-only one-off; this just caps damage on accidental repeats.
     const rl = rateLimit({
@@ -21,7 +36,17 @@ export async function POST(request: NextRequest) {
     });
     if (!rl.success) return rateLimitResponse(rl);
 
-    const { estateId, vendors: rawVendors, adminUid } = await request.json();
+    const { estateId, vendors: rawVendors } = await request.json();
+
+    // Estate admins may only seed their own estate; platform admins can seed any.
+    if (authUser.role === 'estate_admin' && authUser.estateId !== estateId) {
+      return NextResponse.json(
+        { success: false, message: 'You can only seed vendors for your own estate.' },
+        { status: 403 },
+      );
+    }
+
+    const adminUid = authUser.uid;
 
     if (!estateId || !Array.isArray(rawVendors) || rawVendors.length === 0) {
       return NextResponse.json({ success: false, message: 'Missing estateId or vendors array' }, { status: 400 });

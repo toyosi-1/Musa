@@ -1,5 +1,6 @@
 // Email Service for Musa App - Powered by Resend
 // All emails are sent via the /api/send-email route which uses Resend
+import { fetchWithAuth } from '@/lib/fetchWithAuth';
 
 interface EmailData {
   to: string;
@@ -48,9 +49,8 @@ export const sendApprovalNotificationEmail = async (data: ApprovalNotificationDa
       html: emailHtml,
     };
 
-    const response = await fetch('/api/send-email', {
+    const response = await fetchWithAuth('/api/send-email', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ emailData }),
     });
 
@@ -82,9 +82,8 @@ export const sendHouseholdInvitationEmail = async (data: HouseholdInviteData): P
       html: emailHtml,
     };
 
-    const response = await fetch('/api/send-email', {
+    const response = await fetchWithAuth('/api/send-email', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ emailData }),
     });
 
@@ -490,9 +489,8 @@ export const sendRejectionNotificationEmail = async (data: RejectionNotification
       html: emailHtml,
     };
 
-    const response = await fetch('/api/send-email', {
+    const response = await fetchWithAuth('/api/send-email', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ emailData }),
     });
 
@@ -695,9 +693,8 @@ export const sendWelcomeEmail = async (data: WelcomeEmailData): Promise<boolean>
       html: emailHtml,
     };
 
-    const response = await fetch('/api/send-email', {
+    const response = await fetchWithAuth('/api/send-email', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ emailData }),
     });
 

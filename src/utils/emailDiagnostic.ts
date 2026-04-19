@@ -1,5 +1,6 @@
 // Email Diagnostic Utility for Household Invitations
 // This helps debug email delivery issues in the Musa app
+import { fetchWithAuth } from '@/lib/fetchWithAuth';
 
 interface EmailDiagnosticResult {
   step: string;
@@ -27,23 +28,14 @@ export class EmailDiagnostic {
       this.addResult('API Route Test', true, 'Testing /api/send-email endpoint...');
       
       try {
-        const testResponse = await fetch('/api/send-email', {
+        // Send-email no longer takes SMTP credentials — Resend key lives on the server.
+        const testResponse = await fetchWithAuth('/api/send-email', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             emailData: {
               to: testEmail,
               subject: '🧪 Musa Email System Test',
               html: '<h1>Test Email</h1><p>This is a test email from Musa diagnostic system.</p>'
-            },
-            smtpConfig: {
-              host: 'mail.hspace.cloud',
-              port: 465,
-              secure: true,
-              auth: {
-                user: 'toyosiajibola@musa-security.com',
-                pass: 'Olatoyosi1'
-              }
             }
           })
         });
