@@ -1,15 +1,32 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth, AuthError } from '@/lib/requireAuth';
 
 const FLUTTERWAVE_SECRET_KEY = process.env.FLUTTERWAVE_SECRET_KEY;
 const FLUTTERWAVE_BASE_URL = 'https://api.flutterwave.com/v3';
 
 /**
  * GET /api/utilities/test-bill-payment
- * 
+ *
  * Diagnostic endpoint to test Flutterwave bill payment access.
- * Returns detailed error information to help diagnose the issue.
+ * Attempts to CREATE a real bill via Flutterwave's /bills endpoint — and
+ * therefore must be locked to admins only, in dev environments only.
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
+  // Dev-only: this route creates real Flutterwave bill attempts.
+  if (process.env.NODE_ENV === 'production') {
+    return NextResponse.json(
+      { success: false, message: 'Diagnostic routes are disabled in production.' },
+      { status: 403 },
+    );
+  }
+
+  try {
+    await requireAuth(request, { roles: ['admin'] });
+  } catch (err) {
+    if (err instanceof AuthError) return err.toResponse();
+    throw err;
+  }
+
   if (!FLUTTERWAVE_SECRET_KEY) {
     return NextResponse.json({
       success: false,

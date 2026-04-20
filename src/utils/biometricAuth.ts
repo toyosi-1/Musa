@@ -4,6 +4,7 @@
  */
 
 import { startRegistration, startAuthentication } from '@simplewebauthn/browser';
+import { fetchWithAuth } from '@/lib/fetchWithAuth';
 
 /** Check if the device supports biometric/platform authentication */
 export async function isBiometricAvailable(): Promise<boolean> {
@@ -39,9 +40,8 @@ export async function registerBiometric(
 ): Promise<{ success: boolean; message: string }> {
   try {
     // 1. Get registration options from server
-    const optRes = await fetch('/api/webauthn/register-options', {
+    const optRes = await fetchWithAuth('/api/webauthn/register-options', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId, email, displayName }),
     });
     const optData = await optRes.json();
@@ -53,9 +53,8 @@ export async function registerBiometric(
     const credential = await startRegistration({ optionsJSON: optData.options });
 
     // 3. Send credential to server for verification
-    const verifyRes = await fetch('/api/webauthn/register-verify', {
+    const verifyRes = await fetchWithAuth('/api/webauthn/register-verify', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId, credential }),
     });
     const verifyData = await verifyRes.json();

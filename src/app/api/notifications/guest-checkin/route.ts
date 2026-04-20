@@ -2,9 +2,20 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getFirebaseDatabase } from '@/lib/firebase';
 import { ref, get } from 'firebase/database';
 import { rateLimit, getClientIp, rateLimitResponse } from '@/lib/rateLimit';
+import { requireAuth, AuthError } from '@/lib/requireAuth';
 
 export async function POST(request: NextRequest) {
   try {
+    // Auth first — only guards (or admins) may trigger guest check-in push
+    // notifications. Previously any unauthed caller could spam residents.
+    let authUser;
+    try {
+      authUser = await requireAuth(request, { roles: ['guard', 'admin'] });
+    } catch (err) {
+      if (err instanceof AuthError) return err.toResponse();
+      throw err;
+    }
+
     // Rate limit: 20 check-ins per minute per IP.
     // Guards legitimately burst during shift changes; 20/min leaves plenty of
     // headroom while still capping runaway scripts.
@@ -16,6 +27,8 @@ export async function POST(request: NextRequest) {
     if (!rl.success) return rateLimitResponse(rl);
 
     const { accessCodeId, guardName } = await request.json();
+    // Use the authenticated guard's recorded name if client didn't supply one.
+    const effectiveGuardName = guardName || authUser.email || 'Security';
 
     if (!accessCodeId) {
       return NextResponse.json(
@@ -123,7 +136,7 @@ export async function POST(request: NextRequest) {
       data: {
         accessCodeId,
         guestName,
-        guardName: guardName || 'Security',
+        guardName: effectiveGuardName,
         address
       }
     };

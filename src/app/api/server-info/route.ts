@@ -1,4 +1,5 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth, AuthError } from '@/lib/requireAuth';
 
 /**
  * GET /api/server-info
@@ -6,8 +7,18 @@ import { NextResponse } from 'next/server';
  * Returns the server's current outbound IP address.
  * Use this to verify what IP Netlify is using when calling Flutterwave,
  * so you can confirm if the whitelisted IP is still correct.
+ *
+ * Admin-only: the IP is not strictly secret but diagnostic routes are a
+ * reconnaissance surface and shouldn't be open to the public.
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
+  try {
+    await requireAuth(request, { roles: ['admin'] });
+  } catch (err) {
+    if (err instanceof AuthError) return err.toResponse();
+    throw err;
+  }
+
   try {
     const [ipifyRes, ifconfigRes] = await Promise.allSettled([
       fetch('https://api.ipify.org?format=json', { signal: AbortSignal.timeout(5000) }),

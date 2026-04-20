@@ -74,9 +74,8 @@ export function useDeviceAuthorization() {
       const platform = navigator.platform;
 
       // Call API to check/create device
-      const response = await fetch('/api/device/check', {
+      const response = await fetchWithAuth('/api/device/check', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           userId: currentUser.uid,
           fingerprint,

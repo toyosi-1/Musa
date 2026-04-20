@@ -2,6 +2,7 @@ import { ref, get, set } from 'firebase/database';
 import { signOut as firebaseSignOut } from 'firebase/auth';
 import { getFirebaseAuth, getFirebaseDatabase } from '@/lib/firebase';
 import { generateDeviceId, getDeviceLabel } from '@/utils/deviceFingerprint';
+import { fetchWithAuth } from '@/lib/fetchWithAuth';
 import type { User } from '@/types/user';
 
 /**
@@ -30,9 +31,8 @@ export async function enforceHouseholdDeviceApproval(user: User): Promise<void> 
     const deviceId = generateDeviceId();
     const deviceLabel = getDeviceLabel();
 
-    const checkRes = await fetch('/api/device-approval', {
+    const checkRes = await fetchWithAuth('/api/device-approval', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'check', userId: user.uid, deviceId }),
     });
     const checkData = await checkRes.json();
@@ -61,9 +61,8 @@ export async function enforceHouseholdDeviceApproval(user: User): Promise<void> 
 
     // Has known devices, but not this one — send approval email and sign out
     console.log('🔐 New device detected for Head of House — requesting approval');
-    await fetch('/api/device-approval', {
+    await fetchWithAuth('/api/device-approval', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         action: 'send',
         userId: user.uid,

@@ -10,6 +10,7 @@ import { ref, get, set, push, remove } from 'firebase/database';
 import { getDiscoBrand } from '@/utils/discoLogos';
 import ModernBanner, { AlertBanner } from '@/components/ui/ModernBanner';
 import { logActivity } from '@/services/activityService';
+import { fetchWithAuth } from '@/lib/fetchWithAuth';
 
 declare global {
   interface Window {
@@ -260,9 +261,8 @@ export default function UtilitiesPage() {
     setErrorMessage('');
 
     try {
-      const response = await fetch('/api/utilities/validate-meter', {
+      const response = await fetchWithAuth('/api/utilities/validate-meter', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           itemCode: selectedItem.itemCode,
           meterNumber,
@@ -349,9 +349,8 @@ export default function UtilitiesPage() {
         if (response.status === 'successful' || response.status === 'completed') {
           setStep('processing');
           try {
-            const res = await fetch('/api/utilities/complete-purchase', {
+            const res = await fetchWithAuth('/api/utilities/complete-purchase', {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 transactionId: response.transaction_id,
                 itemCode: selectedItem?.itemCode,

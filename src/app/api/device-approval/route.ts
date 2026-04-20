@@ -1,23 +1,49 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminDatabase } from '@/lib/firebaseAdmin';
 import { rateLimit, getClientIp, rateLimitResponse } from '@/lib/rateLimit';
+import { requireAuth, AuthError } from '@/lib/requireAuth';
 
 /**
  * POST /api/device-approval
  * 
  * Actions:
- * - "send": Generate a device approval token, store it, and send email
- * - "verify": Verify a token and approve the device
- * - "check": Check if a device is already approved for a user
+ * - "send": Generate a device approval token, store it, and send email (self-only)
+ * - "verify": Verify a token and approve the device (PUBLIC — called from email link)
+ * - "check": Check if a device is already approved for a user (self-only)
  */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { action } = body;
 
+    // Helper: require that the caller is the owner of the userId in body.
+    const requireSelf = async () => {
+      const authUser = await requireAuth(request);
+      if (body.userId && body.userId !== authUser.uid) {
+        throw new AuthError(
+          403,
+          'You can only manage device approvals for your own account.',
+          'forbidden_role',
+        );
+      }
+      return authUser;
+    };
+
     if (action === 'check') {
+      try {
+        await requireSelf();
+      } catch (err) {
+        if (err instanceof AuthError) return err.toResponse();
+        throw err;
+      }
       return handleCheck(body);
     } else if (action === 'send') {
+      try {
+        await requireSelf();
+      } catch (err) {
+        if (err instanceof AuthError) return err.toResponse();
+        throw err;
+      }
       // Rate limit device-approval emails: 3 per 10 minutes per IP.
       // Prevents flooding a user's inbox or exhausting Resend quota.
       const rl = rateLimit({
@@ -28,6 +54,9 @@ export async function POST(request: NextRequest) {
       if (!rl.success) return rateLimitResponse(rl);
       return handleSend(body);
     } else if (action === 'verify') {
+      // INTENTIONALLY public — verify is hit from the email link while the
+      // user is signed out on a new device. The single-use token in the body
+      // IS the auth.
       return handleVerify(body);
     }
 

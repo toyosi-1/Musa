@@ -3,6 +3,7 @@ import { ref, push, set, get, query, orderByChild, equalTo, update, remove } fro
 import * as QRCodeLib from 'qrcode';
 import { AccessCode } from '@/types/user';
 import { logActivity } from './activityService';
+import { fetchWithAuth } from '@/lib/fetchWithAuth';
 // import { verifyHouseholdMembership } from './householdService'; // TODO: Re-enable if needed
 
 // Rate limiting constants
@@ -474,9 +475,8 @@ export const verifyAccessCode = async (
     // Send notification to resident that their guest has checked in
     try {
       console.log('Sending guest check-in notification to resident...');
-      const notificationResponse = await fetch('/api/notifications/guest-checkin', {
+      const notificationResponse = await fetchWithAuth('/api/notifications/guest-checkin', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           accessCodeId: accessCode.id,
           guardName: options?.guardName || 'Security'

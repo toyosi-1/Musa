@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateRegistrationOptions } from '@simplewebauthn/server';
 import { getAdminDatabase } from '@/lib/firebaseAdmin';
+import { requireAuth, AuthError } from '@/lib/requireAuth';
 
 const RP_NAME = 'Musa Security';
 const RP_ID = process.env.NEXT_PUBLIC_WEBAUTHN_RP_ID || 'musa-security.com';
@@ -8,12 +9,31 @@ const RP_ID = process.env.NEXT_PUBLIC_WEBAUTHN_RP_ID || 'musa-security.com';
 /**
  * POST /api/webauthn/register-options
  * Generate registration options for a user to create a new passkey.
+ * Requires an authenticated session — a user can only register passkeys for
+ * their own account. Without this check, anyone could register a passkey
+ * linked to a victim's uid and then use it to sign in as them.
  */
 export async function POST(request: NextRequest) {
   try {
+    let authUser;
+    try {
+      authUser = await requireAuth(request);
+    } catch (err) {
+      if (err instanceof AuthError) return err.toResponse();
+      throw err;
+    }
+
     const { userId, email, displayName } = await request.json();
     if (!userId || !email) {
       return NextResponse.json({ success: false, message: 'Missing userId or email' }, { status: 400 });
+    }
+
+    // A user may only register passkeys for their own uid.
+    if (userId !== authUser.uid) {
+      return NextResponse.json(
+        { success: false, message: 'You can only register passkeys for your own account.' },
+        { status: 403 },
+      );
     }
 
     // Get existing credentials for this user (to exclude them)

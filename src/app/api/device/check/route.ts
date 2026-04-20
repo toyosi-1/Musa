@@ -1,8 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getOrCreateDevice } from '@/services/deviceService';
+import { requireAuth, AuthError } from '@/lib/requireAuth';
 
 export async function POST(request: NextRequest) {
   try {
+    // Auth first — a user may only register/look up their OWN devices.
+    let authUser;
+    try {
+      authUser = await requireAuth(request);
+    } catch (err) {
+      if (err instanceof AuthError) return err.toResponse();
+      throw err;
+    }
+
     const body = await request.json();
     const { userId, fingerprint, userAgent, platform } = body;
 
@@ -10,6 +20,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { success: false, message: 'Missing required fields' },
         { status: 400 }
+      );
+    }
+
+    if (userId !== authUser.uid) {
+      return NextResponse.json(
+        { success: false, message: 'You can only register devices for your own account.' },
+        { status: 403 }
       );
     }
 

@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth, AuthError } from '@/lib/requireAuth';
+import { rateLimit, rateLimitResponse } from '@/lib/rateLimit';
 
 const FLUTTERWAVE_SECRET_KEY = process.env.FLUTTERWAVE_SECRET_KEY;
 const FLUTTERWAVE_BASE_URL = 'https://api.flutterwave.com/v3';
@@ -7,11 +9,29 @@ const FLUTTERWAVE_BASE_URL = 'https://api.flutterwave.com/v3';
  * POST /api/utilities/validate-meter
  *
  * Validates an electricity meter number via Flutterwave v3.
+ * Returns the registered customer name + address for the meter — therefore
+ * requires authentication to prevent anonymous meter-number enumeration.
  *
  * Body: { itemCode, meterNumber, billerCode? }
  */
 export async function POST(request: NextRequest) {
   try {
+    let authUser;
+    try {
+      authUser = await requireAuth(request);
+    } catch (err) {
+      if (err instanceof AuthError) return err.toResponse();
+      throw err;
+    }
+
+    // 30 validations/min — legit users try a few meters; this blocks scraping.
+    const rl = rateLimit({
+      key: `validate-meter:${authUser.uid}`,
+      limit: 30,
+      windowMs: 60_000,
+    });
+    if (!rl.success) return rateLimitResponse(rl);
+
     const { itemCode, meterNumber, billerCode } = await request.json();
 
     if (!meterNumber) {

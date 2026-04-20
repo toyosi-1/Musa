@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { invalidateBillersCache } from '@/lib/billersCache';
 import { rankBillerCandidates, type BillerCandidate, type FlutterwaveBillItem } from '@/utils/billerMatching';
+import { requireAuth, AuthError } from '@/lib/requireAuth';
+import { rateLimit, getClientIp, rateLimitResponse } from '@/lib/rateLimit';
 
 const FLUTTERWAVE_SECRET_KEY = process.env.FLUTTERWAVE_SECRET_KEY;
 const FLUTTERWAVE_BASE_URL = 'https://api.flutterwave.com/v3';
@@ -106,8 +108,31 @@ const PROXY_SECRET  = process.env.FLW_PROXY_SECRET; // shared secret to authenti
  */
 export async function POST(request: NextRequest) {
   try {
+    // Auth first — payment completion must be tied to a known user so we can
+    // audit who requested which electricity token. An unauthed caller could
+    // brute-force transactionIds and receive tokens they didn't pay for.
+    let authUser;
+    try {
+      authUser = await requireAuth(request);
+    } catch (err) {
+      if (err instanceof AuthError) return err.toResponse();
+      throw err;
+    }
+
+    // Rate limit: 10 purchase attempts per minute per user-IP pair.
+    // Payments are synchronous and user-initiated; 10/min is generous for
+    // retries while still preventing automated brute-forcing.
+    const rl = rateLimit({
+      key: `complete-purchase:${authUser.uid}:${getClientIp(request)}`,
+      limit: 10,
+      windowMs: 60_000,
+    });
+    if (!rl.success) return rateLimitResponse(rl);
+
     const { transactionId, itemCode: clientItemCode, billerCode: clientBillerCode, billerName, itemName, meterNumber, amount, phoneNumber, email } =
       await request.json();
+
+    console.log('[CompletePurchase] Request by uid=%s email=%s tx=%s', authUser.uid, authUser.email, transactionId);
 
     if (!transactionId || !clientItemCode || !meterNumber || !amount) {
       return NextResponse.json(
