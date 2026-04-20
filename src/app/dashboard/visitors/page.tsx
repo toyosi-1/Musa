@@ -14,6 +14,7 @@ import { waitForAuthUser } from '@/lib/firebase';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 import ModernBanner from '@/components/ui/ModernBanner';
 import { UsersIcon } from '@heroicons/react/24/solid';
+import { isAccessCodeActive } from '@/utils/accessCodeStatus';
 
 export default function VisitorsPage() {
   const { currentUser, loading: authLoading } = useAuth();
@@ -242,7 +243,7 @@ export default function VisitorsPage() {
                 <div>
                   <h2 className="text-base font-bold text-gray-900 dark:text-white">Your Access Codes</h2>
                   <p className="text-[11px] text-gray-400 dark:text-gray-500">
-                    {accessCodes.length} code{accessCodes.length !== 1 ? 's' : ''} &middot; {accessCodes.filter(c => c.isActive).length} active
+                    {accessCodes.length} code{accessCodes.length !== 1 ? 's' : ''} &middot; {accessCodes.filter(isAccessCodeActive).length} active
                   </p>
                 </div>
               </div>

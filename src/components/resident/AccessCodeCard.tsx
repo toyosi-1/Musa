@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { AccessCode } from '@/types/user';
 import Image from 'next/image';
+import { getAccessCodeStatus } from '@/utils/accessCodeStatus';
 
 interface AccessCodeCardProps {
   accessCode: AccessCode;
@@ -14,8 +15,10 @@ export default function AccessCodeCard({ accessCode, onDeactivate }: AccessCodeC
   const [isDeactivating, setIsDeactivating] = useState(false);
   const [showQR, setShowQR] = useState(false);
 
-  // Check if code is expired
-  const isExpired = accessCode.expiresAt ? accessCode.expiresAt < Date.now() : false;
+  // Derive effective status (inactive / expired / active) from the shared helper
+  // so this card never drifts from the dashboard counter.
+  const status = getAccessCodeStatus(accessCode);
+  const isExpired = status === 'expired';
 
   // Format expiration date
   const formatExpirationDate = (timestamp: number) => {

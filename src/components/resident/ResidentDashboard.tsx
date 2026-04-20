@@ -18,6 +18,7 @@ import { useDeviceAuthorization } from '@/hooks/useDeviceAuthorization';
 import { getFirebaseDatabase, waitForAuthUser } from '@/lib/firebase';
 import { ref, get } from 'firebase/database';
 import { cacheAccessCodes, getCachedAccessCodes, cacheHousehold, getCachedHousehold } from '@/utils/offlineCache';
+import { isAccessCodeActive } from '@/utils/accessCodeStatus';
 
 interface ResidentDashboardProps {
   user: User;
@@ -266,9 +267,14 @@ export default function ResidentDashboard({ user }: ResidentDashboardProps) {
           </div>
           {/* Quick stat pills */}
           <div className="flex items-center gap-2 mt-4">
-            <div className="px-3 py-1 rounded-full bg-white/15 backdrop-blur-sm text-xs font-medium text-white">
-              {accessCodes.filter(c => c.isActive).length} active codes
-            </div>
+            {(() => {
+              const activeCount = accessCodes.filter(isAccessCodeActive).length;
+              return (
+                <div className="px-3 py-1 rounded-full bg-white/15 backdrop-blur-sm text-xs font-medium text-white">
+                  {activeCount} active code{activeCount === 1 ? '' : 's'}
+                </div>
+              );
+            })()}
             {household && (
               <div className="px-3 py-1 rounded-full bg-white/15 backdrop-blur-sm text-xs font-medium text-white">
                 {household.name}
