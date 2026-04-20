@@ -63,6 +63,29 @@ Musa is a modern, privacy-focused estate access control web application designed
 6. **Open your browser:**
    - Go to http://localhost:3000
 
+## Testing
+
+### Unit tests
+
+Runs on pre-commit and in CI — no external dependencies:
+
+```
+npm test                # one-shot
+npm run test:watch      # watch mode
+npm run test:coverage   # with v8 coverage
+```
+
+### Firebase rules tests
+
+These tests exercise `database.rules.json` against the real Firebase emulator. They require **Java** (the emulator runtime) and are excluded from the default `npm test` run.
+
+```
+npm run test:rules:ci   # starts emulator, runs tests, shuts down
+npm run test:rules      # if emulator is already running
+```
+
+The rules tests live in `tests/rules/` and cover role escalation, cross-estate isolation, household privacy, and self-impersonation. See `@/tests/rules/database.rules.test.ts`.
+
 ## Project Structure
 
 ```
