@@ -8,6 +8,7 @@ import { HouseholdInvite, Household } from '@/types/user';
 import { ref, get } from 'firebase/database';
 import { getFirebaseDatabase } from '@/lib/firebase';
 import Link from 'next/link';
+import PageLoading from '@/components/ui/PageLoading';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 
 export default function InvitePage() {
@@ -145,15 +146,15 @@ export default function InvitePage() {
 
   if (loading || authLoading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-950 gap-3">
-        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/20 animate-pulse">
+      <PageLoading
+        accent="blue"
+        label="Loading invitation..."
+        icon={
           <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
           </svg>
-        </div>
-        <div className="w-5 h-5 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
-        <p className="text-sm text-gray-400">Loading invitation...</p>
-      </div>
+        }
+      />
     );
   }
 

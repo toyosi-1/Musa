@@ -9,6 +9,7 @@ import { listEstates } from '@/services/estateService';
 import { approveUserWithEstate } from '@/services/userService';
 import { getFirebaseDatabase } from '@/lib/firebase';
 import { ref, get, query, orderByChild, equalTo } from 'firebase/database';
+import PageLoading from '@/components/ui/PageLoading';
 
 export default function AdminPendingPage() {
   const { currentUser, loading } = useAuth();
@@ -179,14 +180,14 @@ export default function AdminPendingPage() {
 
   if (loading || !currentUser) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-950 gap-3">
-        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow-lg shadow-amber-500/20 animate-pulse">
+      <PageLoading
+        accent="amber"
+        icon={
           <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-        </div>
-        <div className="w-5 h-5 border-2 border-amber-200 border-t-amber-600 rounded-full animate-spin" />
-      </div>
+        }
+      />
     );
   }
 

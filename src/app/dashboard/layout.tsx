@@ -24,6 +24,7 @@ import NotificationBell from '@/components/notifications/NotificationBell';
 import BiometricSetupBanner from '@/components/auth/BiometricSetupBanner';
 import MusaCharacterSVG from '@/components/ui/illustrations/MusaCharacterSVG';
 import { useTheme } from '@/contexts/ThemeContext';
+import PageLoading from '@/components/ui/PageLoading';
 
 export default function DashboardLayout({
   children,
@@ -51,12 +52,10 @@ export default function DashboardLayout({
 
   if (loading) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-950 gap-3">
-        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/25 animate-pulse">
-          <MusaCharacterSVG size={28} animated={false} />
-        </div>
-        <div className="w-6 h-6 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
-      </div>
+      <PageLoading
+        accent="blue"
+        icon={<MusaCharacterSVG size={24} animated={false} />}
+      />
     );
   }
 

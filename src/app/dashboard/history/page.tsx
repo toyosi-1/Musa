@@ -7,6 +7,7 @@ import { ArrowLeftIcon } from '@heroicons/react/24/solid';
 import { getUserNotifications, NotificationData } from '@/services/notificationService';
 import { getGuardVerificationHistory, VerificationRecord } from '@/services/guardActivityService';
 import { getHouseholdActivity, getEstateActivity, ActivityEntry, ActivityType } from '@/services/activityService';
+import PageLoading from '@/components/ui/PageLoading';
 
 // Icon + color config for every activity type
 const ACTIVITY_CONFIG: Record<ActivityType, { label: string; icon: string; bg: string; text: string }> = {
@@ -141,14 +142,15 @@ export default function HistoryPage() {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3">
-        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shadow-lg shadow-violet-500/20 animate-pulse">
+      <PageLoading
+        accent="purple"
+        className="flex flex-col items-center justify-center min-h-[60vh] gap-3"
+        icon={
           <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-        </div>
-        <div className="w-5 h-5 border-2 border-violet-200 border-t-violet-600 rounded-full animate-spin" />
-      </div>
+        }
+      />
     );
   }
 
