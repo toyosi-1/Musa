@@ -39,7 +39,7 @@ export function mapOccupation(occupation: string, designation: string): ServiceT
     combined.includes('fabricat')
   ) types.push('carpenter');
 
-  if (combined.includes('paint') || combined.includes('scroeding')) types.push('painter');
+  if (combined.includes('paint') || combined.includes('screed')) types.push('painter');
   if (combined.includes('garden') || combined.includes('landscap')) types.push('gardener');
   if (combined.includes('security') || combined.includes('guard')) types.push('security');
 
@@ -88,9 +88,36 @@ export function normalizePhone(raw: string): string {
 }
 
 /**
- * Returns true if a vendor row should be skipped during import (empty or placeholder name).
+ * Returns true if a vendor row should be skipped during import.
+ * A row is skippable only when BOTH the person name and the company are
+ * empty or the placeholder "Nil" — without either, there is no useful
+ * identifier to display to admins / residents.
  */
-export function shouldSkipVendor(name: string | undefined | null): boolean {
-  const n = (name || '').trim();
-  return !n || n.toLowerCase() === 'nil';
+export function shouldSkipVendor(
+  name: string | undefined | null,
+  company?: string | undefined | null,
+): boolean {
+  const isPlaceholder = (s: string | undefined | null) => {
+    const v = (s || '').trim();
+    return !v || v.toLowerCase() === 'nil';
+  };
+  return isPlaceholder(name) && isPlaceholder(company);
+}
+
+/**
+ * Returns the best human-readable display name for a vendor row.
+ * Falls back to the company when the person name is empty or a placeholder.
+ * Returns an empty string when neither name nor company is usable (the
+ * caller should pair this with `shouldSkipVendor` so empty rows never reach
+ * the database).
+ */
+export function resolveVendorDisplayName(
+  name: string | undefined | null,
+  company: string | undefined | null,
+): string {
+  const isReal = (s: string | undefined | null) => {
+    const v = (s || '').trim();
+    return v && v.toLowerCase() !== 'nil' ? v : '';
+  };
+  return isReal(name) || isReal(company);
 }

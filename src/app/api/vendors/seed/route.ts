@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminDatabase } from '@/lib/firebaseAdmin';
-import { mapOccupation, normalizePhone, shouldSkipVendor } from '@/utils/vendorMapping';
+import { mapOccupation, normalizePhone, shouldSkipVendor, resolveVendorDisplayName } from '@/utils/vendorMapping';
 import { rateLimit, getClientIp, rateLimitResponse } from '@/lib/rateLimit';
 import { requireAuth, AuthError } from '@/lib/requireAuth';
 
@@ -57,13 +57,18 @@ export async function POST(request: NextRequest) {
     let added = 0;
 
     for (const v of rawVendors) {
-      if (shouldSkipVendor(v.name)) continue;
-      const name = (v.name || '').trim();
+      if (shouldSkipVendor(v.name, v.company)) continue;
+      const name = resolveVendorDisplayName(v.name, v.company);
       const phone = normalizePhone(v.contact || '');
 
       const serviceTypes = mapOccupation(v.occupation || '', v.designation || '');
       const company = (v.company || '').trim();
       const designation = (v.designation || '').trim();
+      const hasRealCompany = company && company.toLowerCase() !== 'nil';
+      // Only keep the company as `businessName` when it differs from the display name,
+      // otherwise the directory shows it twice (e.g. "Kitchen and Accessories ·
+      // Kitchen and Accessories").
+      const businessName = hasRealCompany && company !== name ? company : '';
 
       const vendorRef = db.ref(`vendors/${estateId}`).push();
       const vendor = {
@@ -75,7 +80,7 @@ export async function POST(request: NextRequest) {
         isAvailable: true,
         addedBy: adminUid || 'seed-script',
         addedAt: now,
-        businessName: company !== 'NIL' && company !== 'Nil' && company ? company : '',
+        businessName,
         notes: designation || '',
         licenseStatus: 'none',
         coverageAreas: [],

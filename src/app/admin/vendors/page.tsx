@@ -23,7 +23,7 @@ const EMPTY_FORM = { name:'', phone:'', serviceTypes:[] as ServiceType[], notes:
 
 // COG Contact spreadsheet data for bulk import
 const COG_VENDORS = [
-  { name: 'Raphael Etim', occupation: 'Civil Works', designation: 'Painter/Scroeding', company: 'NIL', contact: '08024175196 / 09052075189' },
+  { name: 'Raphael Etim', occupation: 'Civil Works', designation: 'Painter/Screeding', company: 'NIL', contact: '08024175196 / 09052075189' },
   { name: 'Seyi', occupation: 'Mechanical', designation: 'Generator Specialist', company: 'Mantrac', contact: '08160686300' },
   { name: 'Mr Sodiq', occupation: 'Civil Works', designation: 'Scaffolding', company: 'SDQ Edge', contact: '07089265738' },
   { name: 'Sesan', occupation: 'Civil', designation: 'Wood Work Specialist', company: 'S.T.K', contact: '08023901138' },
@@ -38,10 +38,10 @@ const COG_VENDORS = [
   { name: 'Buknor', occupation: 'DSTV', designation: 'DSTV', company: 'NIL', contact: '08025148183' },
   { name: 'Nil', occupation: 'Construction', designation: 'M & E', company: 'NIL', contact: '08056506178' },
   { name: 'Ebube', occupation: 'Dealership', designation: 'Vehicle Dealer', company: 'GO Autos', contact: '07016493154' },
-  { name: 'Gift', occupation: 'Electrical Engineering', designation: 'UPS/FM200/Fire System', company: 'Electrified Engineering', contact: '08082099567' },
+  { name: 'Gift', occupation: 'Electrical Engineering', designation: 'UPS/FM200/Fire System', company: 'Electrified Engineering', contact: '08082999567' },
   { name: 'Sunday Henry', occupation: 'Fabrications', designation: 'Glass Production', company: 'NIL', contact: '08128242773' },
   { name: 'Anthony', occupation: 'Mechanical', designation: 'Gym Equipments', company: 'Everfitness', contact: '08132763579' },
-  { name: 'Ayolunde', occupation: 'Janitorial', designation: 'House Cleaning', company: 'Heywhy Cleaning Service', contact: '08023937844' },
+  { name: 'Ayotunde', occupation: 'Janitorial', designation: 'House Cleaning', company: 'Heywhy Cleaning Service', contact: '08023937844' },
   { name: 'Nil', occupation: 'Electrician', designation: 'Kitchen Extractor', company: 'Kitchen and Accessories', contact: '08033089443' },
 ];
 
