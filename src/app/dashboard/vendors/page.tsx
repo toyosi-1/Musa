@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { createServiceRequest, getServiceRequests, uploadServiceRequestImages, submitVendorReview } from '@/services/vendorService';
 import { ServiceRequest, ServiceType } from '@/types/user';
+import ErrorState from '@/components/ui/ErrorState';
 
 // SVG icon paths for each vendor service type
 const SERVICE_ICONS: Record<ServiceType, { path: string; viewBox?: string }> = {
@@ -275,12 +276,7 @@ export default function VendorRequestPage() {
               </label>
             )}
           </div>
-          {error && (
-            <div className="flex items-center gap-2 p-3 rounded-xl bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 text-red-600 dark:text-red-400 text-sm">
-              <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"/></svg>
-              {error}
-            </div>
-          )}
+          {error && <ErrorState compact title={error} description={null} />}
           <button type="submit" disabled={submitting}
             className="w-full py-3.5 rounded-2xl font-semibold text-sm text-white bg-gradient-to-r from-blue-600 to-indigo-600 shadow-lg shadow-blue-500/20 hover:shadow-blue-500/30 hover:-translate-y-0.5 disabled:opacity-50 disabled:translate-y-0 transition-all duration-200">
             {submitting ? (uploadProgress || 'Submitting...') : 'Submit Request'}

@@ -19,6 +19,7 @@ import { getFirebaseDatabase, waitForAuthUser } from '@/lib/firebase';
 import { ref, get } from 'firebase/database';
 import { cacheAccessCodes, getCachedAccessCodes, cacheHousehold, getCachedHousehold } from '@/utils/offlineCache';
 import { isAccessCodeActive } from '@/utils/accessCodeStatus';
+import ErrorState from '@/components/ui/ErrorState';
 
 interface ResidentDashboardProps {
   user: User;
@@ -403,17 +404,12 @@ export default function ResidentDashboard({ user }: ResidentDashboardProps) {
       </div>
       
       {error && (
-        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/50 text-red-700 dark:text-red-300 px-4 py-3 rounded-xl flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-red-100 dark:bg-red-900/30 flex items-center justify-center flex-shrink-0">
-            <svg className="h-4 w-4 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          </div>
-          <p className="font-medium text-sm flex-1">
-            {error === 'SESSION_EXPIRED' ? 'Your session needs to be refreshed.' : error}
-          </p>
-          <button onClick={() => window.location.reload()} className="px-3 py-1.5 bg-red-600 text-white text-xs font-semibold rounded-lg hover:bg-red-700 transition-colors">Reload</button>
-        </div>
+        <ErrorState
+          compact
+          title="We couldn't load your dashboard"
+          description={error === 'SESSION_EXPIRED' ? 'Your session needs to be refreshed.' : error}
+          onRetry={() => window.location.reload()}
+        />
       )}
 
       {!user.householdId && !household && (

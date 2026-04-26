@@ -9,6 +9,7 @@ import { Vendor, ServiceType, ServiceRequest, Household } from '@/types/user';
 import { getFirebaseDatabase } from '@/lib/firebase';
 import { ref, get } from 'firebase/database';
 import StatusGuard from '@/components/auth/StatusGuard';
+import ErrorState from '@/components/ui/ErrorState';
 
 const ALL_SERVICE_TYPES: ServiceType[] = ['plumber','electrician','gardener','carpenter','painter','security','cleaner','it_support','other'];
 const SERVICE_LABEL: Record<ServiceType,string> = { plumber:'Plumber', electrician:'Electrician', gardener:'Gardener', carpenter:'Carpenter', painter:'Painter', security:'Security', cleaner:'Cleaner', it_support:'IT Support', other:'Other' };
@@ -625,12 +626,7 @@ export default function AdminVendorsPage() {
                 </button>
                 <span className="text-sm text-[#5a5a50]">Available for assignments</span>
               </div>
-              {error && (
-                <div className="flex items-center gap-2 p-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-sm">
-                  <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"/></svg>
-                  {error}
-                </div>
-              )}
+              {error && <ErrorState compact title={error} description={null} />}
               <div className="flex gap-3 pt-1">
                 <button type="submit" disabled={saving}
                   className="flex-1 h-10 rounded-xl bg-[#4a7c59] text-white text-sm font-semibold disabled:opacity-50 hover:bg-[#3d6a4b] transition-colors shadow-sm">

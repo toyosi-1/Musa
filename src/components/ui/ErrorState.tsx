@@ -7,8 +7,8 @@ interface ErrorStateProps {
   icon?: React.ReactNode;
   /** Short headline shown in bold. */
   title?: string;
-  /** Longer explanation / next-step guidance. */
-  description?: string;
+  /** Longer explanation / next-step guidance. Pass `null` or `""` to omit. */
+  description?: string | null;
   /** Optional raw error (Error instance or string) to surface technical details. */
   error?: Error | string | null;
   /** Optional retry handler — renders a "Try Again" button when provided. */
@@ -69,7 +69,9 @@ export default function ErrorState({
         <div className="flex-shrink-0">{icon || defaultIcon}</div>
         <div className="min-w-0 flex-1">
           <h4 className="text-sm font-semibold text-red-900 dark:text-red-200">{title}</h4>
-          <p className="mt-1 text-sm text-red-700 dark:text-red-300">{description}</p>
+          {description && (
+            <p className="mt-1 text-sm text-red-700 dark:text-red-300">{description}</p>
+          )}
           {errorMessage && (
             <p className="mt-2 break-words text-xs font-mono text-red-600 dark:text-red-400">
               {errorMessage}
@@ -106,9 +108,11 @@ export default function ErrorState({
 
       <h3 className="heading-4 text-gray-900 dark:text-white mb-3">{title}</h3>
 
-      <p className="body-normal text-gray-500 dark:text-gray-400 max-w-md mx-auto mb-4">
-        {description}
-      </p>
+      {description && (
+        <p className="body-normal text-gray-500 dark:text-gray-400 max-w-md mx-auto mb-4">
+          {description}
+        </p>
+      )}
 
       {errorMessage && (
         <details className="mb-6 max-w-md mx-auto text-left">

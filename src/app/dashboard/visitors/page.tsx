@@ -15,6 +15,7 @@ import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 import ModernBanner from '@/components/ui/ModernBanner';
 import { UsersIcon } from '@heroicons/react/24/solid';
 import { isAccessCodeActive } from '@/utils/accessCodeStatus';
+import ErrorState from '@/components/ui/ErrorState';
 
 export default function VisitorsPage() {
   const { currentUser, loading: authLoading } = useAuth();
@@ -152,20 +153,13 @@ export default function VisitorsPage() {
       ) : (
         <div className="space-y-6">
           {error && (
-            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/50 text-red-700 dark:text-red-300 px-4 py-3 rounded-xl flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-red-100 dark:bg-red-900/30 flex items-center justify-center flex-shrink-0">
-                <svg className="h-4 w-4 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <p className="font-medium text-sm flex-1">
-                {error === 'SESSION_EXPIRED' ? 'Your session needs to be refreshed.' : error}
-              </p>
-              <div className="flex gap-2 flex-shrink-0">
-                <button onClick={() => window.location.reload()} className="px-3 py-1.5 bg-red-600 text-white text-xs font-semibold rounded-lg hover:bg-red-700 transition-colors">Reload</button>
-                <button onClick={() => loadData()} className="px-3 py-1.5 bg-red-100 dark:bg-red-800 text-red-700 dark:text-red-200 text-xs font-semibold rounded-lg hover:bg-red-200 dark:hover:bg-red-700 transition-colors">Retry</button>
-              </div>
-            </div>
+            <ErrorState
+              compact
+              title="We couldn't load your access codes"
+              description={error === 'SESSION_EXPIRED' ? 'Your session needs to be refreshed.' : error}
+              onRetry={() => loadData()}
+              secondaryAction={{ label: 'Reload page', onClick: () => window.location.reload() }}
+            />
           )}
 
           {/* Address Missing Warning */}

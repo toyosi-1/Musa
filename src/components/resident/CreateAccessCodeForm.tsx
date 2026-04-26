@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
+import ErrorState from '@/components/ui/ErrorState';
 
 interface CreateAccessCodeFormProps {
   onCreateCode: (description: string, expiresAt?: number) => Promise<{ code: string; qrCode: string } | null>;
@@ -227,11 +228,7 @@ Powered By Musa Security`;
   
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      {error && (
-        <div className="bg-red-100 dark:bg-red-900/30 border border-red-400 dark:border-red-700 text-red-700 dark:text-red-400 px-4 py-3 rounded">
-          {error}
-        </div>
-      )}
+      {error && <ErrorState compact title={error} description={null} />}
       
       <div>
         <label htmlFor="description" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
