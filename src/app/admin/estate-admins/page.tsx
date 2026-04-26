@@ -7,6 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { listEstates } from '@/services/estateService';
 import { listEstateAdmins, createEstateAdmin, removeEstateAdmin } from '@/services/estateAdminService';
 import type { User, Estate } from '@/types/user';
+import EmptyState from '@/components/ui/EmptyState';
 
 export default function EstateAdminsPage() {
   const { currentUser } = useAuth();
@@ -283,23 +284,22 @@ export default function EstateAdminsPage() {
 
         {/* Estate Admins List */}
         {estateAdmins.length === 0 ? (
-          <div className="bg-white dark:bg-gray-800/80 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-12 text-center">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+          <EmptyState
+            icon={
               <svg className="h-8 w-8 text-gray-300 dark:text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
               </svg>
-            </div>
-            <h3 className="text-base font-bold text-gray-800 dark:text-white mb-1">No Estate Admins Yet</h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">
-              Create estate admins to delegate user approval and management tasks
-            </p>
+            }
+            title="No Estate Admins Yet"
+            description="Create estate admins to delegate user approval and management tasks"
+          >
             <button
               onClick={() => setShowCreateForm(true)}
               className="px-5 py-2.5 text-sm font-bold text-white bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 rounded-xl shadow-md shadow-purple-500/20 transition-all"
             >
               Create First Estate Admin
             </button>
-          </div>
+          </EmptyState>
         ) : (
           <div className="space-y-3">
             {estateAdmins.map((admin) => (

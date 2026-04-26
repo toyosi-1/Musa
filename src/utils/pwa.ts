@@ -1,6 +1,7 @@
 /**
  * Utility functions for PWA installation and management
  */
+import toast from 'react-hot-toast';
 
 /**
  * Checks if the app is running as a PWA (installed to home screen)
@@ -74,8 +75,11 @@ export function showiOSInstallPrompt() {
   const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
   
   if (isSafari && isIOS()) {
-    // Show iOS installation instructions
-    alert('To install this app, tap the Share button and then "Add to Home Screen".');
+    // Show iOS installation instructions as a non-blocking toast.
+    toast(
+      'To install this app, tap the Share button and then "Add to Home Screen".',
+      { duration: 8000 },
+    );
     return true;
   }
   
