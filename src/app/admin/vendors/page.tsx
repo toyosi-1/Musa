@@ -365,7 +365,7 @@ export default function AdminVendorsPage() {
             {/* ─── Request Detail Overlay (floats over feed) ─── */}
             {selectedRequest && (
               <div className="absolute inset-0 z-10 bg-[#f5f5f0]/80 backdrop-blur-sm flex items-start justify-center pt-6 pb-6 overflow-y-auto">
-                <div className="bg-white rounded-2xl shadow-2xl border border-[#e5e5e0] w-[380px] max-h-[calc(100%-48px)] overflow-y-auto">
+                <div className="bg-white rounded-2xl shadow-2xl border border-[#e5e5e0] w-full max-w-[380px] mx-4 max-h-[calc(100%-48px)] overflow-y-auto">
                   <div className="p-4">
                     <div className="flex items-start justify-between mb-3">
                       <div className="p-2.5 rounded-xl bg-[#f8f8f5] border border-[#e5e5e0] flex-1 mr-2">
@@ -470,8 +470,8 @@ export default function AdminVendorsPage() {
                 </div>
               </div>
 
-              <div className="border border-[#e5e5e0] rounded-xl overflow-hidden">
-                <table className="w-full">
+              <div className="border border-[#e5e5e0] rounded-xl overflow-x-auto overflow-y-hidden">
+                <table className="w-full min-w-[500px]">
                   <thead>
                     <tr className="bg-[#f8f8f5]">
                       <th className="text-left text-[9px] font-semibold text-[#7a7a6e] uppercase tracking-wider px-2.5 py-2"></th>
