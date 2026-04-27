@@ -193,7 +193,7 @@ export default function AdminPendingPage() {
 
   return (
     <StatusGuard requireStatus="approved" requireAdmin={true}>
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-950 safe-area-inset-top">
       <div className="w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
         {/* Header */}
         <div className="flex items-center gap-3">

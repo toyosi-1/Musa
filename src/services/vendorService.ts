@@ -3,6 +3,7 @@ import { ref, push, set, get, update } from 'firebase/database';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { Vendor, ServiceRequest, ServiceRequestStatus, VendorReview } from '@/types/user';
 import { queuedWrite } from './requestQueue';
+import { PLATFORM_VENDORS_ESTATE_ID } from '@/constants/vendors';
 
 // Compress an image before upload
 const compressImage = (file: File, maxWidth = 1200, quality = 0.7): Promise<Blob> =>
@@ -49,6 +50,46 @@ export async function getVendors(estateId: string): Promise<Vendor[]> {
   const snap = await get(ref(db, `vendors/${estateId}`));
   if (!snap.exists()) return [];
   return Object.values(snap.val()) as Vendor[];
+}
+
+/**
+ * Reads the platform-wide vendor directory managed by the super admin.
+ * Residents and estate admins should treat these as available alongside any
+ * vendors scoped to their own estate.
+ */
+export async function getPlatformVendors(): Promise<Vendor[]> {
+  return getVendors(PLATFORM_VENDORS_ESTATE_ID);
+}
+
+/**
+ * Merges two vendor lists, deduplicating by id. Estate-scoped vendors take
+ * precedence over platform vendors when both buckets contain an entry with
+ * the same id (should never happen in practice, but safe by construction).
+ */
+export function mergeVendors(primary: Vendor[], secondary: Vendor[]): Vendor[] {
+  const seen = new Set<string>();
+  const out: Vendor[] = [];
+  for (const v of primary) {
+    if (v?.id && !seen.has(v.id)) { seen.add(v.id); out.push(v); }
+  }
+  for (const v of secondary) {
+    if (v?.id && !seen.has(v.id)) { seen.add(v.id); out.push(v); }
+  }
+  return out;
+}
+
+/**
+ * Returns the vendor directory visible to a resident or estate admin in a
+ * given estate: their own estate's vendors plus the platform-wide directory.
+ *
+ * When estateId is falsy we still return the platform directory so that
+ * unassigned users can browse the one-stop shop.
+ */
+export async function getAvailableVendors(estateId: string | undefined | null): Promise<Vendor[]> {
+  const platform = await getPlatformVendors();
+  if (!estateId || estateId === PLATFORM_VENDORS_ESTATE_ID) return platform;
+  const local = await getVendors(estateId);
+  return mergeVendors(local, platform);
 }
 
 export async function addVendor(estateId: string, data: Omit<Vendor, 'id'>): Promise<string> {

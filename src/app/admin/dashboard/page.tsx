@@ -131,7 +131,7 @@ export default function AdminDashboardPage() {
 
   return (
     <StatusGuard requireStatus="approved" requireAdmin={true}>
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-950 safe-area-inset-top">
         {/* Top gradient accent */}
         <div className="h-0.5 bg-gradient-to-r from-violet-600 via-purple-500 to-fuchsia-500" />
         

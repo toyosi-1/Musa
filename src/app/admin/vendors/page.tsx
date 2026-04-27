@@ -10,6 +10,7 @@ import { getFirebaseDatabase } from '@/lib/firebase';
 import { ref, get } from 'firebase/database';
 import StatusGuard from '@/components/auth/StatusGuard';
 import ErrorState from '@/components/ui/ErrorState';
+import { PLATFORM_VENDORS_ESTATE_ID } from '@/constants/vendors';
 
 const ALL_SERVICE_TYPES: ServiceType[] = ['plumber','electrician','gardener','carpenter','painter','security','cleaner','it_support','other'];
 const SERVICE_LABEL: Record<ServiceType,string> = { plumber:'Plumber', electrician:'Electrician', gardener:'Gardener', carpenter:'Carpenter', painter:'Painter', security:'Security', cleaner:'Cleaner', it_support:'IT Support', other:'Other' };
@@ -76,17 +77,27 @@ export default function AdminVendorsPage() {
   const [requestFilter, setRequestFilter] = useState<'all'|'pending'|'assigned'|'in_progress'|'completed'>('all');
   const [photoIdx, setPhotoIdx] = useState(0);
 
-  const estateId = currentUser?.estateId || '';
+  // Super admins ('admin' role) manage the platform-wide vendor directory
+  // rather than a single estate, so when they have no personal estateId we
+  // route CRUD/seed operations through the shared `__platform__` bucket.
+  const estateId = currentUser?.estateId
+    || (currentUser?.role === 'admin' ? PLATFORM_VENDORS_ESTATE_ID : '');
+  const isPlatformBucket = estateId === PLATFORM_VENDORS_ESTATE_ID;
 
   const load = useCallback(async () => {
     if (!estateId) return;
     setLoading(true);
     try {
-      const [v, r] = await Promise.all([getVendors(estateId), getServiceRequests(estateId)]);
+      // Service requests are scoped to real estates only — the platform bucket
+      // exists purely for the vendor directory.
+      const [v, r] = await Promise.all([
+        getVendors(estateId),
+        isPlatformBucket ? Promise.resolve([] as ServiceRequest[]) : getServiceRequests(estateId),
+      ]);
       setVendors(v);
       setRequests(r);
     } finally { setLoading(false); }
-  }, [estateId]);
+  }, [estateId, isPlatformBucket]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -144,7 +155,10 @@ export default function AdminVendorsPage() {
     if (!selectedRequest || !currentUser) return;
     setAssigningVendorId(vendor.id);
     try {
-      await assignVendor(estateId, selectedRequest.id, vendor, currentUser.uid);
+      // Always assign against the request's own estate — the vendor may come
+      // from the platform directory but the service request lives in the
+      // resident's estate.
+      await assignVendor(selectedRequest.estateId, selectedRequest.id, vendor, currentUser.uid);
       await load();
       setSelectedRequest(null);
     } finally { setAssigningVendorId(null); }
@@ -215,7 +229,7 @@ export default function AdminVendorsPage() {
 
   return (
     <StatusGuard requireStatus="approved" requireAdmin={true}>
-    <div className="min-h-screen bg-[#f5f5f0] flex flex-col md:flex-row">
+    <div className="min-h-screen bg-[#f5f5f0] flex flex-col md:flex-row safe-area-inset-top">
       {/* ─── Left Sidebar (hidden on mobile) ─── */}
       <aside className="hidden md:flex w-[180px] bg-[#e8e6df] border-r border-[#d5d3cc] flex-col flex-shrink-0 sticky top-0 h-screen">
         <div className="px-4 pt-5 pb-4">
@@ -262,7 +276,10 @@ export default function AdminVendorsPage() {
       {/* ─── Main Content ─── */}
       <div className="flex-1 min-w-0 flex flex-col">
         {/* Top bar */}
-        <header className="h-12 bg-white border-b border-[#e5e5e0] px-5 flex items-center justify-between flex-shrink-0 sticky top-0 z-20">
+        <header
+          className="h-12 bg-white border-b border-[#e5e5e0] px-5 flex items-center justify-between flex-shrink-0 sticky z-20"
+          style={{ top: 'env(safe-area-inset-top, 0px)' }}
+        >
           <h1 className="text-[15px] font-bold text-[#2d2d2d]">Vendors &amp; Requests</h1>
           <div className="flex items-center gap-2.5">
             <button onClick={load} className="p-1.5 rounded-lg text-[#7a7a6e] hover:bg-[#f0f0eb] transition-colors" title="Refresh">

@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
-import { getServiceRequests, getVendors, assignVendor, updateRequestStatus } from '@/services/vendorService';
+import { getServiceRequests, getAvailableVendors, assignVendor, updateRequestStatus } from '@/services/vendorService';
 import { ServiceRequest, Vendor, ServiceRequestStatus } from '@/types/user';
 
 const STATUS_COLOR: Record<string,string> = {
@@ -29,7 +29,7 @@ export default function OperatorDashboard() {
     setLoading(true);
     const [reqs, vens] = await Promise.all([
       getServiceRequests(currentUser.estateId),
-      getVendors(currentUser.estateId),
+      getAvailableVendors(currentUser.estateId),
     ]);
     setRequests(reqs);
     setVendors(vens);

@@ -239,6 +239,36 @@ describe('vendors node', () => {
   it('estate_admin CANNOT add a vendor in another estate', async () => {
     await assertFails(set(ref(db(ESTATE_A_ADMIN_UID), `vendors/${ESTATE_B}/v1`), { name: 'Cross' }));
   });
+
+  // ── Platform-wide vendor directory (__platform__) ───────────────────────
+  // These tests protect the "one-stop shop" behavior: the super admin owns a
+  // shared bucket, any authenticated estate user can read it, and no estate
+  // admin can write to it.
+
+  it('any resident can read the platform vendor directory', async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await set(ref(ctx.database(), `vendors/__platform__/v1`), { name: 'Platform Plumber' });
+    });
+    await assertSucceeds(get(ref(db(RESIDENT_A_UID), `vendors/__platform__`)));
+    await assertSucceeds(get(ref(db(RESIDENT_B_UID), `vendors/__platform__`)));
+  });
+
+  it('super admin can write to the platform vendor directory', async () => {
+    await assertSucceeds(set(ref(db(ADMIN_UID), `vendors/__platform__/v1`), { name: 'Super Admin Vendor' }));
+  });
+
+  it('super admin can read any estate\'s vendors', async () => {
+    await assertSucceeds(get(ref(db(ADMIN_UID), `vendors/${ESTATE_A}`)));
+    await assertSucceeds(get(ref(db(ADMIN_UID), `vendors/${ESTATE_B}`)));
+  });
+
+  it('estate_admin CANNOT write to the platform vendor directory', async () => {
+    await assertFails(set(ref(db(ESTATE_A_ADMIN_UID), `vendors/__platform__/v1`), { name: 'Hijack' }));
+  });
+
+  it('a resident CANNOT write to the platform vendor directory', async () => {
+    await assertFails(set(ref(db(RESIDENT_A_UID), `vendors/__platform__/v1`), { name: 'Hijack' }));
+  });
 });
 
 describe('emergencyAlerts node', () => {

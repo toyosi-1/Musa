@@ -3,6 +3,7 @@ import { getAdminDatabase } from '@/lib/firebaseAdmin';
 import { mapOccupation, normalizePhone, shouldSkipVendor, resolveVendorDisplayName } from '@/utils/vendorMapping';
 import { rateLimit, getClientIp, rateLimitResponse } from '@/lib/rateLimit';
 import { requireAuth, AuthError } from '@/lib/requireAuth';
+import { PLATFORM_VENDORS_ESTATE_ID } from '@/constants/vendors';
 
 /**
  * POST /api/vendors/seed
@@ -36,9 +37,16 @@ export async function POST(request: NextRequest) {
     });
     if (!rl.success) return rateLimitResponse(rl);
 
-    const { estateId, vendors: rawVendors } = await request.json();
+    const { estateId: rawEstateId, vendors: rawVendors } = await request.json();
 
-    // Estate admins may only seed their own estate; platform admins can seed any.
+    // Super admins without a personal estate default to the platform-wide
+    // vendor directory so a freshly-logged-in super admin can still seed the
+    // one-stop-shop directory without being blocked by "Missing estateId".
+    const estateId = (rawEstateId && String(rawEstateId).trim())
+      || (authUser.role === 'admin' ? PLATFORM_VENDORS_ESTATE_ID : '');
+
+    // Estate admins may only seed their own estate; super admins can seed any
+    // real estate AND the platform bucket.
     if (authUser.role === 'estate_admin' && authUser.estateId !== estateId) {
       return NextResponse.json(
         { success: false, message: 'You can only seed vendors for your own estate.' },

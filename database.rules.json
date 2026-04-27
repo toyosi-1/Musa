@@ -177,9 +177,9 @@
     },
     "vendors": {
       "$estateId": {
-        ".read": "auth != null && root.child('users').child(auth.uid).child('estateId').val() === $estateId",
+        ".read": "auth != null && ($estateId === '__platform__' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('estateId').val() === $estateId)",
         "$vendorId": {
-          ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'estate_admin') && root.child('users').child(auth.uid).child('estateId').val() === $estateId"
+          ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || (root.child('users').child(auth.uid).child('role').val() === 'estate_admin' && root.child('users').child(auth.uid).child('estateId').val() === $estateId))"
         }
       }
     },
