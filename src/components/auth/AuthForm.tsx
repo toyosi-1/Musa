@@ -42,7 +42,8 @@ interface AuthFormProps {
   defaultRole?: UserRole;
 }
 
-const LOGIN_TIMEOUT_MS = 10_000;
+const LOGIN_TIMEOUT_MS = 30_000;
+const SLOW_NETWORK_WARN_MS = 8_000;
 const POST_LOGIN_NAV_DELAY_MS = 500;
 
 export default function AuthForm({ mode, defaultRole }: AuthFormProps) {
@@ -52,6 +53,9 @@ export default function AuthForm({ mode, defaultRole }: AuthFormProps) {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [slowNetwork, setSlowNetwork] = useState(false);
+  const [isNetworkError, setIsNetworkError] = useState(false);
+  const [lastCredentials, setLastCredentials] = useState<{ email: string; password: string } | null>(null);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [biometricReady, setBiometricReady] = useState(false);
   const [biometricLoading, setBiometricLoading] = useState(false);
@@ -88,8 +92,15 @@ export default function AuthForm({ mode, defaultRole }: AuthFormProps) {
   });
 
   const performLogin = async (email: string, password: string) => {
+    setSlowNetwork(false);
+    setIsNetworkError(false);
+
+    const slowWarnId = setTimeout(() => setSlowNetwork(true), SLOW_NETWORK_WARN_MS);
     const timeoutId = setTimeout(() => {
-      setError('Login is taking longer than expected. Please try again.');
+      clearTimeout(slowWarnId);
+      setSlowNetwork(false);
+      setIsNetworkError(true);
+      setError('Login is taking longer than expected on your current connection. Tap Retry to try again.');
       setLoading(false);
     }, LOGIN_TIMEOUT_MS);
 
@@ -97,11 +108,20 @@ export default function AuthForm({ mode, defaultRole }: AuthFormProps) {
     try {
       user = await signIn(email, password);
     } catch (signInError) {
+      clearTimeout(slowWarnId);
       clearTimeout(timeoutId);
+      setSlowNetwork(false);
       const friendly = translateLoginError(signInError);
-      throw friendly ? new Error(friendly) : signInError;
+      const mapped = friendly ? new Error(friendly) : signInError;
+      const msg = mapped instanceof Error ? mapped.message : String(mapped);
+      if (msg.toLowerCase().includes('network') || msg.toLowerCase().includes('timed out') || msg.toLowerCase().includes('connection')) {
+        setIsNetworkError(true);
+      }
+      throw mapped;
     }
+    clearTimeout(slowWarnId);
     clearTimeout(timeoutId);
+    setSlowNetwork(false);
 
     if (!user) throw new Error('Authentication failed: No user data returned');
 
@@ -130,9 +150,18 @@ export default function AuthForm({ mode, defaultRole }: AuthFormProps) {
     router.push('/auth/pending');
   };
 
+  const handleRetry = () => {
+    if (!lastCredentials) return;
+    setError('');
+    setIsNetworkError(false);
+    onSubmit({ email: lastCredentials.email, password: lastCredentials.password });
+  };
+
   const onSubmit = async (data: AuthFormInputs) => {
     setLoading(true);
     setError('');
+    setIsNetworkError(false);
+    if (mode === 'login') setLastCredentials({ email: data.email, password: data.password });
 
     if (firebase.status === 'error' || !isFirebaseReady()) {
       setError('Authentication service is not ready. Please refresh the page and try again.');
@@ -213,12 +242,36 @@ export default function AuthForm({ mode, defaultRole }: AuthFormProps) {
         </div>
       )}
 
+      {slowNetwork && !error && (
+        <div className="bg-amber-500/10 border border-amber-500/25 text-amber-400 p-3.5 rounded-2xl mb-5 flex items-center gap-2.5 text-sm">
+          <svg className="animate-spin h-4 w-4 shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+          </svg>
+          <span>Slow connection detected — still working, please wait…</span>
+        </div>
+      )}
+
       {(error || initError) && (
         <div className="bg-red-500/10 border border-red-500/25 text-red-400 p-3.5 rounded-2xl mb-5 flex items-start gap-2.5">
           <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 shrink-0 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
             <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
           </svg>
-          <span className="text-sm font-medium leading-snug">{error || initError}</span>
+          <div className="flex-1">
+            <span className="text-sm font-medium leading-snug">{error || initError}</span>
+            {isNetworkError && lastCredentials && mode === 'login' && (
+              <button
+                type="button"
+                onClick={handleRetry}
+                className="mt-2 w-full h-9 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/30 text-amber-300 text-sm font-semibold transition-colors flex items-center justify-center gap-2"
+              >
+                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Retry sign in
+              </button>
+            )}
+          </div>
         </div>
       )}
 

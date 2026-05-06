@@ -13,11 +13,12 @@ import {
   getMemoryCached,
   setMemoryCached,
   persistUserProfile,
+  getPersistedUserProfile,
 } from '@/utils/userProfileCache';
 
-const DB_TIMEOUT_MS = 5000;
-const PROFILE_MAX_RETRIES = 6;
-const PROFILE_RETRY_DELAY_MS = 500;
+const DB_TIMEOUT_MS = 10_000;
+const PROFILE_MAX_RETRIES = 3;
+const PROFILE_RETRY_DELAY_MS = 1000;
 
 function logError(message: string, error: unknown): void {
   console.error(`🔴 ${message}:`, error);
@@ -60,7 +61,8 @@ export async function formatUser(firebaseUser: FirebaseUser): Promise<User> {
         await new Promise((res) => setTimeout(res, PROFILE_RETRY_DELAY_MS));
         continue;
       }
-      throw dbError;
+      // All retries exhausted — fall through to the cache check below
+      break;
     }
 
     if (snapshot && snapshot.exists()) break;
@@ -72,6 +74,11 @@ export async function formatUser(firebaseUser: FirebaseUser): Promise<User> {
   }
 
   if (!snapshot || !snapshot.exists()) {
+    const cached = getPersistedUserProfile(firebaseUser.uid);
+    if (cached) {
+      console.warn('⚠️ DB unreachable after retries — using persisted profile for:', firebaseUser.email);
+      return cached;
+    }
     console.error('SECURITY ERROR: User not found in database during formatUser:', firebaseUser.uid);
     throw new Error('User not found in database and role unknown');
   }

@@ -220,8 +220,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (errorCode === 'auth/too-many-requests') {
           throw new Error('Too many failed login attempts. Please try again later.');
         }
-        if (errorCode === 'auth/network-request-failed' || errorMessage.includes('network') || errorMessage.includes('timed out')) {
-          throw new Error('Connection to authentication service timed out. Please check your internet connection and try again.');
+        if (
+          errorCode === 'auth/network-request-failed' ||
+          errorMessage.includes('network') ||
+          errorMessage.includes('timed out') ||
+          errorMessage.includes('connection') ||
+          errorMessage.includes('Unable to verify') ||
+          errorMessage.includes('Unable to retrieve')
+        ) {
+          throw new Error('Connection timed out. Your network may be slow — please tap Retry or try again when you have a stronger signal.');
         }
         throw new Error('Incorrect email or password. Please check and try again.');
       }
