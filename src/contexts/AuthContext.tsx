@@ -146,9 +146,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       let result;
       try {
         result = await signInWithEmailAndPassword(auth, email, password);
-      } catch (authError) {
-        logError('Firebase authentication failed', authError);
-        throw authError;
+      } catch (authError: any) {
+        // On iOS, Safari's ITP can silently wipe the Firebase auth token store
+        // between sessions. The first sign-in attempt after a wipe returns
+        // auth/invalid-credential even with correct credentials because Firebase
+        // tries to refresh a stale token before accepting the new one.
+        // A single silent retry after a short delay reliably recovers this.
+        if (
+          (authError?.code === 'auth/invalid-credential' ||
+           authError?.code === 'auth/invalid-login-credentials') &&
+          typeof navigator !== 'undefined' &&
+          /iPad|iPhone|iPod/.test(navigator.userAgent)
+        ) {
+          console.warn('🔄 iOS: silent retry after auth/invalid-credential (possible stale ITP token)');
+          try {
+            await new Promise(res => setTimeout(res, 800));
+            result = await signInWithEmailAndPassword(auth, email, password);
+          } catch (retryError) {
+            logError('Firebase authentication failed (after iOS retry)', retryError);
+            throw retryError;
+          }
+        } else {
+          logError('Firebase authentication failed', authError);
+          throw authError;
+        }
       }
 
       if (!result?.user) throw new Error('Authentication succeeded but user data is missing');
@@ -209,16 +230,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const errorCode = (error as any).code || '';
         const errorMessage = error.message || '';
         if (errorCode === 'auth/invalid-credential' || errorCode === 'auth/invalid-login-credentials') {
-          throw new Error('Invalid email or password. Please check your credentials and try again.');
+          throw new Error("Hmm, that email or password doesn't match. Please try again.");
         }
         if (errorCode === 'auth/user-not-found') {
-          throw new Error('No account found with this email address. Please sign up first.');
+          throw new Error("We couldn't find an account with that email. Double-check and try again, or register below.");
         }
         if (errorCode === 'auth/wrong-password') {
-          throw new Error('Incorrect password. Please try again.');
+          throw new Error("That password doesn't look right. Give it another try, or use Forgot password.");
         }
         if (errorCode === 'auth/too-many-requests') {
-          throw new Error('Too many failed login attempts. Please try again later.');
+          throw new Error('Too many attempts. Please wait a moment and try again.');
         }
         if (
           errorCode === 'auth/network-request-failed' ||
@@ -228,9 +249,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           errorMessage.includes('Unable to verify') ||
           errorMessage.includes('Unable to retrieve')
         ) {
-          throw new Error('Connection timed out. Your network may be slow — please tap Retry or try again when you have a stronger signal.');
+          throw new Error('Connection is taking a while. Please check your signal and try again.');
         }
-        throw new Error('Incorrect email or password. Please check and try again.');
+        throw new Error("Hmm, that email or password doesn't match. Please try again.");
       }
       throw error;
     }

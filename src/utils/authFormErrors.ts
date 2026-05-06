@@ -29,16 +29,24 @@ export function translateLoginError(err: unknown): string | null {
 
   if (msg.includes('NEW_DEVICE_APPROVAL_REQUIRED')) return NEW_DEVICE_APPROVAL_MESSAGE;
   if (msg.includes('auth/user-not-found') || msg.includes('user-not-found')) {
-    return 'Account not found. Please check your email or register.';
+    return "We couldn't find an account with that email. Double-check and try again, or register below.";
   }
   if (msg.includes('auth/wrong-password') || msg.includes('wrong-password')) {
-    return 'Incorrect password. Please try again.';
+    return "That password doesn't look right. Give it another try, or use Forgot password.";
   }
-  if (msg.includes('auth/invalid-login-credentials') || msg.includes('invalid-login-credentials')) {
-    return 'Invalid email or password. The account may not exist or the password is incorrect.';
+  if (
+    msg.includes('auth/invalid-login-credentials') ||
+    msg.includes('invalid-login-credentials') ||
+    msg.includes('auth/invalid-credential') ||
+    msg.includes('Incorrect email or password')
+  ) {
+    return "Hmm, that email or password doesn't match. Please try again.";
   }
-  if (msg.includes('network') || msg.includes('timeout') || msg.includes('timed out')) {
-    return 'Connection timed out. The server may be slow or your internet connection is unstable. Please try again.';
+  if (msg.includes('network') || msg.includes('timeout') || msg.includes('timed out') || msg.includes('connection')) {
+    return "Connection is taking a while. Please check your signal and try again.";
+  }
+  if (msg.includes('Unable to verify') || msg.includes('Unable to retrieve')) {
+    return "We signed you in but had trouble loading your profile. Please try again.";
   }
   return null;
 }
@@ -50,35 +58,45 @@ export function translateLoginError(err: unknown): string | null {
  */
 export function translateAuthError(err: unknown, mode: AuthMode): string {
   const msg = extractMessage(err);
-  if (!msg) return 'Authentication failed';
+  if (!msg) return 'Something went wrong. Please try again.';
+
+  // Try login-specific translation first for login mode
+  if (mode === 'login') {
+    const loginSpecific = translateLoginError(err);
+    if (loginSpecific) return loginSpecific;
+  }
 
   // Registration-specific before generic handling.
   if (mode === 'register') {
     if (msg.includes('auth/email-already-in-use') || msg.includes('email-already-in-use')) {
-      return 'Email already has been used';
+      return 'An account with that email already exists. Try signing in instead.';
     }
     if (msg.includes('auth/weak-password') || msg.includes('weak-password')) {
-      return 'Password is too weak. Please use a stronger password';
+      return 'Please choose a stronger password (at least 8 characters).';
     }
     if (msg.includes('auth/invalid-email') || msg.includes('invalid-email')) {
-      return 'Invalid email address format';
+      return 'That email address doesn\'t look right. Please check and try again.';
     }
     if (msg.includes('PERMISSION_DENIED') || msg.includes('Permission denied')) {
-      return 'Registration could not be completed due to a server configuration issue. Please contact the administrator.';
+      return 'Registration could not be completed. Please contact your estate admin.';
     }
   }
 
-  if (msg.includes('auth/network-request-failed') || msg.includes('network-request-failed')) {
-    return 'Network connection error. Please check your internet connection';
+  if (msg.includes('auth/network-request-failed') || msg.includes('network-request-failed') ||
+      msg.includes('network') || msg.includes('timed out') || msg.includes('connection')) {
+    return 'Connection is taking a while. Please check your signal and try again.';
   }
   if (msg.includes('auth/too-many-requests') || msg.includes('too-many-requests')) {
-    return 'Too many attempts. Please try again later';
+    return 'Too many attempts. Please wait a moment and try again.';
   }
   if (msg.includes('auth/user-disabled') || msg.includes('user-disabled')) {
-    return 'This account has been disabled';
+    return 'This account has been suspended. Please contact your estate admin.';
   }
 
-  // Don't leak raw Firebase codes — keep the generic fallback for those.
-  if (msg.includes('Firebase')) return 'Authentication failed';
+  // Never leak raw Firebase error codes or internal messages to the user.
+  if (msg.includes('Firebase') || msg.includes('auth/') || msg.includes('SECURITY ERROR')) {
+    return 'Something went wrong. Please try again.';
+  }
+  // For messages already translated upstream (from AuthContext), pass them through.
   return msg;
 }

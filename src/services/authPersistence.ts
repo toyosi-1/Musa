@@ -18,50 +18,49 @@ import {
 } from 'firebase/auth';
 import { isPwaMode } from '@/utils/pwaUtils';
 
-/** Heuristic for iOS devices running as an installed PWA (home-screen app). */
+/** True when running on any iOS device (Safari browser tab or home-screen PWA). */
+export function isIosDevice(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  return /iPad|iPhone|iPod/.test(navigator.userAgent);
+}
+
+/** True only when running as an installed home-screen PWA on iOS. */
 export function isIosPwa(): boolean {
-  if (typeof navigator === 'undefined' || typeof window === 'undefined') return false;
-  const isIosDevice = !!navigator.userAgent.match(/iPad|iPhone|iPod/);
-  const isStandalone = window.matchMedia?.('(display-mode: standalone)').matches;
-  return isIosDevice && !!isStandalone;
+  if (!isIosDevice() || typeof window === 'undefined') return false;
+  return !!window.matchMedia?.('(display-mode: standalone)').matches;
 }
 
 /**
  * Apply the appropriate persistence for the current runtime. Never throws —
  * auth persistence failures degrade to in-memory rather than blocking sign-in.
+ *
+ * iOS (both Safari browser tab and home-screen PWA) uses localStorage as the
+ * primary strategy. IndexedDB on iOS Safari is unreliable — Safari's ITP can
+ * silently clear it between sessions, causing Firebase to lose the auth token
+ * and return auth/invalid-credential even with a correct password.
  */
 export async function configureAuthPersistence(auth: Auth): Promise<void> {
   try {
-    const inPwa = isPwaMode();
-    console.log(`🔒 Setting up auth persistence for ${inPwa ? 'PWA' : 'browser'} mode`);
-
-    if (!inPwa) {
-      await setPersistence(auth, browserLocalPersistence);
-      console.log('✅ Using standard localStorage persistence');
+    if (isIosDevice()) {
+      console.log('� iOS detected — using localStorage persistence (IndexedDB unreliable on Safari)');
+      await setPersistence(auth, browserLocalPersistence)
+        .catch(() => setPersistence(auth, inMemoryPersistence));
+      console.log('✅ iOS persistence applied');
       return;
     }
 
-    if (isIosPwa()) {
-      console.log('📱 iOS PWA detected, using special persistence strategy');
+    const inPwa = isPwaMode();
+    if (inPwa) {
       await setPersistence(auth, indexedDBLocalPersistence)
         .catch(() => setPersistence(auth, browserLocalPersistence))
         .catch(() => setPersistence(auth, inMemoryPersistence));
-      console.log('✅ iOS PWA persistence strategy applied');
+      console.log('✅ PWA persistence applied (IndexedDB)');
       return;
     }
 
-    try {
-      await setPersistence(auth, indexedDBLocalPersistence);
-      console.log('✅ Using IndexedDB persistence');
-    } catch {
-      try {
-        await setPersistence(auth, browserLocalPersistence);
-        console.log('✅ Using localStorage persistence');
-      } catch {
-        await setPersistence(auth, inMemoryPersistence);
-        console.log('⚠️ Using in-memory persistence (session only)');
-      }
-    }
+    await setPersistence(auth, browserLocalPersistence)
+      .catch(() => setPersistence(auth, inMemoryPersistence));
+    console.log('✅ Browser persistence applied (localStorage)');
   } catch (e) {
     console.warn('⚠️ Failed to set auth persistence:', e);
   }

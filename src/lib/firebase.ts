@@ -3,9 +3,6 @@ import {
   getAuth, 
   connectAuthEmulator, 
   Auth, 
-  setPersistence, 
-  browserLocalPersistence, 
-  indexedDBLocalPersistence,
   signInWithEmailAndPassword,
   signInWithCustomToken,
   onAuthStateChanged,
@@ -160,39 +157,11 @@ export async function getFirebaseAuth(): Promise<Auth> {
   // Ensure the app is initialized first
   const app = await getFirebaseApp();
   
-  // Initialize Auth with enhanced persistence for iOS PWA
+  // Initialise Auth — persistence is set later by configureAuthPersistence()
+  // inside AuthContext so it runs exactly once after the app is mounted.
   try {
     auth = getAuth(app);
-    
-    // Use browserLocalPersistence (localStorage) as PRIMARY for ALL platforms
-    try {
-      await setPersistence(auth!, browserLocalPersistence);
-      logDebug('✅ Auth persistence set to localStorage');
-    } catch (persistError) {
-      try {
-        await setPersistence(auth!, indexedDBLocalPersistence);
-        logDebug('✅ Auth persistence set to IndexedDB (fallback)');
-      } catch (indexedDBError) {
-        console.error('❌ All persistence methods failed:', indexedDBError);
-      }
-    }
-    
-    // Add localStorage backup for auth state on ALL platforms
-    if (typeof window !== 'undefined') {
-      const backupAuthKey = 'firebase:authBackup';
-      
-      auth!.onAuthStateChanged((user) => {
-        if (user) {
-          localStorage.setItem(backupAuthKey, JSON.stringify({
-            uid: user.uid,
-            email: user.email,
-            refreshToken: user.refreshToken,
-            lastLogin: Date.now()
-          }));
-        }
-      });
-    }
-    
+
     // Connect to emulator in development
     if (process.env.NODE_ENV === 'development' && 
         process.env.NEXT_PUBLIC_USE_FIREBASE_EMULATOR === 'true') {
