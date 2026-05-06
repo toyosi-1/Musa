@@ -25,8 +25,8 @@ function getAdminApp(): App {
   }
 
   try {
-    // Try service account JSON from env first
-    const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
+    // Try service account JSON from env first (either var name works)
+    const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY || process.env.FCM_SERVICE_ACCOUNT_JSON;
     if (serviceAccountKey) {
       try {
         const parsed = JSON.parse(serviceAccountKey);
@@ -83,6 +83,6 @@ export function getAdminDatabase(): Database {
 export function isAdminConfigured(): boolean {
   return !!(
     process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL &&
-    (process.env.FIREBASE_SERVICE_ACCOUNT_KEY || process.env.GOOGLE_APPLICATION_CREDENTIALS)
+    (process.env.FIREBASE_SERVICE_ACCOUNT_KEY || process.env.FCM_SERVICE_ACCOUNT_JSON || process.env.GOOGLE_APPLICATION_CREDENTIALS)
   );
 }
