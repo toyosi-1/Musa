@@ -28,11 +28,23 @@ interface ResidentDashboardProps {
 export default function ResidentDashboard({ user }: ResidentDashboardProps) {
   const { refreshCurrentUser } = useAuth();
   const router = useRouter();
-  const [accessCodes, setAccessCodes] = useState<AccessCode[]>([]);
-  const [household, setHousehold] = useState<Household | null>(null);
+  // Hydrate from the offline cache *synchronously* on first render so the
+  // dashboard paints immediately on slow networks. The network refresh runs
+  // in the background and replaces this data when it arrives
+  // (stale-while-revalidate). This is the single biggest perceived-perf win
+  // on mobile cold starts.
+  const cachedCodesInitial = (getCachedAccessCodes(user.uid) as AccessCode[] | null) || [];
+  const cachedHouseholdInitial = (getCachedHousehold(user.uid) as Household | null) || null;
+  const hasCachedData = cachedCodesInitial.length > 0 || cachedHouseholdInitial !== null;
+
+  const [accessCodes, setAccessCodes] = useState<AccessCode[]>(cachedCodesInitial);
+  const [household, setHousehold] = useState<Household | null>(cachedHouseholdInitial);
   const [headOfHouseName, setHeadOfHouseName] = useState<string | null>(null);
   const [estate, setEstate] = useState<Estate | null>(null);
-  const [loading, setLoading] = useState(true);
+  // When we already have cached data we don't show the full-screen skeleton
+  // — we render the cached UI and only flip a quiet refresh indicator.
+  const [loading, setLoading] = useState(!hasCachedData);
+  const [refreshing, setRefreshing] = useState(hasCachedData);
   const [error, setError] = useState('');
   // Removed activeTab state since we now show both sections simultaneously
 
@@ -48,7 +60,13 @@ export default function ResidentDashboard({ user }: ResidentDashboardProps) {
 
   const loadData = async (retryCount = 0) => {
     try {
-      setLoading(true);
+      // Only flash the full-screen loader on a true cold start. When we
+      // already have cached UI on screen, use the unobtrusive refresh flag.
+      if (hasCachedData && retryCount === 0) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
       setError('');
 
       console.log(`[ResidentDashboard] loadData attempt ${retryCount + 1}/3`);
@@ -57,60 +75,57 @@ export default function ResidentDashboard({ user }: ResidentDashboardProps) {
       // On PWA cold starts, the cached user is set from localStorage but
       // Firebase Auth hasn't restored the session yet. Database security
       // rules require authentication, so queries will fail without this.
-      console.log('[ResidentDashboard] Waiting for auth session...');
       const authReady = await waitForAuthUser();
       if (!authReady) {
         console.warn('[ResidentDashboard] Auth session not restored');
         setError('SESSION_EXPIRED');
         return;
       }
-      console.log('[ResidentDashboard] Auth session ready, loading data...');
-      
-      console.log('[ResidentDashboard] Loading access codes...');
-      // Load access codes
-      const codes = await getResidentAccessCodes(user.uid);
+
+      // Run the three independent reads in parallel — previously we awaited
+      // them in series, which on a 200ms-RTT mobile link cost ~600ms of
+      // pure waterfall waiting before any data appeared.
+      const db = user.estateId ? await getFirebaseDatabase() : null;
+      const estateRefPath = user.estateId && db ? ref(db, `estates/${user.estateId}`) : null;
+
+      const [codes, householdResult, estateSnapshot] = await Promise.all([
+        getResidentAccessCodes(user.uid),
+        user.householdId
+          ? getHousehold(user.householdId).catch(err => {
+              console.error('Error loading household:', err);
+              return null;
+            })
+          : Promise.resolve(null),
+        estateRefPath
+          ? get(estateRefPath).catch(err => {
+              console.error('Error loading estate:', err);
+              return null;
+            })
+          : Promise.resolve(null),
+      ]);
+
       console.log(`[ResidentDashboard] Loaded ${codes.length} access codes`);
       setAccessCodes(codes);
-      // Cache for offline use
       cacheAccessCodes(user.uid, codes);
 
-      // Load household data
-      if (user.householdId) {
-        try {
-          const householdData = await getHousehold(user.householdId);
-          setHousehold(householdData);
-          // Cache for offline use
-          cacheHousehold(user.uid, householdData);
-          // Fetch head of household name
-          if (householdData?.headId) {
-            try {
-              const headProfile = await getUserProfile(householdData.headId);
-              setHeadOfHouseName(headProfile?.displayName || headProfile?.email || null);
-            } catch (e) {
-              console.warn('Could not fetch head of household name:', e);
-            }
-          }
-        } catch (householdError) {
-          console.error('Error loading household:', householdError);
-          // If household doesn't exist but user has householdId, clear it
-          if (householdError instanceof Error && householdError.message.includes('not found')) {
-            console.log('Household not found, clearing householdId from user');
-            // Note: In a real app, you'd want to update the user's householdId to null
-          }
-        }
+      if (householdResult) {
+        setHousehold(householdResult);
+        cacheHousehold(user.uid, householdResult);
       }
 
-      // Load estate data if user has estateId
-      if (user.estateId) {
+      if (estateSnapshot && estateSnapshot.exists && estateSnapshot.exists()) {
+        setEstate(estateSnapshot.val() as Estate);
+      }
+
+      // The head-of-household profile depends on the household result, so it
+      // is the one read we genuinely have to chain. Failure here is
+      // non-fatal — the dashboard still works without the name.
+      if (householdResult?.headId) {
         try {
-          const db = await getFirebaseDatabase();
-          const estateRef = ref(db, `estates/${user.estateId}`);
-          const snapshot = await get(estateRef);
-          if (snapshot.exists()) {
-            setEstate(snapshot.val() as Estate);
-          }
-        } catch (estateError) {
-          console.error('Error loading estate:', estateError);
+          const headProfile = await getUserProfile(householdResult.headId);
+          setHeadOfHouseName(headProfile?.displayName || headProfile?.email || null);
+        } catch (e) {
+          console.warn('Could not fetch head of household name:', e);
         }
       }
     } catch (err) {
@@ -123,6 +138,8 @@ export default function ResidentDashboard({ user }: ResidentDashboardProps) {
       }
       
       // ── Offline fallback: serve cached data if available ──
+      // Note: when `hasCachedData` was true we already painted from cache
+      // synchronously above, so this only runs the assignments when needed.
       const cachedCodes = getCachedAccessCodes(user.uid);
       const cachedHH = getCachedHousehold(user.uid);
       if (cachedCodes || cachedHH) {
@@ -135,6 +152,7 @@ export default function ResidentDashboard({ user }: ResidentDashboardProps) {
       }
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 

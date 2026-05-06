@@ -55,7 +55,7 @@ async function resolveFreshCandidates(
  * Returns the parsed response or throws on network errors.
  */
 async function attemptBillPurchase(
-  payload: { country: string; customer: string; amount: number; recurrence: string; type: string; reference: string },
+  payload: Record<string, unknown>,
   flwHeaders: Record<string, string>,
   useProxy: boolean
 ): Promise<{ success: boolean; data: any; message: string; raw: string }> {
@@ -95,6 +95,37 @@ async function attemptBillPurchase(
 // and Vercel serverless functions have dynamic IPs)
 const FLW_PROXY_URL = process.env.FLW_PROXY_URL;   // e.g. https://flw-proxy-xxx.onrender.com
 const PROXY_SECRET  = process.env.FLW_PROXY_SECRET; // shared secret to authenticate with proxy
+
+/**
+ * Poll Flutterwave's bill-status endpoint for the electricity token.
+ * Flutterwave returns prepaid tokens asynchronously in the `extra` field.
+ * We try up to `maxAttempts` times with a delay between each.
+ */
+async function pollForToken(
+  flwRef: string,
+  flwHeaders: Record<string, string>,
+  maxAttempts = 3,
+  delayMs = 3000
+): Promise<string | null> {
+  for (let i = 0; i < maxAttempts; i++) {
+    await new Promise((r) => setTimeout(r, delayMs));
+    try {
+      const res = await fetch(
+        `${FLUTTERWAVE_BASE_URL}/bills/${encodeURIComponent(flwRef)}`,
+        { method: 'GET', headers: flwHeaders }
+      );
+      const json = await res.json();
+      console.log(`[pollForToken] Attempt ${i + 1}/${maxAttempts} for ${flwRef}:`, JSON.stringify(json).substring(0, 500));
+      if (json.status === 'success' && json.data) {
+        const token = json.data.extra || json.data.recharge_token || json.data.token || null;
+        if (token) return token;
+      }
+    } catch (err) {
+      console.warn(`[pollForToken] Attempt ${i + 1} failed:`, err);
+    }
+  }
+  return null;
+}
 
 /**
  * POST /api/utilities/complete-purchase
@@ -231,20 +262,33 @@ export async function POST(request: NextRequest) {
         const billPayload = {
           country: 'NG',
           customer: String(meterNumber),
+          customer_id: String(meterNumber),
           amount: Number(amount),
           recurrence: 'ONCE',
           type: candidate.itemCode,
+          biller_name: candidate.billerCode,
           reference: reference,
         };
 
-        console.log(`[CompletePurchase] Trying candidate: type=${candidate.itemCode} (${candidate.label})`);
+        console.log(`[CompletePurchase] Trying candidate: type=${candidate.itemCode}, biller_name=${candidate.billerCode} (${candidate.label}), customer=${meterNumber}`);
 
         const result = await attemptBillPurchase(billPayload, flwHeaders, useProxy);
         console.log(`[CompletePurchase] Result for ${candidate.itemCode}: success=${result.success}, message=${result.message}`);
 
         if (result.success) {
           const flwRef = result.data?.flw_ref || result.data?.tx_ref || '';
-          const token = result.data?.extra || result.data?.recharge_token || result.data?.token || null;
+          let token = result.data?.extra || result.data?.recharge_token || result.data?.token || null;
+
+          // Flutterwave returns prepaid tokens asynchronously — poll if not immediately available
+          if (!token && flwRef) {
+            console.log(`[CompletePurchase] Token not in initial response, polling status for ${flwRef}...`);
+            token = await pollForToken(flwRef, flwHeaders);
+            if (token) {
+              console.log(`[CompletePurchase] Token obtained via polling: ${token.substring(0, 8)}...`);
+            } else {
+              console.log(`[CompletePurchase] Token not yet available after polling — meter may still be credited async.`);
+            }
+          }
 
           // If we succeeded with a different code than the client sent, clear cache
           if (candidate.itemCode !== String(clientItemCode)) {

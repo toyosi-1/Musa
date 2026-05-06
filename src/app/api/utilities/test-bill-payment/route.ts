@@ -75,10 +75,12 @@ export async function GET(request: NextRequest) {
     console.log('Test 2: Attempting test bill creation...');
     const testBillPayload = {
       country: 'NG',
-      customer_id: '1234567890', // Fake meter number for testing
+      customer: '1234567890',
+      customer_id: '1234567890',
       amount: 1000,
       recurrence: 'ONCE',
-      type: 'PREPAID', // Generic type
+      type: 'UB159', // IKEDC Prepaid item_code
+      biller_name: 'BIL113', // IKEDC biller_code
       reference: `TEST-${Date.now()}`,
     };
 

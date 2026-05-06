@@ -54,6 +54,7 @@ export async function POST(request: NextRequest) {
     const billPayload = {
       country: 'NG',
       customer: String(meterNumber),
+      customer_id: String(meterNumber),
       amount: Number(amount),
       recurrence: 'ONCE',
       type: String(itemCode),
