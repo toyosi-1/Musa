@@ -33,7 +33,7 @@ export default function ResidentDashboard({ user }: ResidentDashboardProps) {
   // in the background and replaces this data when it arrives
   // (stale-while-revalidate). This is the single biggest perceived-perf win
   // on mobile cold starts.
-  const cachedCodesInitial = (getCachedAccessCodes(user.uid) as AccessCode[] | null) || [];
+  const cachedCodesInitial = ((getCachedAccessCodes(user.uid) as AccessCode[] | null) || []).filter(isAccessCodeActive);
   const cachedHouseholdInitial = (getCachedHousehold(user.uid) as Household | null) || null;
   const hasCachedData = cachedCodesInitial.length > 0 || cachedHouseholdInitial !== null;
 

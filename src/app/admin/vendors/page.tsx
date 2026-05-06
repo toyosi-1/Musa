@@ -562,36 +562,36 @@ export default function AdminVendorsPage() {
                 <div>
                   <label className="block text-xs font-medium text-[#5a5a50] mb-1.5">Full Name <span className="text-red-500">*</span></label>
                   <input value={form.name} onChange={e=>setForm(f=>({...f,name:e.target.value}))} required
-                    className="w-full h-10 px-3 rounded-xl border border-[#d5d3cc] text-sm text-[#2d2d2d] focus:outline-none focus:border-[#4a7c59] focus:ring-1 focus:ring-[#4a7c59]/20 placeholder:text-[#bbb]" placeholder="John Doe" />
+                    className="w-full h-10 px-3 rounded-xl border border-[#d5d3cc] bg-white text-sm text-[#2d2d2d] focus:outline-none focus:border-[#4a7c59] focus:ring-1 focus:ring-[#4a7c59]/20 placeholder:text-[#bbb]" placeholder="John Doe" />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-[#5a5a50] mb-1.5">Phone <span className="text-red-500">*</span></label>
                   <input value={form.phone} onChange={e=>setForm(f=>({...f,phone:e.target.value}))} required
-                    className="w-full h-10 px-3 rounded-xl border border-[#d5d3cc] text-sm text-[#2d2d2d] focus:outline-none focus:border-[#4a7c59] focus:ring-1 focus:ring-[#4a7c59]/20 placeholder:text-[#bbb]" placeholder="08012345678" />
+                    className="w-full h-10 px-3 rounded-xl border border-[#d5d3cc] bg-white text-sm text-[#2d2d2d] focus:outline-none focus:border-[#4a7c59] focus:ring-1 focus:ring-[#4a7c59]/20 placeholder:text-[#bbb]" placeholder="08012345678" />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-medium text-[#5a5a50] mb-1.5">Business Name</label>
                   <input value={form.businessName} onChange={e=>setForm(f=>({...f,businessName:e.target.value}))}
-                    className="w-full h-10 px-3 rounded-xl border border-[#d5d3cc] text-sm text-[#2d2d2d] focus:outline-none focus:border-[#4a7c59] focus:ring-1 focus:ring-[#4a7c59]/20 placeholder:text-[#bbb]" placeholder="e.g. Joe Plumbing Ltd" />
+                    className="w-full h-10 px-3 rounded-xl border border-[#d5d3cc] bg-white text-sm text-[#2d2d2d] focus:outline-none focus:border-[#4a7c59] focus:ring-1 focus:ring-[#4a7c59]/20 placeholder:text-[#bbb]" placeholder="e.g. Joe Plumbing Ltd" />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-[#5a5a50] mb-1.5">Email</label>
                   <input type="email" value={form.email} onChange={e=>setForm(f=>({...f,email:e.target.value}))}
-                    className="w-full h-10 px-3 rounded-xl border border-[#d5d3cc] text-sm text-[#2d2d2d] focus:outline-none focus:border-[#4a7c59] focus:ring-1 focus:ring-[#4a7c59]/20 placeholder:text-[#bbb]" placeholder="vendor@email.com" />
+                    className="w-full h-10 px-3 rounded-xl border border-[#d5d3cc] bg-white text-sm text-[#2d2d2d] focus:outline-none focus:border-[#4a7c59] focus:ring-1 focus:ring-[#4a7c59]/20 placeholder:text-[#bbb]" placeholder="vendor@email.com" />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-medium text-[#5a5a50] mb-1.5">Bank Name</label>
                   <input value={form.bankName} onChange={e=>setForm(f=>({...f,bankName:e.target.value}))}
-                    className="w-full h-10 px-3 rounded-xl border border-[#d5d3cc] text-sm text-[#2d2d2d] focus:outline-none focus:border-[#4a7c59] focus:ring-1 focus:ring-[#4a7c59]/20 placeholder:text-[#bbb]" placeholder="e.g. GTBank" />
+                    className="w-full h-10 px-3 rounded-xl border border-[#d5d3cc] bg-white text-sm text-[#2d2d2d] focus:outline-none focus:border-[#4a7c59] focus:ring-1 focus:ring-[#4a7c59]/20 placeholder:text-[#bbb]" placeholder="e.g. GTBank" />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-[#5a5a50] mb-1.5">Bank Account Number</label>
                   <input value={form.bankAccount} onChange={e=>setForm(f=>({...f,bankAccount:e.target.value.replace(/\D/g,'')}))} maxLength={10}
-                    className="w-full h-10 px-3 rounded-xl border border-[#d5d3cc] text-sm text-[#2d2d2d] focus:outline-none focus:border-[#4a7c59] focus:ring-1 focus:ring-[#4a7c59]/20 placeholder:text-[#bbb]" placeholder="0123456789" />
+                    className="w-full h-10 px-3 rounded-xl border border-[#d5d3cc] bg-white text-sm text-[#2d2d2d] focus:outline-none focus:border-[#4a7c59] focus:ring-1 focus:ring-[#4a7c59]/20 placeholder:text-[#bbb]" placeholder="0123456789" />
                 </div>
               </div>
               <div>
@@ -613,7 +613,7 @@ export default function AdminVendorsPage() {
                 <div>
                   <label className="block text-xs font-medium text-[#5a5a50] mb-1.5">License Status</label>
                   <select value={form.licenseStatus} onChange={e=>setForm(f=>({...f,licenseStatus:e.target.value as typeof form.licenseStatus}))}
-                    className="w-full h-10 px-3 rounded-xl border border-[#d5d3cc] text-sm text-[#2d2d2d] focus:outline-none focus:border-[#4a7c59]">
+                    className="w-full h-10 px-3 rounded-xl border border-[#d5d3cc] bg-white text-sm text-[#2d2d2d] focus:outline-none focus:border-[#4a7c59]">
                     <option value="none">None</option>
                     <option value="verified">Verified</option>
                     <option value="pending">Pending</option>
@@ -623,18 +623,18 @@ export default function AdminVendorsPage() {
                 <div>
                   <label className="block text-xs font-medium text-[#5a5a50] mb-1.5">Coverage Areas</label>
                   <input value={form.coverageAreas} onChange={e=>setForm(f=>({...f,coverageAreas:e.target.value}))}
-                    className="w-full h-10 px-3 rounded-xl border border-[#d5d3cc] text-sm text-[#2d2d2d] focus:outline-none focus:border-[#4a7c59] focus:ring-1 focus:ring-[#4a7c59]/20 placeholder:text-[#bbb]" placeholder="e.g. Banana Island, Ikoyi" />
+                    className="w-full h-10 px-3 rounded-xl border border-[#d5d3cc] bg-white text-sm text-[#2d2d2d] focus:outline-none focus:border-[#4a7c59] focus:ring-1 focus:ring-[#4a7c59]/20 placeholder:text-[#bbb]" placeholder="e.g. Banana Island, Ikoyi" />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-[#5a5a50] mb-1.5">Rating</label>
                   <input type="number" step="0.1" min="0" max="5" value={form.rating} onChange={e=>setForm(f=>({...f,rating:e.target.value}))}
-                    className="w-full h-10 px-3 rounded-xl border border-[#d5d3cc] text-sm text-[#2d2d2d] focus:outline-none focus:border-[#4a7c59] focus:ring-1 focus:ring-[#4a7c59]/20 placeholder:text-[#bbb]" placeholder="4.8" />
+                    className="w-full h-10 px-3 rounded-xl border border-[#d5d3cc] bg-white text-sm text-[#2d2d2d] focus:outline-none focus:border-[#4a7c59] focus:ring-1 focus:ring-[#4a7c59]/20 placeholder:text-[#bbb]" placeholder="4.8" />
                 </div>
               </div>
               <div>
                 <label className="block text-xs font-medium text-[#5a5a50] mb-1.5">Notes <span className="text-[#bbb] font-normal">(optional)</span></label>
                 <input value={form.notes} onChange={e=>setForm(f=>({...f,notes:e.target.value}))}
-                  className="w-full h-10 px-3 rounded-xl border border-[#d5d3cc] text-sm text-[#2d2d2d] focus:outline-none focus:border-[#4a7c59] focus:ring-1 focus:ring-[#4a7c59]/20 placeholder:text-[#bbb]" placeholder="Any additional info..." />
+                  className="w-full h-10 px-3 rounded-xl border border-[#d5d3cc] bg-white text-sm text-[#2d2d2d] focus:outline-none focus:border-[#4a7c59] focus:ring-1 focus:ring-[#4a7c59]/20 placeholder:text-[#bbb]" placeholder="Any additional info..." />
               </div>
               <div className="flex items-center gap-3">
                 <button type="button" onClick={() => setForm(f => ({ ...f, isAvailable: !f.isAvailable }))}
