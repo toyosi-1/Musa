@@ -71,6 +71,9 @@ export default function ResetPasswordPage() {
       if (!isFirebaseReady()) await waitForFirebase();
       const auth = await getFirebaseAuth();
       await confirmPasswordReset(auth, oobCode, password);
+      // Sign out any cached session so iOS/Safari doesn't try to reuse
+      // a now-invalidated token on the next sign-in attempt.
+      try { await auth.signOut(); } catch { /* non-fatal */ }
       setSuccess(true);
     } catch (err: any) {
       console.error('[ResetPassword] Reset failed:', err);

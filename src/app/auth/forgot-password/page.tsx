@@ -34,11 +34,12 @@ export default function ForgotPasswordPage() {
       const auth = await getFirebaseAuth();
       console.log('[ForgotPassword] Auth ready, authDomain:', auth.config.authDomain);
 
-      // Build actionCodeSettings to use our custom reset-password page with confirm password
-      const isDev = typeof window !== 'undefined' && window.location.hostname === 'localhost';
-      const baseUrl = isDev
+      // Always redirect to the origin the user is currently on — this handles
+      // localhost dev, Netlify previews, and production correctly without
+      // falling back to the Firebase default domain (musa-app-9a301.firebaseapp.com).
+      const baseUrl = typeof window !== 'undefined'
         ? window.location.origin
-        : 'https://' + (auth.config.authDomain || 'musa-security.com');
+        : process.env.NEXT_PUBLIC_APP_URL || 'https://musa-security.com';
 
       const actionCodeSettings = {
         url: baseUrl + '/auth/reset-password',

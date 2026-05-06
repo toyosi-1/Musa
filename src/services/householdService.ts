@@ -352,19 +352,24 @@ export const createHouseholdInvite = async (
       // Create invitation link
       const invitationLink = `${process.env.NEXT_PUBLIC_APP_URL || 'https://musa-security.com'}/invite/${invite.id}`;
       
-      // Send email using direct SMTP service
-      const emailSent = await sendHouseholdInvitationSMTP({
-        householdName: household.name,
-        inviterName: inviterName,
-        acceptUrl: invitationLink,
-        recipientEmail: email
-      });
+      // Send email — non-critical: the invite record is already saved so we
+      // never throw here. A 15s timeout prevents this from hanging the UI.
+      const emailTimeout = new Promise<boolean>((resolve) => setTimeout(() => resolve(false), 15_000));
+      const emailSent = await Promise.race([
+        sendHouseholdInvitationSMTP({
+          householdName: household.name,
+          inviterName: inviterName,
+          acceptUrl: invitationLink,
+          recipientEmail: email
+        }),
+        emailTimeout,
+      ]);
       
-      if (!emailSent) {
-        throw new Error('Failed to send invitation email via SMTP');
+      if (emailSent) {
+        console.log('✅ Household invitation email sent successfully via SMTP');
+      } else {
+        console.warn('⚠️  Invitation saved but email delivery failed or timed out. User can accept via app link.');
       }
-      
-      console.log('✅ Household invitation email sent successfully via SMTP');
     } catch (emailError) {
       console.error('❌ Failed to send invitation email:', emailError);
       // Don't throw error - invitation was created successfully, email is just a notification

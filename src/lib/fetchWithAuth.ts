@@ -34,10 +34,14 @@ export interface FetchWithAuthInit extends RequestInit {
 
 async function getIdTokenOrNull(forceRefresh = false): Promise<string | null> {
   try {
-    const auth = await getFirebaseAuth();
-    const user = auth.currentUser;
-    if (!user) return null;
-    return await user.getIdToken(forceRefresh);
+    const authPromise = getFirebaseAuth().then((auth) => {
+      const user = auth.currentUser;
+      if (!user) return null;
+      return user.getIdToken(forceRefresh);
+    });
+    // Cap at 5s — if Firebase auth state hasn't settled by then, proceed without a token.
+    const timeout = new Promise<null>((res) => setTimeout(() => res(null), 5_000));
+    return await Promise.race([authPromise, timeout]);
   } catch {
     return null;
   }

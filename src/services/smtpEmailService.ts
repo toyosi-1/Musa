@@ -82,19 +82,26 @@ export const sendHouseholdInvitationEmail = async (data: HouseholdInviteData): P
       html: emailHtml,
     };
 
-    const response = await fetchWithAuth('/api/send-email', {
-      method: 'POST',
-      body: JSON.stringify({ emailData }),
-    });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 12_000);
+    try {
+      const response = await fetchWithAuth('/api/send-email', {
+        method: 'POST',
+        body: JSON.stringify({ emailData }),
+        signal: controller.signal,
+      });
 
-    if (!response.ok) {
-      const errorBody = await response.json().catch(() => ({}));
-      throw new Error(`Email API responded with status: ${response.status} - ${errorBody?.error || 'Unknown'}`);
+      if (!response.ok) {
+        const errorBody = await response.json().catch(() => ({}));
+        throw new Error(`Email API responded with status: ${response.status} - ${errorBody?.error || 'Unknown'}`);
+      }
+
+      const result = await response.json();
+      console.log('✅ Household invitation email sent successfully:', result);
+      return true;
+    } finally {
+      clearTimeout(timeoutId);
     }
-
-    const result = await response.json();
-    console.log('✅ Household invitation email sent successfully:', result);
-    return true;
 
   } catch (error) {
     console.error('❌ Error sending household invitation email:', error);
@@ -106,172 +113,111 @@ export const sendHouseholdInvitationEmail = async (data: HouseholdInviteData): P
  * Generate HTML template for household invitation
  */
 export function generateHouseholdInvitationHTML(data: HouseholdInviteData): string {
-  return `
-<!DOCTYPE html>
+  return `<!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Household Invitation - Musa Security</title>
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #f8fafc;
-        }
-        .container {
-            background: white;
-            border-radius: 12px;
-            padding: 40px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-        .header {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-        .logo {
-            width: 100px;
-            height: 100px;
-            margin: 0 auto 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: linear-gradient(135deg, #fef3c7, #fbbf24);
-            border-radius: 50%;
-            box-shadow: 0 4px 12px rgba(251, 191, 36, 0.3);
-        }
-        .title {
-            color: #1f2937;
-            font-size: 28px;
-            font-weight: 700;
-            margin: 0;
-        }
-        .subtitle {
-            color: #6b7280;
-            font-size: 16px;
-            margin: 8px 0 0;
-        }
-        .content {
-            margin: 30px 0;
-        }
-        .invitation-card {
-            background: #f3f4f6;
-            border-radius: 8px;
-            padding: 20px;
-            margin: 20px 0;
-            border-left: 4px solid #3b82f6;
-        }
-        .household-name {
-            font-size: 20px;
-            font-weight: 600;
-            color: #1f2937;
-            margin-bottom: 8px;
-        }
-        .inviter-name {
-            color: #6b7280;
-            font-size: 14px;
-        }
-        .cta-button {
-            display: inline-block;
-            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-            color: white;
-            padding: 14px 28px;
-            text-decoration: none;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 16px;
-            margin: 20px 0;
-            transition: transform 0.2s;
-        }
-        .cta-button:hover {
-            transform: translateY(-1px);
-        }
-        .footer {
-            margin-top: 40px;
-            padding-top: 20px;
-            border-top: 1px solid #e5e7eb;
-            text-align: center;
-            color: #6b7280;
-            font-size: 14px;
-        }
-        .security-note {
-            background: #fef3c7;
-            border: 1px solid #f59e0b;
-            border-radius: 6px;
-            padding: 12px;
-            margin: 20px 0;
-            font-size: 14px;
-            color: #92400e;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>You've been invited to Musa</title>
 </head>
-<body>
-    <div class="container">
-        <div class="header">
-            <div class="logo">
-                <!-- Updated Musa Character - Email Compatible Version -->
-    <!-- Email-friendly Musa Mascot -->
-    <table cellpadding="0" cellspacing="0" border="0" align="center" width="100px" style="margin: 0 auto;">
-      <tr>
-        <td align="center">
-          <table cellpadding="0" cellspacing="0" border="0">
-            <tr>
-              <td bgcolor="#DAA520" style="background-color: #DAA520; width: 90px; height: 90px; border-radius: 45px; border: 4px solid #FFD700; text-align: center; vertical-align: middle;">
-                <span style="font-size: 45px; line-height: 90px;">🏠</span>
-              </td>
-            </tr>
-          </table>
-        </td>
-      </tr>
-    </table>
-  
-            </div>
-            <h1 class="title">You're Invited!</h1>
-            <p class="subtitle">Join a household on Musa Security</p>
-        </div>
+<body style="margin:0;padding:0;background-color:#0d1117;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#0d1117;padding:40px 16px;">
+    <tr>
+      <td align="center">
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;">
 
-        <div class="content">
-            <p>Hello!</p>
-            
-            <p>You've been invited to join a household on Musa, the secure estate access control system.</p>
+          <!-- Logo / Brand header -->
+          <tr>
+            <td align="center" style="padding-bottom:28px;">
+              <table cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td style="background-color:#DAA520;width:64px;height:64px;border-radius:16px;text-align:center;vertical-align:middle;border:3px solid #FFD700;">
+                    <span style="font-size:32px;line-height:64px;">🏠</span>
+                  </td>
+                  <td style="padding-left:12px;vertical-align:middle;">
+                    <span style="font-size:24px;font-weight:700;color:#ffffff;letter-spacing:-0.3px;">Musa</span><br>
+                    <span style="font-size:12px;color:#6b7280;text-transform:uppercase;letter-spacing:1px;">Security &amp; Access</span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
 
-            <div class="invitation-card">
-                <div class="household-name">${data.householdName}</div>
-                <div class="inviter-name">Invited by: ${data.inviterName}</div>
-            </div>
+          <!-- Card -->
+          <tr>
+            <td style="background-color:#161b22;border-radius:16px;border:1px solid #21262d;overflow:hidden;">
 
-            <p>By joining this household, you'll be able to:</p>
-            <ul>
-                <li>Generate secure access codes for estate entry</li>
-                <li>Manage your household members</li>
-                <li>View access history and activity</li>
-                <li>Communicate with estate security</li>
-            </ul>
+              <!-- Top accent bar -->
+              <tr>
+                <td style="height:4px;background:linear-gradient(90deg,#DAA520,#f59e0b,#fbbf24);"></td>
+              </tr>
 
-            <div style="text-align: center;">
-                <a href="${data.acceptUrl}" class="cta-button">Accept Invitation</a>
-            </div>
+              <!-- Body -->
+              <tr>
+                <td style="padding:36px 32px;">
 
-            <div class="security-note">
-                <strong>Security Note:</strong> This invitation will expire in 7 days. If you didn't expect this invitation, please ignore this email.
-            </div>
+                  <!-- Heading -->
+                  <p style="margin:0 0 6px;font-size:26px;font-weight:700;color:#f0f6fc;line-height:1.2;">You're invited! 🎉</p>
+                  <p style="margin:0 0 28px;font-size:15px;color:#8b949e;line-height:1.5;">
+                    <strong style="color:#c9d1d9;">${data.inviterName}</strong> has invited you to join their household on Musa.
+                  </p>
 
-            <p>If you have any questions, please contact the person who invited you or reach out to estate management.</p>
-        </div>
+                  <!-- Household card -->
+                  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#0d1117;border-radius:10px;border:1px solid #30363d;margin-bottom:28px;">
+                    <tr>
+                      <td style="padding:18px 20px;">
+                        <p style="margin:0 0 4px;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#6b7280;">Household</p>
+                        <p style="margin:0;font-size:20px;font-weight:600;color:#f0f6fc;">${data.householdName}</p>
+                        <p style="margin:6px 0 0;font-size:13px;color:#8b949e;">Invited by ${data.inviterName}</p>
+                      </td>
+                    </tr>
+                  </table>
 
-        <div class="footer">
-            <p>This email was sent by Musa Security System</p>
-            <p>If you're having trouble with the button above, copy and paste this URL into your browser:</p>
-            <p style="word-break: break-all; color: #3b82f6;">${data.acceptUrl}</p>
-        </div>
-    </div>
+                  <!-- CTA button -->
+                  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:24px;">
+                    <tr>
+                      <td align="center">
+                        <a href="${data.acceptUrl}"
+                           style="display:inline-block;background-color:#DAA520;color:#0d1117;padding:14px 36px;border-radius:10px;font-size:15px;font-weight:700;text-decoration:none;letter-spacing:0.2px;">
+                          Accept Invitation
+                        </a>
+                      </td>
+                    </tr>
+                  </table>
+
+                  <!-- Note -->
+                  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#1c2128;border-radius:8px;border:1px solid #fbbf2430;margin-bottom:20px;">
+                    <tr>
+                      <td style="padding:14px 16px;">
+                        <p style="margin:0;font-size:13px;color:#d29922;line-height:1.5;">
+                          ⏳ <strong>This invitation expires in 7 days.</strong> If you weren't expecting this, you can safely ignore it.
+                        </p>
+                      </td>
+                    </tr>
+                  </table>
+
+                  <p style="margin:0;font-size:13px;color:#8b949e;line-height:1.5;">
+                    Having trouble with the button? Copy this link into your browser:<br>
+                    <a href="${data.acceptUrl}" style="color:#DAA520;word-break:break-all;">${data.acceptUrl}</a>
+                  </p>
+                </td>
+              </tr>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="padding:24px 0 0;text-align:center;">
+              <p style="margin:0;font-size:12px;color:#484f58;">Sent by Musa Security &bull; <a href="https://musa-security.com" style="color:#6b7280;text-decoration:none;">musa-security.com</a></p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
 </body>
-</html>
-  `;
+</html>`;
 }
 
 /**
