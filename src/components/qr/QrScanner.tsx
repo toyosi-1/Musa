@@ -87,7 +87,7 @@ export default function QrScanner({ onScanResult, isActive, onScanningStateChang
 
         await scanner.current.start(
           { facingMode: 'environment' },
-          { fps: 15, qrbox: { width: 250, height: 250 }, aspectRatio: 1 },
+          { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1 },
           onScanSuccess,
           () => { /* per-frame decode failures are normal; ignore */ },
         );

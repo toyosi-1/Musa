@@ -106,7 +106,6 @@ const isMobileExport = process.env.NEXT_EXPORT === 'true';
 const nextConfig = {
   // Core Next.js configurations
   reactStrictMode: true,
-  swcMinify: true,
   // Enable static export for Capacitor mobile builds
   ...(isMobileExport && { output: 'export' }),
   
@@ -118,14 +117,13 @@ const nextConfig = {
     ignoreDuringBuilds: true,
   },
   
-  // Experimental features
+  // Experimental features (appDir and serverActions are stable in Next.js 15)
   experimental: {
-    serverComponentsExternalPackages: ['firebase-admin'],
-    appDir: true,
-    serverActions: true,
     optimizeCss: true,
     scrollRestoration: true,
   },
+  // Moved from experimental in Next.js 15
+  serverExternalPackages: ['firebase-admin', 'canvas'],
   // Static generation is now handled by Next.js App Router automatically
   // Add transpilePackages to handle problematic packages
   transpilePackages: ['undici', 'firebase', 'react-firebase-hooks'],
