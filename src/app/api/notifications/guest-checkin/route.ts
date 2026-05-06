@@ -3,6 +3,7 @@ import { getFirebaseDatabase } from '@/lib/firebase';
 import { ref, get } from 'firebase/database';
 import { rateLimit, getClientIp, rateLimitResponse } from '@/lib/rateLimit';
 import { requireAuth, AuthError } from '@/lib/requireAuth';
+import { sendFcmNotification } from '@/lib/fcmAdmin';
 
 export async function POST(request: NextRequest) {
   try {
@@ -82,43 +83,24 @@ export async function POST(request: NextRequest) {
     const notificationTitle = 'Guest Check-In';
     const notificationBody = `${guestName} has checked in at the gate and is on their way to ${address}`;
 
-    // Check if user has FCM token (push notification enabled)
+    // Send push notification via FCM v1 HTTP API if the resident has a token
     if (resident.fcmToken) {
-      // Send push notification via Firebase Cloud Messaging
-      try {
-        const response = await fetch('https://fcm.googleapis.com/fcm/send', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `key=${process.env.FIREBASE_SERVER_KEY}`
-          },
-          body: JSON.stringify({
-            to: resident.fcmToken,
-            notification: {
-              title: notificationTitle,
-              body: notificationBody,
-              icon: '/icon-192x192.png',
-              badge: '/icon-192x192.png',
-              tag: 'guest-checkin',
-              requireInteraction: false
-            },
-            data: {
-              type: 'guest-checkin',
-              accessCodeId,
-              guestName,
-              timestamp: Date.now()
-            },
-            priority: 'high'
-          })
-        });
-
-        if (!response.ok) {
-          console.error('FCM API error:', await response.text());
-        }
-      } catch (fcmError) {
-        console.error('Error sending FCM notification:', fcmError);
-        // Continue even if FCM fails - we'll still log the notification
-      }
+      await sendFcmNotification({
+        token: resident.fcmToken,
+        title: notificationTitle,
+        body: notificationBody,
+        icon: '/images/icon-192x192.png',
+        tag: 'guest-checkin',
+        requireInteraction: true,
+        vibrate: [200, 100, 200, 100, 200],
+        url: '/dashboard',
+        data: {
+          type: 'guest-checkin',
+          accessCodeId,
+          guestName,
+          timestamp: String(Date.now()),
+        },
+      });
     }
 
     // Store notification in database for in-app display

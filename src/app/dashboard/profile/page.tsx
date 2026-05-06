@@ -8,6 +8,8 @@ import { ArrowLeftIcon, UserCircleIcon } from '@heroicons/react/24/solid';
 import ModernBanner from '@/components/ui/ModernBanner';
 import { getHousehold, getHouseholdMembers } from '@/services/householdService';
 import { getUserProfile } from '@/services/userService';
+import { getFirebaseApp, getFirebaseDatabase } from '@/lib/firebase';
+import { ref, set } from 'firebase/database';
 import { Household } from '@/types/user';
 
 export default function ProfilePage() {
@@ -92,7 +94,7 @@ export default function ProfilePage() {
       return;
     }
 
-    // Request permission
+    // Request permission then get & save FCM token
     setEnablingPush(true);
     try {
       const permission = await Notification.requestPermission();
@@ -101,11 +103,27 @@ export default function ProfilePage() {
         setPushEnabled(true);
         localStorage.removeItem('musa_push_disabled');
 
-        // Show a test notification
-        new Notification('Musa Notifications Enabled', {
-          body: 'You will now receive alerts when your access codes are scanned.',
-          icon: '/images/icon-192x192.png',
-        });
+        const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
+        if (vapidKey && currentUser?.uid && 'serviceWorker' in navigator) {
+          try {
+            const { getMessaging, getToken } = await import('firebase/messaging');
+            const app = await getFirebaseApp();
+            const messaging = getMessaging(app);
+            const swReg = await navigator.serviceWorker.register('/firebase-messaging-sw.js', {
+              scope: '/',
+              updateViaCache: 'none',
+            });
+            const token = await getToken(messaging, { vapidKey, serviceWorkerRegistration: swReg });
+            if (token) {
+              const db = await getFirebaseDatabase();
+              await set(ref(db, `users/${currentUser.uid}/fcmToken`), token);
+              await set(ref(db, `users/${currentUser.uid}/fcmTokenUpdatedAt`), Date.now());
+              console.log('✅ FCM token saved from profile settings');
+            }
+          } catch (tokenErr) {
+            console.warn('Could not get FCM token:', tokenErr);
+          }
+        }
       }
     } catch (err) {
       console.error('Error requesting notification permission:', err);

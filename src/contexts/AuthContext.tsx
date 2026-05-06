@@ -40,6 +40,7 @@ import {
 import { formatUser, fetchUserProfile } from '@/services/userProfileService';
 import { configureAuthPersistence, isIosPwa } from '@/services/authPersistence';
 import { setupPwaSessionEvents } from '@/services/pwaSessionEvents';
+import { useFCMToken } from '@/hooks/useFCMToken';
 
 interface AuthContextType {
   currentUser: User | null;
@@ -80,6 +81,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [currentUser, setCurrentUser] = useState<User | null>(initialUser);
   const [loading, setLoading] = useState(initialUser === null);
   const [initError, setInitError] = useState<string | null>(null);
+
+  // Register FCM push token whenever the signed-in uid changes
+  useFCMToken(currentUser?.uid);
 
   // Live refs so long-lived event handlers always see the latest state.
   const currentUserRef = useRef<User | null>(initialUser);
