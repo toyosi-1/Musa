@@ -175,17 +175,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             console.warn('🧹 Cleared', keysToRemove.length, 'Firebase localStorage keys');
           } catch { /* non-fatal */ }
           try { await auth.signOut(); } catch { /* non-fatal */ }
-          // Also wipe IndexedDB Firebase databases (used by non-iOS browsers and PWAs)
           try {
-            const dbs = await indexedDB.databases?.() ?? [];
-            for (const db of dbs) {
-              if (db.name && (db.name.includes('firebase') || db.name.includes('firebaseLocalStorageDb'))) {
-                indexedDB.deleteDatabase(db.name);
-              }
-            }
-          } catch { /* non-fatal */ }
-          try {
-            await new Promise(res => setTimeout(res, 800));
+            await new Promise(res => setTimeout(res, 500));
             result = await signInWithEmailAndPassword(auth, email, password);
           } catch (retryError) {
             logError('Firebase authentication failed (after cache-clear retry)', retryError);
