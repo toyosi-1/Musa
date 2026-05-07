@@ -9,7 +9,7 @@ export interface FirebaseReadinessResult {
 }
 
 const SHOW_LOADING_AFTER_MS = 300;
-const GIVE_UP_AFTER_MS = 8000;
+const GIVE_UP_AFTER_MS = 20000;
 
 /**
  * Waits for Firebase to initialise and reports its status.
@@ -62,7 +62,7 @@ export function useFirebaseReadiness(): FirebaseReadinessResult {
       if (isMounted && !isFirebaseReady()) {
         console.warn('Firebase initialization timed out');
         setStatus('error');
-        setError('Connection to authentication service is taking longer than expected. Please refresh the page.');
+        setError('Slow connection detected. Please check your network and refresh the page.');
       }
     }, GIVE_UP_AFTER_MS);
 
