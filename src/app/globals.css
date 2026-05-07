@@ -141,7 +141,7 @@ html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
-  touch-action: manipulation;
+  touch-action: pan-y;
 }
 
 body {
@@ -160,7 +160,6 @@ body {
   transition: background-color var(--transition-medium), color var(--transition-medium);
   text-rendering: optimizeLegibility;
   -webkit-tap-highlight-color: transparent;
-  touch-action: pan-y;
   /* Safe-area handled per-component, not on body — avoids top gap */
 }
 
@@ -185,7 +184,6 @@ html {
   -webkit-overflow-scrolling: touch;
   scroll-behavior: smooth;
   overscroll-behavior-y: contain;
-  touch-action: pan-y;
   -webkit-text-size-adjust: 100%;
   -webkit-font-smoothing: antialiased;
   -webkit-tap-highlight-color: transparent;

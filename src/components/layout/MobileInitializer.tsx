@@ -26,8 +26,8 @@ export default function MobileInitializer() {
     if (isMobile) {
       html.classList.add('is-mobile');
       
-      // Add touch-action manipulation for better scrolling
-      document.body.style.touchAction = 'manipulation';
+      // pan-y: allows vertical scrolling on Android while preventing double-tap zoom
+      document.body.style.touchAction = 'pan-y';
     }
 
     // Handle viewport height for mobile browsers
