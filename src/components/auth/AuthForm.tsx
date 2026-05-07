@@ -40,13 +40,14 @@ type AuthFormInputs = z.infer<typeof authSchema>;
 interface AuthFormProps {
   mode: 'login' | 'register';
   defaultRole?: UserRole;
+  redirectTo?: string;
 }
 
 const LOGIN_TIMEOUT_MS = 60_000;
 const SLOW_NETWORK_WARN_MS = 12_000;
 const POST_LOGIN_NAV_DELAY_MS = 500;
 
-export default function AuthForm({ mode, defaultRole }: AuthFormProps) {
+export default function AuthForm({ mode, defaultRole, redirectTo }: AuthFormProps) {
   const router = useRouter();
   const { signIn, signUp, initError } = useAuth();
   const firebase = useFirebaseReadiness();
@@ -150,7 +151,8 @@ export default function AuthForm({ mode, defaultRole }: AuthFormProps) {
     }
 
     // Small delay so the auth state listener settles before nav.
-    setTimeout(() => router.push(getDashboardRoute(user.role)), POST_LOGIN_NAV_DELAY_MS);
+    const destination = redirectTo || getDashboardRoute(user.role);
+    setTimeout(() => router.push(destination), POST_LOGIN_NAV_DELAY_MS);
   };
 
   const performRegister = async (data: AuthFormInputs) => {

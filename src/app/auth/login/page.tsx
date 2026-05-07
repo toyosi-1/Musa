@@ -75,7 +75,7 @@ function LoginContent() {
         <div className="relative bg-white/[0.06] backdrop-blur-md border border-white/10 rounded-3xl p-6 shadow-2xl">
           <div className="absolute inset-0 rounded-3xl bg-gradient-to-b from-white/[0.03] to-transparent pointer-events-none" />
           <div className="relative z-10">
-            <AuthForm mode="login" />
+            <AuthForm mode="login" redirectTo={searchParams.get('redirect') || undefined} />
           </div>
         </div>
 
