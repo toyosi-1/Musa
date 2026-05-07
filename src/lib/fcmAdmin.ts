@@ -107,26 +107,42 @@ async function getAccessToken(sa: ServiceAccount): Promise<string> {
 }
 
 /**
- * Resolve service account credentials from env vars.
- * Prefers individual vars (FCM_PROJECT_ID / FCM_CLIENT_EMAIL / FCM_PRIVATE_KEY)
- * to avoid Netlify's 4 KB function-env limit.
- * Falls back to the legacy FCM_SERVICE_ACCOUNT_JSON single var.
+ * Resolve service account credentials.
+ * Priority order:
+ *  1. secrets/fcm-service-account.json committed to the (private) repo — zero env-var cost
+ *  2. Individual env vars FCM_PROJECT_ID + FCM_CLIENT_EMAIL + FCM_PRIVATE_KEY(_B64)
+ *  3. Legacy FCM_SERVICE_ACCOUNT_JSON single var (local dev only)
  */
 function resolveServiceAccount(): ServiceAccount | null {
+  // 1. File-based credentials — committed to private repo, no env-var size overhead
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const path = require('path') as typeof import('path');
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const fs = require('fs') as typeof import('fs');
+    const filePath = path.join(process.cwd(), 'secrets', 'fcm-service-account.json');
+    if (fs.existsSync(filePath)) {
+      const parsed = JSON.parse(fs.readFileSync(filePath, 'utf8')) as ServiceAccount;
+      if (parsed.project_id && parsed.client_email && parsed.private_key) {
+        return parsed;
+      }
+    }
+  } catch { /* non-fatal — fall through to env vars */ }
+
+  // 2. Individual env vars (avoids Netlify 4 KB function-env limit)
   const projectId   = process.env.FCM_PROJECT_ID;
   const clientEmail = process.env.FCM_CLIENT_EMAIL;
-  const privateKey  = process.env.FCM_PRIVATE_KEY;
+  const privateKeyB64 = process.env.FCM_PRIVATE_KEY_B64;
+  const privateKey    = process.env.FCM_PRIVATE_KEY;
+  const resolvedKey = privateKeyB64
+    ? Buffer.from(privateKeyB64, 'base64').toString('utf8')
+    : privateKey ? privateKey.replace(/\\n/g, '\n') : null;
 
-  if (projectId && clientEmail && privateKey) {
-    return {
-      project_id:   projectId,
-      client_email: clientEmail,
-      // Netlify stores \n as a literal backslash-n — expand to real newlines
-      private_key:  privateKey.replace(/\\n/g, '\n'),
-    };
+  if (projectId && clientEmail && resolvedKey) {
+    return { project_id: projectId, client_email: clientEmail, private_key: resolvedKey };
   }
 
-  // Legacy fallback: full JSON in a single env var (local dev)
+  // 3. Legacy fallback: full JSON in a single env var (local dev)
   const saJson = process.env.FCM_SERVICE_ACCOUNT_JSON;
   if (saJson) {
     try {

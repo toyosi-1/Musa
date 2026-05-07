@@ -32,15 +32,32 @@ function getAdminApp(): App {
     const privateKey  = process.env.FCM_PRIVATE_KEY;
     const legacyJson  = process.env.FIREBASE_SERVICE_ACCOUNT_KEY || process.env.FCM_SERVICE_ACCOUNT_JSON;
 
+    // 1. File-based credentials — committed to private repo, no env-var size overhead
     let serviceAccount: object | null = null;
-    if (projectId && clientEmail && privateKey) {
-      serviceAccount = {
-        type: 'service_account',
-        project_id:   projectId,
-        client_email: clientEmail,
-        private_key:  privateKey.replace(/\\n/g, '\n'),
-      };
-    } else if (legacyJson) {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const path = require('path') as typeof import('path');
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const fs = require('fs') as typeof import('fs');
+      const filePath = path.join(process.cwd(), 'secrets', 'fcm-service-account.json');
+      if (fs.existsSync(filePath)) {
+        serviceAccount = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+      }
+    } catch { /* non-fatal — fall through to env vars */ }
+
+    // 2. Individual env vars
+    if (!serviceAccount) {
+      const privateKeyB64 = process.env.FCM_PRIVATE_KEY_B64;
+      const resolvedKey = privateKeyB64
+        ? Buffer.from(privateKeyB64, 'base64').toString('utf8')
+        : privateKey ? privateKey.replace(/\\n/g, '\n') : null;
+      if (projectId && clientEmail && resolvedKey) {
+        serviceAccount = { type: 'service_account', project_id: projectId, client_email: clientEmail, private_key: resolvedKey };
+      }
+    }
+
+    // 3. Legacy single JSON var (local dev)
+    if (!serviceAccount && legacyJson) {
       try { serviceAccount = JSON.parse(legacyJson); } catch {
         console.warn('⚠️ Failed to parse service account JSON env var');
       }

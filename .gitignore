@@ -50,6 +50,8 @@ service-account.json
 **/credentials*.json
 **/*-key*.json
 **/*credentials*.json
+# Exception MUST come after the blocking patterns — intentionally committed (private repo only)
+!secrets/fcm-service-account.json
 
 # IDE files
 .idea
