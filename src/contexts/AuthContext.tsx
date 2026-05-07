@@ -160,15 +160,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // tries to refresh a stale token before accepting the new one.
         // A single silent retry after a short delay reliably recovers this.
         if (
-          (code === 'auth/invalid-credential' || code === 'auth/invalid-login-credentials') &&
+          (code === 'auth/invalid-credential' || code === 'auth/invalid-login-credentials' || code === 'auth/wrong-password') &&
           isIos
         ) {
-          console.warn('🔄 iOS: silent retry after auth/invalid-credential (possible stale ITP token)');
+          console.warn('🔄 iOS: clearing stale Firebase auth cache before retry (code:', code, ')');
+          // The stale localStorage token (left over from before password reset) is
+          // causing Firebase to fail the token-refresh step before it even checks
+          // the new password. Wipe all firebase:authUser:* keys from localStorage
+          // so Firebase starts a completely fresh sign-in without a cached token.
           try {
-            await new Promise(res => setTimeout(res, 800));
+            const keysToRemove: string[] = [];
+            for (let i = 0; i < localStorage.length; i++) {
+              const k = localStorage.key(i);
+              if (k && (k.startsWith('firebase:authUser:') || k.startsWith('firebase:') || k === 'firebaseLocalStorageDb')) {
+                keysToRemove.push(k);
+              }
+            }
+            keysToRemove.forEach(k => localStorage.removeItem(k));
+            console.warn('🧹 Cleared', keysToRemove.length, 'Firebase localStorage keys');
+          } catch { /* non-fatal — best-effort only */ }
+          try {
+            // Also sign out silently so Firebase's in-memory state is clean
+            await firebaseSignOut(auth).catch(() => {});
+            // Wait for Firebase server to fully propagate the new password
+            await new Promise(res => setTimeout(res, 1500));
             result = await signInWithEmailAndPassword(auth, email, password);
           } catch (retryError) {
-            logError('Firebase authentication failed (after iOS retry)', retryError);
+            logError('Firebase authentication failed (after iOS cache-clear retry)', retryError);
             throw retryError;
           }
         } else if (code === 'auth/too-many-requests') {

@@ -71,17 +71,27 @@ export default function ResetPasswordPage() {
       if (!isFirebaseReady()) await waitForFirebase();
       const auth = await getFirebaseAuth();
       await confirmPasswordReset(auth, oobCode, password);
-      // confirmPasswordReset invalidates all existing tokens server-side.
-      // Do NOT call auth.signOut() here — it would also clear the Firebase
-      // persistence store so the next signInWithEmailAndPassword returns
-      // auth/invalid-credential even with the correct new password.
-      // Instead, just clear the Musa-specific profile/session caches so
-      // the stale cached profile can't falsely restore a logged-in state.
+      // confirmPasswordReset invalidates ALL existing Firebase tokens server-side.
+      // We must clear them from localStorage now so the next sign-in attempt
+      // doesn't try to refresh a token that the server has already revoked
+      // (which would return auth/invalid-credential even with the correct new password).
       try {
+        // Clear all Firebase auth keys from localStorage
+        const keysToRemove: string[] = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (k && (k.startsWith('firebase:authUser:') || k.startsWith('firebase:') || k === 'firebaseLocalStorageDb')) {
+            keysToRemove.push(k);
+          }
+        }
+        keysToRemove.forEach(k => localStorage.removeItem(k));
+        // Also clear Musa-specific session caches
         localStorage.removeItem('musa_user_profile_cache');
         localStorage.removeItem('musa_session_backup');
         sessionStorage.removeItem('musa_session_backup');
       } catch { /* non-fatal */ }
+      // Sign out of Firebase in-memory state cleanly (safe here — user has no valid token anyway)
+      try { await auth.signOut(); } catch { /* non-fatal */ }
       setSuccess(true);
     } catch (err: any) {
       console.error('[ResetPassword] Reset failed:', err);
