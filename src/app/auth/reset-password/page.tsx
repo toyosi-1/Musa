@@ -71,9 +71,17 @@ export default function ResetPasswordPage() {
       if (!isFirebaseReady()) await waitForFirebase();
       const auth = await getFirebaseAuth();
       await confirmPasswordReset(auth, oobCode, password);
-      // Sign out any cached session so iOS/Safari doesn't try to reuse
-      // a now-invalidated token on the next sign-in attempt.
-      try { await auth.signOut(); } catch { /* non-fatal */ }
+      // confirmPasswordReset invalidates all existing tokens server-side.
+      // Do NOT call auth.signOut() here — it would also clear the Firebase
+      // persistence store so the next signInWithEmailAndPassword returns
+      // auth/invalid-credential even with the correct new password.
+      // Instead, just clear the Musa-specific profile/session caches so
+      // the stale cached profile can't falsely restore a logged-in state.
+      try {
+        localStorage.removeItem('musa_user_profile_cache');
+        localStorage.removeItem('musa_session_backup');
+        sessionStorage.removeItem('musa_session_backup');
+      } catch { /* non-fatal */ }
       setSuccess(true);
     } catch (err: any) {
       console.error('[ResetPassword] Reset failed:', err);

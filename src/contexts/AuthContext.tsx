@@ -151,16 +151,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         result = await signInWithEmailAndPassword(auth, email, password);
       } catch (authError: any) {
+        const code: string = authError?.code || '';
+        const isIos = typeof navigator !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent);
+
         // On iOS, Safari's ITP can silently wipe the Firebase auth token store
         // between sessions. The first sign-in attempt after a wipe returns
         // auth/invalid-credential even with correct credentials because Firebase
         // tries to refresh a stale token before accepting the new one.
         // A single silent retry after a short delay reliably recovers this.
         if (
-          (authError?.code === 'auth/invalid-credential' ||
-           authError?.code === 'auth/invalid-login-credentials') &&
-          typeof navigator !== 'undefined' &&
-          /iPad|iPhone|iPod/.test(navigator.userAgent)
+          (code === 'auth/invalid-credential' || code === 'auth/invalid-login-credentials') &&
+          isIos
         ) {
           console.warn('🔄 iOS: silent retry after auth/invalid-credential (possible stale ITP token)');
           try {
@@ -168,6 +169,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             result = await signInWithEmailAndPassword(auth, email, password);
           } catch (retryError) {
             logError('Firebase authentication failed (after iOS retry)', retryError);
+            throw retryError;
+          }
+        } else if (code === 'auth/too-many-requests') {
+          // Firebase rate-limits when there have been repeated failed attempts
+          // (e.g. user tried wrong cached password several times). Wait 3s and
+          // retry once — if the correct password is supplied it will succeed.
+          console.warn('🔄 auth/too-many-requests: waiting 3s then retrying once');
+          try {
+            await new Promise(res => setTimeout(res, 3000));
+            result = await signInWithEmailAndPassword(auth, email, password);
+          } catch (retryError) {
+            logError('Firebase authentication failed (after too-many-requests retry)', retryError);
             throw retryError;
           }
         } else {
@@ -338,6 +351,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         clearTimeout(authTimeout);
 
+        // Persistence MUST be configured before subscribing to onAuthStateChanged.
+        // If we set it after, Firebase may already have restored (or failed to
+        // restore) the session with the wrong persistence type, causing the
+        // auth state to fire before our desired persistence is active.
         await configureAuthPersistence(auth);
 
         // PWA session refresh — keep backup fresh while the app is open.
@@ -395,25 +412,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                   sessionRefreshInterval = setInterval(() => refreshSessionBackup(), 30000);
                 }
               } else {
-                // First null on cold start might just be "firebase hasn't restored session yet"
+                // Firebase reported no authenticated user.
                 if (isInitialAuthState) {
+                  // Cold start: Firebase hasn't restored the session yet OR
+                  // there genuinely is no session (e.g. after password reset).
+                  // We wait for a second onAuthStateChanged before trusting any
+                  // cached profile to avoid showing a stale logged-in UI when
+                  // Firebase actually has no valid token.
                   isInitialAuthState = false;
-                  if (initialUser) {
-                    console.log('🔄 Initial auth null but we have instant-recovered user — keeping:', initialUser.displayName);
-                    setCurrentUser(initialUser);
-                    return;
-                  }
-                  const sessionBackup = getSessionBackup();
-                  if (sessionBackup?.userId) {
-                    const cachedUser = getPersistedUserProfile(sessionBackup.userId);
-                    if (cachedUser) {
-                      console.log('📦 Recovered user from persisted profile:', cachedUser.displayName);
-                      setCurrentUser(cachedUser);
-                      return;
-                    }
-                  }
-                  console.log('👋 No persisted session found on cold start');
+
+                  // Always clear the Musa caches on a null cold-start signal.
+                  // If Firebase has a valid persisted token it will immediately
+                  // fire another onAuthStateChanged with the real user. If it
+                  // doesn't, these caches would cause a phantom logged-in state.
+                  clearSessionBackup();
+                  clearPersistedUserProfile();
                   setCurrentUser(null);
+                  console.log('👋 Cold-start: no Firebase session — caches cleared');
                 } else {
                   // Genuine sign-out
                   console.log('👋 User signed out');
