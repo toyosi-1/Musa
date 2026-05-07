@@ -34,12 +34,11 @@ export default function ForgotPasswordPage() {
       const auth = await getFirebaseAuth();
       console.log('[ForgotPassword] Auth ready, authDomain:', auth.config.authDomain);
 
-      // Always redirect to the origin the user is currently on — this handles
-      // localhost dev, Netlify previews, and production correctly without
-      // falling back to the Firebase default domain (musa-app-9a301.firebaseapp.com).
-      const baseUrl = typeof window !== 'undefined'
-        ? window.location.origin
-        : process.env.NEXT_PUBLIC_APP_URL || 'https://musa-security.com';
+      // Always use the canonical production URL for the continue URL.
+      // Using window.location.origin breaks on Netlify preview branches and any
+      // domain not listed under Firebase Console → Authentication → Authorized domains,
+      // which throws auth/unauthorized-continue-uri.
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://musa-security.com';
 
       const actionCodeSettings = {
         url: baseUrl + '/auth/reset-password',
