@@ -339,43 +339,26 @@ export const createHouseholdInvite = async (
     const emailKey = email.replace(/\./g, ',').toLowerCase();
     await set(ref(db, `invitesByEmail/${emailKey}/${invite.id}`), true);
     
-    // Send invitation email
-    try {
-      // Get inviter's name for the email
-      const inviterRef = ref(db, `users/${invitedBy}`);
-      const inviterSnapshot = await get(inviterRef);
-      const inviterName = inviterSnapshot.exists() ? 
-        inviterSnapshot.val().displayName || 'Someone' : 'Someone';
-      
-      console.log('Sending household invitation email to:', email);
-      
-      // Create invitation link
-      const invitationLink = `${process.env.NEXT_PUBLIC_APP_URL || 'https://musa-security.com'}/invite/${invite.id}`;
-      
-      // Send email — non-critical: the invite record is already saved so we
-      // never throw here. A 15s timeout prevents this from hanging the UI.
-      const emailTimeout = new Promise<boolean>((resolve) => setTimeout(() => resolve(false), 15_000));
-      const emailSent = await Promise.race([
-        sendHouseholdInvitationSMTP({
+    // Send invitation email — fire-and-forget, never block the UI
+    void (async () => {
+      try {
+        const inviterRef = ref(db, `users/${invitedBy}`);
+        const inviterSnapshot = await get(inviterRef);
+        const inviterName = inviterSnapshot.exists()
+          ? inviterSnapshot.val().displayName || 'Someone'
+          : 'Someone';
+        const invitationLink = `${process.env.NEXT_PUBLIC_APP_URL || 'https://musa-security.com'}/invite/${invite.id}`;
+        await sendHouseholdInvitationSMTP({
           householdName: household.name,
-          inviterName: inviterName,
+          inviterName,
           acceptUrl: invitationLink,
-          recipientEmail: email
-        }),
-        emailTimeout,
-      ]);
-      
-      if (emailSent) {
-        console.log('✅ Household invitation email sent successfully via SMTP');
-      } else {
-        console.warn('⚠️  Invitation saved but email delivery failed or timed out. User can accept via app link.');
+          recipientEmail: email,
+        });
+        console.log('✅ Household invitation email sent');
+      } catch (e) {
+        console.warn('⚠️ Invitation email failed (non-fatal):', e);
       }
-    } catch (emailError) {
-      console.error('❌ Failed to send invitation email:', emailError);
-      // Don't throw error - invitation was created successfully, email is just a notification
-      // The user can still accept the invitation through the app
-      console.log('⚠️  Invitation created but email delivery failed. User can still accept via app.');
-    }
+    })();
     
     return invite;
   } catch (error) {
@@ -456,6 +439,7 @@ export const acceptHouseholdInvite = async (
     }
   } catch (error) {
     console.error('Error accepting household invite:', error);
+    if (error instanceof Error) throw error;
     throw new Error('Failed to accept invitation');
   }
 };

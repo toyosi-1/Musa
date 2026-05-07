@@ -279,7 +279,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         ) {
           throw new Error('Connection is taking a while. Please check your signal and try again.');
         }
-        throw new Error("Hmm, that email or password doesn't match. Please try again.");
+        // Only show "mismatch" for actual Firebase auth errors, not DB/profile errors
+        if (errorCode.startsWith('auth/')) {
+          throw new Error("Hmm, that email or password doesn't match. Please try again.");
+        }
+        // Pass through all other errors (profile load failures, device check, etc.) as-is
+        throw error;
       }
       throw error;
     }
