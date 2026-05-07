@@ -15,7 +15,7 @@
     "test:coverage": "vitest run --coverage",
     "test:rules": "vitest run --config vitest.rules.config.ts",
     "test:rules:ci": "firebase emulators:exec --only database,auth \"npm run test:rules\"",
-    "netlify-build": "npm install && npm run build",
+    "netlify-build": "npm install && node scripts/write-fcm-secret.js && npm run build",
     "build:mobile": "NEXT_EXPORT=true next build",
     "cap:sync": "npx cap sync",
     "cap:android": "npx cap open android",
