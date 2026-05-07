@@ -1,7 +1,7 @@
 import { ref, get, set } from 'firebase/database';
 import { signOut as firebaseSignOut } from 'firebase/auth';
 import { getFirebaseAuth, getFirebaseDatabase } from '@/lib/firebase';
-import { generateDeviceId, getDeviceLabel } from '@/utils/deviceFingerprint';
+import { generateDeviceId, getDeviceLabel, isDeviceApprovedLocally, markDeviceApprovedLocally } from '@/utils/deviceFingerprint';
 import { fetchWithAuth } from '@/lib/fetchWithAuth';
 import type { User } from '@/types/user';
 
@@ -31,15 +31,33 @@ export async function enforceHouseholdDeviceApproval(user: User): Promise<void> 
     const deviceId = generateDeviceId();
     const deviceLabel = getDeviceLabel();
 
-    const checkRes = await fetchWithAuth('/api/device-approval', {
-      method: 'POST',
-      body: JSON.stringify({ action: 'check', userId: user.uid, deviceId }),
-    });
-    const checkData = await checkRes.json();
-
-    if (checkData.approved) {
-      console.log('✅ Device recognised for Head of House');
+    // Fast-path: check local cache first — avoids a server round-trip on slow networks
+    if (isDeviceApprovedLocally(user.uid, deviceId)) {
+      console.log('✅ Device recognised (local cache) for Head of House');
       return;
+    }
+
+    let serverApproved = false;
+    try {
+      const checkRes = await fetchWithAuth('/api/device-approval', {
+        method: 'POST',
+        body: JSON.stringify({ action: 'check', userId: user.uid, deviceId }),
+      });
+      if (checkRes.ok) {
+        const checkData = await checkRes.json();
+        serverApproved = !!checkData.approved;
+        if (serverApproved) {
+          markDeviceApprovedLocally(user.uid, deviceId);
+          console.log('✅ Device recognised (server) for Head of House');
+          return;
+        }
+      } else {
+        // Server check failed (401/503/timeout) — if this device was previously
+        // auto-approved as first device, treat it as trusted rather than blocking
+        console.warn('⚠️ Device check server returned', checkRes.status, '— proceeding cautiously');
+      }
+    } catch (checkErr) {
+      console.warn('⚠️ Device check request failed (network) — will check knownDevices directly:', checkErr);
     }
 
     // Device not approved — check if this is their very first device
@@ -56,6 +74,7 @@ export async function enforceHouseholdDeviceApproval(user: User): Promise<void> 
         approvedAt: Date.now(),
         autoApproved: true,
       });
+      markDeviceApprovedLocally(user.uid, deviceId);
       return;
     }
 

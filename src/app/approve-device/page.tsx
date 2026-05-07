@@ -27,6 +27,20 @@ export default function ApproveDevicePage() {
         });
         const data = await res.json();
         if (data.success) {
+          // Cache approval in localStorage so this device isn't re-blocked
+          // if the PWA's localStorage was cleared between sessions
+          try {
+            if (data.userId && data.deviceId) {
+              const LS_KEY = 'musa_approved_devices';
+              const raw = localStorage.getItem(LS_KEY);
+              const map: Record<string, string[]> = raw ? JSON.parse(raw) : {};
+              if (!map[data.userId]) map[data.userId] = [];
+              if (!map[data.userId].includes(data.deviceId)) {
+                map[data.userId].push(data.deviceId);
+              }
+              localStorage.setItem(LS_KEY, JSON.stringify(map));
+            }
+          } catch { /* non-fatal */ }
           setStatus('success');
           setMessage(data.message || 'Device approved successfully!');
         } else {

@@ -215,6 +215,8 @@ async function handleVerify(body: any) {
   return NextResponse.json({
     success: true,
     message: 'Device approved! You can now sign in.',
+    userId: data.userId,
+    deviceId: data.deviceId,
   });
 }
 
