@@ -101,7 +101,14 @@ export default function ResetPasswordPage() {
       } catch { /* non-fatal */ }
       // Sign out of Firebase in-memory state cleanly (safe here — user has no valid token anyway)
       try { await auth.signOut(); } catch { /* non-fatal */ }
+      // IMPORTANT: use a hard redirect (not Next.js router.push) so the entire
+      // Firebase SDK re-initialises from scratch on the login page. SPA navigation
+      // keeps the broken in-memory auth state alive and causes auth/invalid-credential
+      // on the first sign-in attempt even with the correct new password.
       setSuccess(true);
+      setTimeout(() => {
+        window.location.href = '/auth/login?reset=1';
+      }, 2500);
     } catch (err: any) {
       console.error('[ResetPassword] Reset failed:', err);
       const code = err?.code as string | undefined;
@@ -172,12 +179,15 @@ export default function ResetPasswordPage() {
                     Your password has been updated. You can now sign in with your new password.
                   </p>
                 </div>
-                <Link
-                  href="/auth/login"
-                  className="block w-full h-12 rounded-xl font-semibold text-sm text-white bg-gradient-to-r from-blue-600 to-indigo-600 shadow-lg shadow-blue-500/25 text-center leading-[3rem] transition-all hover:shadow-xl"
+                <p className="text-center text-sm text-gray-400">
+                  Taking you to Sign In…
+                </p>
+                <button
+                  onClick={() => { window.location.href = '/auth/login?reset=1'; }}
+                  className="block w-full h-12 rounded-xl font-semibold text-sm text-white bg-gradient-to-r from-blue-600 to-indigo-600 shadow-lg shadow-blue-500/25 text-center transition-all hover:shadow-xl"
                 >
-                  Go to Sign In
-                </Link>
+                  Go to Sign In now
+                </button>
               </div>
             ) : error && !email ? (
               <div className="space-y-5 py-2">
