@@ -219,7 +219,7 @@ export default function RootLayout({
           <AuthWrapper>
             <NetworkStatusBar />
             <Suspense fallback={<LoadingScreen />}>
-              <div className="min-h-screen flex flex-col" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
+              <div className="min-h-screen flex flex-col">
                 {children}
               </div>
             </Suspense>

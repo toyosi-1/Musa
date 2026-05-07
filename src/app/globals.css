@@ -54,14 +54,23 @@
 }
 
 /* ─── Base reset for iOS PWA safe-area support ─── */
+/*
+ * Setting background on html fills the ENTIRE screen canvas including the
+ * Dynamic Island / notch top zone and home-indicator bottom zone — this is
+ * what prevents the white flash on PWA cold start before any component mounts.
+ * Each page overrides the background on its own <main> / wrapper element.
+ */
+html {
+  background: #06080f; /* darkest app background — matches landing & auth pages */
+}
+
 html, body, #__next {
   margin: 0;
   padding: 0;
   width: 100%;
-  /* Use dvh so the height tracks the visible viewport (keyboard-aware) */
+  /* dvh tracks the visible viewport (shrinks when iOS toolbar appears) */
   min-height: 100vh;
   min-height: 100dvh;
-  background: #080d1a;
   overscroll-behavior: none;
   -webkit-overflow-scrolling: touch;
 }

@@ -94,8 +94,21 @@ export default function DashboardLayout({
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-950">
+      {/* Full-bleed background behind safe-area zones */}
+      <div
+        aria-hidden="true"
+        className="fixed inset-0 bg-gray-50 dark:bg-gray-950 -z-10"
+        style={{
+          top: 'calc(-1 * env(safe-area-inset-top, 0px))',
+          bottom: 'calc(-1 * env(safe-area-inset-bottom, 0px))',
+        }}
+      />
       {/* ─── Desktop Top Header ─── */}
-      <header className="md:block hidden sticky top-0 z-40">
+      {/* paddingTop fills the Dynamic Island / notch with header bg colour */}
+      <header
+        className="md:block hidden sticky top-0 z-40"
+        style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
+      >
         {/* Gradient accent line */}
         <div className="h-0.5 bg-gradient-to-r from-blue-600 via-indigo-500 to-violet-500" />
         <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-b border-gray-200/60 dark:border-gray-800/60">
@@ -148,8 +161,11 @@ export default function DashboardLayout({
       {/* ─── Main Content ─── */}
       <main className="flex-grow overflow-y-auto overflow-x-hidden md:pb-0" style={{ paddingBottom: 'calc(5.5rem + env(safe-area-inset-bottom, 16px))' }}>
         <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 md:py-8">
-          {/* Mobile Top Bar — sits below Dynamic Island / notch */}
-          <div className="md:hidden flex items-center justify-between mb-5" style={{ paddingTop: 'max(4px, env(safe-area-inset-top, 4px))' }}>
+          {/* Mobile Top Bar — paddingTop pushes content below Dynamic Island */}
+          <div
+            className="md:hidden flex items-center justify-between mb-5"
+            style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
+          >
             <div className="flex items-center gap-3">
               <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white flex items-center justify-center text-base font-bold shadow-lg shadow-blue-500/25">
                 {firstName.charAt(0).toUpperCase()}

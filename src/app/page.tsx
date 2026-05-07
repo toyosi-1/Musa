@@ -6,10 +6,29 @@ import SessionRedirect from '@/components/auth/SessionRedirect';
 export default function Home() {
   return (
     <main className="min-h-screen flex flex-col bg-[#06080f] text-white overflow-x-hidden">
+      {/* Full-bleed background — covers Dynamic Island / notch and home
+          indicator zones with the app colour even before JS runs */}
+      <div
+        aria-hidden="true"
+        style={{
+          position: 'fixed',
+          inset: 0,
+          background: '#06080f',
+          zIndex: -1,
+          // Extend into safe areas explicitly
+          top: 'calc(-1 * env(safe-area-inset-top, 0px))',
+          bottom: 'calc(-1 * env(safe-area-inset-bottom, 0px))',
+        }}
+      />
       <SessionRedirect />
 
       {/* ─── Navbar ─── */}
-      <header className="sticky top-0 z-50 backdrop-blur-xl bg-[#06080f]/80 border-b border-white/[0.06]" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+      {/* paddingTop = safe-area-inset-top so the header background fills the
+          Dynamic Island / notch zone. The inner h-16 row sits below it. */}
+      <header
+        className="sticky top-0 z-50 backdrop-blur-xl bg-[#06080f]/90 border-b border-white/[0.06]"
+        style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
+      >
         <div className="container mx-auto px-5 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-900/50 to-orange-900/30 border border-amber-700/30 flex items-center justify-center overflow-hidden">
