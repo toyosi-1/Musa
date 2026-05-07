@@ -1,9 +1,14 @@
 /**
  * FCM v1 HTTP API helper (server-side only).
  *
- * Uses the Firebase service account credentials stored in the
- * FCM_SERVICE_ACCOUNT_JSON environment variable to mint a short-lived
- * OAuth2 access token and send messages via the FCM v1 endpoint.
+ * Credentials are read from individual env vars to stay under Netlify's
+ * 4 KB per-function environment size limit:
+ *   FCM_PROJECT_ID    — e.g. "musa-app-9a301"
+ *   FCM_CLIENT_EMAIL  — e.g. "firebase-adminsdk-...@....iam.gserviceaccount.com"
+ *   FCM_PRIVATE_KEY   — the full PEM string (\n literals are expanded automatically)
+ *
+ * The legacy FCM_SERVICE_ACCOUNT_JSON single-var form is still accepted as a
+ * fallback so local .env.local files continue to work without changes.
  *
  * Why not firebase-admin? The admin SDK pulls in ~10 MB of native binaries
  * which bloat the Netlify function bundle. This thin helper uses only the
@@ -102,21 +107,46 @@ async function getAccessToken(sa: ServiceAccount): Promise<string> {
 }
 
 /**
+ * Resolve service account credentials from env vars.
+ * Prefers individual vars (FCM_PROJECT_ID / FCM_CLIENT_EMAIL / FCM_PRIVATE_KEY)
+ * to avoid Netlify's 4 KB function-env limit.
+ * Falls back to the legacy FCM_SERVICE_ACCOUNT_JSON single var.
+ */
+function resolveServiceAccount(): ServiceAccount | null {
+  const projectId   = process.env.FCM_PROJECT_ID;
+  const clientEmail = process.env.FCM_CLIENT_EMAIL;
+  const privateKey  = process.env.FCM_PRIVATE_KEY;
+
+  if (projectId && clientEmail && privateKey) {
+    return {
+      project_id:   projectId,
+      client_email: clientEmail,
+      // Netlify stores \n as a literal backslash-n — expand to real newlines
+      private_key:  privateKey.replace(/\\n/g, '\n'),
+    };
+  }
+
+  // Legacy fallback: full JSON in a single env var (local dev)
+  const saJson = process.env.FCM_SERVICE_ACCOUNT_JSON;
+  if (saJson) {
+    try {
+      return JSON.parse(saJson) as ServiceAccount;
+    } catch {
+      console.error('[fcmAdmin] FCM_SERVICE_ACCOUNT_JSON is not valid JSON');
+    }
+  }
+
+  return null;
+}
+
+/**
  * Send a push notification to a single FCM token via the v1 HTTP API.
  * Returns true on success, false on non-fatal failure (e.g. stale token).
  */
 export async function sendFcmNotification(msg: FcmMessage): Promise<boolean> {
-  const saJson = process.env.FCM_SERVICE_ACCOUNT_JSON;
-  if (!saJson) {
-    console.warn('[fcmAdmin] FCM_SERVICE_ACCOUNT_JSON not set — skipping push');
-    return false;
-  }
-
-  let sa: ServiceAccount;
-  try {
-    sa = JSON.parse(saJson) as ServiceAccount;
-  } catch {
-    console.error('[fcmAdmin] FCM_SERVICE_ACCOUNT_JSON is not valid JSON');
+  const sa = resolveServiceAccount();
+  if (!sa) {
+    console.warn('[fcmAdmin] No FCM credentials found — set FCM_PROJECT_ID, FCM_CLIENT_EMAIL, FCM_PRIVATE_KEY');
     return false;
   }
 

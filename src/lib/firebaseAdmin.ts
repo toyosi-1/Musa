@@ -25,19 +25,37 @@ function getAdminApp(): App {
   }
 
   try {
-    // Try service account JSON from env first (either var name works)
-    const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY || process.env.FCM_SERVICE_ACCOUNT_JSON;
-    if (serviceAccountKey) {
+    // Prefer individual env vars (avoids Netlify 4 KB function-env limit).
+    // Fall back to the legacy single-JSON var for local dev.
+    const projectId   = process.env.FCM_PROJECT_ID;
+    const clientEmail = process.env.FCM_CLIENT_EMAIL;
+    const privateKey  = process.env.FCM_PRIVATE_KEY;
+    const legacyJson  = process.env.FIREBASE_SERVICE_ACCOUNT_KEY || process.env.FCM_SERVICE_ACCOUNT_JSON;
+
+    let serviceAccount: object | null = null;
+    if (projectId && clientEmail && privateKey) {
+      serviceAccount = {
+        type: 'service_account',
+        project_id:   projectId,
+        client_email: clientEmail,
+        private_key:  privateKey.replace(/\\n/g, '\n'),
+      };
+    } else if (legacyJson) {
+      try { serviceAccount = JSON.parse(legacyJson); } catch {
+        console.warn('⚠️ Failed to parse service account JSON env var');
+      }
+    }
+
+    if (serviceAccount) {
       try {
-        const parsed = JSON.parse(serviceAccountKey);
         adminApp = initializeApp({
-          credential: cert(parsed),
+          credential: cert(serviceAccount as Parameters<typeof cert>[0]),
           databaseURL,
         });
         console.log('✅ Firebase Admin initialized with service account');
         return adminApp;
       } catch (parseError) {
-        console.warn('⚠️ Failed to parse FIREBASE_SERVICE_ACCOUNT_KEY, trying default credentials');
+        console.warn('⚠️ Failed to initialize with service account, trying default credentials');
       }
     }
 
@@ -81,8 +99,10 @@ export function getAdminDatabase(): Database {
  * Check if Firebase Admin is properly configured
  */
 export function isAdminConfigured(): boolean {
+  const hasIndividualVars = !!(process.env.FCM_PROJECT_ID && process.env.FCM_CLIENT_EMAIL && process.env.FCM_PRIVATE_KEY);
+  const hasLegacyJson = !!(process.env.FIREBASE_SERVICE_ACCOUNT_KEY || process.env.FCM_SERVICE_ACCOUNT_JSON);
   return !!(
     process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL &&
-    (process.env.FIREBASE_SERVICE_ACCOUNT_KEY || process.env.FCM_SERVICE_ACCOUNT_JSON || process.env.GOOGLE_APPLICATION_CREDENTIALS)
+    (hasIndividualVars || hasLegacyJson || process.env.GOOGLE_APPLICATION_CREDENTIALS)
   );
 }
