@@ -3,6 +3,8 @@
  * The client SDK's getFirebaseDatabase() returns an empty stub on the server,
  * so API routes must use this admin helper instead.
  */
+import fs from 'fs';
+import path from 'path';
 import { initializeApp, getApps, cert, App, applicationDefault } from 'firebase-admin/app';
 import { getDatabase, Database } from 'firebase-admin/database';
 
@@ -32,13 +34,9 @@ function getAdminApp(): App {
     const privateKey  = process.env.FCM_PRIVATE_KEY;
     const legacyJson  = process.env.FIREBASE_SERVICE_ACCOUNT_KEY || process.env.FCM_SERVICE_ACCOUNT_JSON;
 
-    // 1. File-based credentials — committed to private repo, no env-var size overhead
+    // 1. File-based credentials — written at build time by scripts/write-fcm-secret.js
     let serviceAccount: object | null = null;
     try {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const path = require('path') as typeof import('path');
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const fs = require('fs') as typeof import('fs');
       const filePath = path.join(process.cwd(), 'secrets', 'fcm-service-account.json');
       if (fs.existsSync(filePath)) {
         serviceAccount = JSON.parse(fs.readFileSync(filePath, 'utf8'));

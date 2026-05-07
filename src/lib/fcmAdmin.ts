@@ -15,6 +15,9 @@
  * Google OAuth2 token endpoint and a plain fetch, keeping the bundle small.
  */
 
+import fs from 'fs';
+import path from 'path';
+
 const FCM_SCOPE = 'https://www.googleapis.com/auth/firebase.messaging';
 
 interface ServiceAccount {
@@ -114,12 +117,8 @@ async function getAccessToken(sa: ServiceAccount): Promise<string> {
  *  3. Legacy FCM_SERVICE_ACCOUNT_JSON single var (local dev only)
  */
 function resolveServiceAccount(): ServiceAccount | null {
-  // 1. File-based credentials — committed to private repo, no env-var size overhead
+  // 1. File-based credentials — written at build time by scripts/write-fcm-secret.js
   try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const path = require('path') as typeof import('path');
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const fs = require('fs') as typeof import('fs');
     const filePath = path.join(process.cwd(), 'secrets', 'fcm-service-account.json');
     if (fs.existsSync(filePath)) {
       const parsed = JSON.parse(fs.readFileSync(filePath, 'utf8')) as ServiceAccount;

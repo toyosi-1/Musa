@@ -31,11 +31,17 @@ if (!fs.existsSync(secretsDir)) {
   fs.mkdirSync(secretsDir, { recursive: true });
 }
 
+// Normalise the private key: Netlify may store \n as literal \\n or as real newlines.
+// Also strip any surrounding quotes that might have been included when pasting.
+const normalizedKey = privateKey
+  .replace(/^["']|["']$/g, '')   // strip surrounding quotes
+  .replace(/\\n/g, '\n');         // expand escaped newlines
+
 const serviceAccount = {
   type: 'service_account',
   project_id: projectId,
   private_key_id: process.env.FCM_PRIVATE_KEY_ID || '',
-  private_key: privateKey.replace(/\\n/g, '\n'),
+  private_key: normalizedKey,
   client_email: clientEmail,
   client_id: '',
   auth_uri: 'https://accounts.google.com/o/oauth2/auth',
