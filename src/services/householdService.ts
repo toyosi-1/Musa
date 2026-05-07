@@ -268,43 +268,37 @@ export const createHouseholdInvite = async (
 ): Promise<HouseholdInvite> => {
   // Ensure the database is initialized
   try {
-    // Check if the user is the household head
+    // Run household read + duplicate-invite check in parallel to save round-trips
     const db = await getFirebaseDatabase();
     const householdRef = ref(db, `households/${householdId}`);
-    const householdSnapshot = await get(householdRef);
-    
+    const invitesRef = ref(db, 'householdInvites');
+    const invitesQuery = query(invitesRef, orderByChild('email'), equalTo(email.toLowerCase()));
+
+    const [householdSnapshot, existingInvitesSnapshot] = await Promise.all([
+      get(householdRef),
+      get(invitesQuery),
+    ]);
+
     if (!householdSnapshot.exists()) {
       console.error('Household not found with ID:', householdId);
       throw new Error('Household not found');
     }
-    
+
     const household = householdSnapshot.val() as Household;
-    
+
     if (household.headId !== invitedBy) {
       console.error('User is not household head', { headId: household.headId, userId: invitedBy });
       throw new Error('Only the household head can invite members');
     }
-    
-    // Check if an invite already exists for this email
-    const invitesRef = ref(db, 'householdInvites');
-    const invitesQuery = query(
-      invitesRef,
-      orderByChild('email'),
-      equalTo(email.toLowerCase())
-    );
-    
-    const existingInvitesSnapshot = await get(invitesQuery);
-    
+
     if (existingInvitesSnapshot.exists()) {
       const invites = Object.values(existingInvitesSnapshot.val() as { [key: string]: HouseholdInvite });
-      
       const activeInvite = invites.find(
-        (invite) => 
-          invite.householdId === householdId && 
-          invite.status === 'pending' && 
+        (invite) =>
+          invite.householdId === householdId &&
+          invite.status === 'pending' &&
           invite.expiresAt > Date.now()
       );
-      
       if (activeInvite) {
         console.error('Active invitation already exists for this email');
         throw new Error('An active invitation already exists for this email');
@@ -332,12 +326,12 @@ export const createHouseholdInvite = async (
       expiresAt
     };
     
-    // Save the invitation
-    await set(inviteRef, invite);
-    
-    // Create an index entry for quick lookups by email
+    // Save invite + email index in one atomic write
     const emailKey = email.replace(/\./g, ',').toLowerCase();
-    await set(ref(db, `invitesByEmail/${emailKey}/${invite.id}`), true);
+    await update(ref(db), {
+      [`householdInvites/${invite.id}`]: invite,
+      [`invitesByEmail/${emailKey}/${invite.id}`]: true,
+    });
     
     // Send invitation email — fire-and-forget, never block the UI
     void (async () => {
