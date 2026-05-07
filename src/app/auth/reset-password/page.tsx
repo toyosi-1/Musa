@@ -90,6 +90,15 @@ export default function ResetPasswordPage() {
         localStorage.removeItem('musa_session_backup');
         sessionStorage.removeItem('musa_session_backup');
       } catch { /* non-fatal */ }
+      // Wipe IndexedDB Firebase databases
+      try {
+        const dbs = await indexedDB.databases?.() ?? [];
+        for (const db of dbs) {
+          if (db.name && (db.name.includes('firebase') || db.name.includes('firebaseLocalStorageDb'))) {
+            indexedDB.deleteDatabase(db.name);
+          }
+        }
+      } catch { /* non-fatal */ }
       // Sign out of Firebase in-memory state cleanly (safe here — user has no valid token anyway)
       try { await auth.signOut(); } catch { /* non-fatal */ }
       setSuccess(true);

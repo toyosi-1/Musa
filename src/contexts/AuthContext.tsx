@@ -160,14 +160,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // tries to refresh a stale token before accepting the new one.
         // A single silent retry after a short delay reliably recovers this.
         if (
-          (code === 'auth/invalid-credential' || code === 'auth/invalid-login-credentials' || code === 'auth/wrong-password') &&
-          isIos
+          code === 'auth/invalid-credential' || code === 'auth/invalid-login-credentials' || code === 'auth/wrong-password'
         ) {
-          console.warn('🔄 iOS: clearing stale Firebase auth cache before retry (code:', code, ')');
-          // The stale localStorage token (left over from before password reset) is
-          // causing Firebase to fail the token-refresh step before it even checks
-          // the new password. Wipe all firebase:authUser:* keys from localStorage
-          // so Firebase starts a completely fresh sign-in without a cached token.
+          console.warn('🔄 Clearing stale Firebase auth cache before retry (code:', code, ', iOS:', isIos, ')');
           try {
             const keysToRemove: string[] = [];
             for (let i = 0; i < localStorage.length; i++) {
@@ -178,13 +173,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             }
             keysToRemove.forEach(k => localStorage.removeItem(k));
             console.warn('🧹 Cleared', keysToRemove.length, 'Firebase localStorage keys');
-          } catch { /* non-fatal — best-effort only */ }
+          } catch { /* non-fatal */ }
+          try { await auth.signOut(); } catch { /* non-fatal */ }
+          // Also wipe IndexedDB Firebase databases (used by non-iOS browsers and PWAs)
           try {
-            // Short pause so Firebase in-memory state settles after cache clear
-            await new Promise(res => setTimeout(res, 300));
+            const dbs = await indexedDB.databases?.() ?? [];
+            for (const db of dbs) {
+              if (db.name && (db.name.includes('firebase') || db.name.includes('firebaseLocalStorageDb'))) {
+                indexedDB.deleteDatabase(db.name);
+              }
+            }
+          } catch { /* non-fatal */ }
+          try {
+            await new Promise(res => setTimeout(res, 800));
             result = await signInWithEmailAndPassword(auth, email, password);
           } catch (retryError) {
-            logError('Firebase authentication failed (after iOS cache-clear retry)', retryError);
+            logError('Firebase authentication failed (after cache-clear retry)', retryError);
             throw retryError;
           }
         } else if (code === 'auth/too-many-requests') {
