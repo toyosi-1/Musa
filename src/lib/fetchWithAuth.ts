@@ -23,6 +23,7 @@
  *   is provided. Override via `init.headers` if you need something else.
  */
 import { getFirebaseAuth } from './firebase';
+import { withRetry } from './withRetry';
 
 export interface FetchWithAuthInit extends RequestInit {
   /**
@@ -69,19 +70,20 @@ export async function fetchWithAuth(
   const { retryOn401 = true, ...rest } = init;
 
   const token = await getIdTokenOrNull(false);
-  const firstResponse = await fetch(input, {
-    ...rest,
-    headers: buildHeaders(rest, token),
-  });
+
+  const firstResponse = await withRetry(
+    () => fetch(input, { ...rest, headers: buildHeaders(rest, token) }),
+    { maxAttempts: 3, baseDelayMs: 600, label: 'fetchWithAuth' },
+  );
 
   // If the server rejected the token and we have one to retry, refresh once.
   if (firstResponse.status === 401 && retryOn401 && token) {
     const fresh = await getIdTokenOrNull(true);
     if (fresh && fresh !== token) {
-      return fetch(input, {
-        ...rest,
-        headers: buildHeaders(rest, fresh),
-      });
+      return withRetry(
+        () => fetch(input, { ...rest, headers: buildHeaders(rest, fresh) }),
+        { maxAttempts: 2, baseDelayMs: 600, label: 'fetchWithAuth-refresh' },
+      );
     }
   }
 

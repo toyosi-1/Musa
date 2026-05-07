@@ -10,6 +10,7 @@ import {
 } from 'firebase/auth';
 import { ref, update, onValue } from 'firebase/database';
 import { getFirebaseAuth, getFirebaseDatabase } from '@/lib/firebase';
+import { withRetry } from '@/lib/withRetry';
 import {
   isPwaMode,
   backupSession,
@@ -149,7 +150,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       let result;
       try {
-        result = await signInWithEmailAndPassword(auth, email, password);
+        result = await withRetry(
+          () => signInWithEmailAndPassword(auth, email, password),
+          { maxAttempts: 3, baseDelayMs: 800, label: 'signIn' },
+        );
       } catch (authError: any) {
         const code: string = authError?.code || '';
         const isIos = typeof navigator !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent);
@@ -204,8 +208,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       let formattedUser: User | null = null;
       try {
-        formattedUser = await fetchUserProfile(result.user.uid);
-        if (!formattedUser) formattedUser = await formatUser(result.user);
+        formattedUser = await withRetry(
+          async () => {
+            const u = await fetchUserProfile(result.user.uid);
+            if (!u) return await formatUser(result.user);
+            return u;
+          },
+          { maxAttempts: 3, baseDelayMs: 800, label: 'fetchUserProfile' },
+        );
       } catch (dbError) {
         logError('Error fetching user profile', dbError);
         throw new Error('Unable to verify user account details. Please try again or contact support.');

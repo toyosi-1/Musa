@@ -91,43 +91,8 @@ export function useNetwork(): NetworkState {
       conn.addEventListener('change', refresh);
     }
 
-    // Periodic lightweight connectivity check every 30s
-    // Uses a tiny HEAD request to detect silent connectivity loss
-    pingTimerRef.current = setInterval(async () => {
-      if (!navigator.onLine) {
-        setState(prev => ({ ...prev, online: false, quality: 'offline', checking: false }));
-        return;
-      }
-      try {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 5000);
-        const start = Date.now();
-        await fetch('/manifest.json', {
-          method: 'HEAD',
-          cache: 'no-store',
-          signal: controller.signal,
-        });
-        clearTimeout(timeout);
-        const elapsed = Date.now() - start;
-        const { effectiveType, rtt } = readConnectionInfo();
-        setState(prev => ({
-          ...prev,
-          online: true,
-          quality: elapsed > 3000 ? 'slow' : (prev.quality === 'offline' ? 'good' : prev.quality),
-          effectiveType,
-          rtt,
-          checking: false,
-        }));
-      } catch {
-        // Fetch failed — might be offline or extremely slow
-        setState(prev => ({
-          ...prev,
-          quality: navigator.onLine ? 'slow' : 'offline',
-          online: navigator.onLine,
-          checking: false,
-        }));
-      }
-    }, 30000);
+    // No periodic pinging — wastes bandwidth on 2G/3G.
+    // online/offline events + NetworkInformation API changes are enough.
 
     // Initial read
     refresh();

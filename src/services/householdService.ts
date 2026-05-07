@@ -2,6 +2,7 @@ import { getFirebaseDatabase } from '@/lib/firebase';
 import { Household, HouseholdInvite } from '@/types/user';
 import { ref, get, set, push, update, query, orderByChild, equalTo, remove } from 'firebase/database';
 import { sendHouseholdInvitationEmail as sendHouseholdInvitationSMTP } from './smtpEmailService';
+import { withRetry } from '@/lib/withRetry';
 
 // Reject a household invitation
 export const rejectHouseholdInvite = async (
@@ -274,10 +275,10 @@ export const createHouseholdInvite = async (
     const invitesRef = ref(db, 'householdInvites');
     const invitesQuery = query(invitesRef, orderByChild('email'), equalTo(email.toLowerCase()));
 
-    const [householdSnapshot, existingInvitesSnapshot] = await Promise.all([
-      get(householdRef),
-      get(invitesQuery),
-    ]);
+    const [householdSnapshot, existingInvitesSnapshot] = await withRetry(
+      () => Promise.all([get(householdRef), get(invitesQuery)]),
+      { maxAttempts: 3, baseDelayMs: 700, label: 'createHouseholdInvite-reads' },
+    );
 
     if (!householdSnapshot.exists()) {
       console.error('Household not found with ID:', householdId);
