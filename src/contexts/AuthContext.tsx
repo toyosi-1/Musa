@@ -180,10 +180,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             console.warn('🧹 Cleared', keysToRemove.length, 'Firebase localStorage keys');
           } catch { /* non-fatal — best-effort only */ }
           try {
-            // Also sign out silently so Firebase's in-memory state is clean
-            await firebaseSignOut(auth).catch(() => {});
-            // Wait for Firebase server to fully propagate the new password
-            await new Promise(res => setTimeout(res, 1500));
+            // Short pause so Firebase in-memory state settles after cache clear
+            await new Promise(res => setTimeout(res, 300));
             result = await signInWithEmailAndPassword(auth, email, password);
           } catch (retryError) {
             logError('Firebase authentication failed (after iOS cache-clear retry)', retryError);

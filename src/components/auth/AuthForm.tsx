@@ -42,8 +42,8 @@ interface AuthFormProps {
   defaultRole?: UserRole;
 }
 
-const LOGIN_TIMEOUT_MS = 30_000;
-const SLOW_NETWORK_WARN_MS = 8_000;
+const LOGIN_TIMEOUT_MS = 60_000;
+const SLOW_NETWORK_WARN_MS = 12_000;
 const POST_LOGIN_NAV_DELAY_MS = 500;
 
 export default function AuthForm({ mode, defaultRole }: AuthFormProps) {
@@ -95,8 +95,10 @@ export default function AuthForm({ mode, defaultRole }: AuthFormProps) {
     setSlowNetwork(false);
     setIsNetworkError(false);
 
+    let timedOut = false;
     const slowWarnId = setTimeout(() => setSlowNetwork(true), SLOW_NETWORK_WARN_MS);
     const timeoutId = setTimeout(() => {
+      timedOut = true;
       clearTimeout(slowWarnId);
       setSlowNetwork(false);
       setIsNetworkError(true);
@@ -111,6 +113,7 @@ export default function AuthForm({ mode, defaultRole }: AuthFormProps) {
       clearTimeout(slowWarnId);
       clearTimeout(timeoutId);
       setSlowNetwork(false);
+      if (timedOut) return; // timeout already showed the error UI
       const friendly = translateLoginError(signInError);
       const mapped = friendly ? new Error(friendly) : signInError;
       const msg = mapped instanceof Error ? mapped.message : String(mapped);
@@ -124,6 +127,14 @@ export default function AuthForm({ mode, defaultRole }: AuthFormProps) {
     setSlowNetwork(false);
 
     if (!user) throw new Error('Authentication failed: No user data returned');
+
+    // If the timeout already fired but signIn eventually succeeded, clear the
+    // error state and navigate normally — user should not stay on Retry screen.
+    if (timedOut) {
+      setError('');
+      setIsNetworkError(false);
+      setLoading(true);
+    }
 
     // Route by approval status before routing by role.
     if (user.status === 'pending') {
