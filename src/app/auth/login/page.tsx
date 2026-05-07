@@ -27,7 +27,6 @@ function LoginContent() {
   return (
     <div
       className="min-h-screen flex flex-col bg-[#080d1a] relative overflow-hidden"
-      style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}
     >
       {/* Background glow effects */}
       <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-96 h-96 bg-blue-600/20 rounded-full blur-[120px] pointer-events-none" />

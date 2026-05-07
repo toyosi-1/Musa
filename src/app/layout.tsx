@@ -32,8 +32,8 @@ export const viewport: Viewport = {
   
   // PWA and theme settings
   themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#3b82f6' },
-    { media: '(prefers-color-scheme: dark)', color: '#1e40af' },
+    { media: '(prefers-color-scheme: light)', color: '#080d1a' },
+    { media: '(prefers-color-scheme: dark)', color: '#080d1a' },
   ],
   
   // Viewport behavior
@@ -173,8 +173,7 @@ export default function RootLayout({
         <meta name="format-detection" content="telephone=no,date=no,address=no,email=no,url=no" />
         
         {/* Theme color for address bar */}
-        <meta name="theme-color" media="(prefers-color-scheme: light)" content="#3b82f6" />
-        <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#1e40af" />
+        <meta name="theme-color" content="#080d1a" />
         
         <Script
           id="env-script"
@@ -220,7 +219,7 @@ export default function RootLayout({
           <AuthWrapper>
             <NetworkStatusBar />
             <Suspense fallback={<LoadingScreen />}>
-              <div className="min-h-screen flex flex-col">
+              <div className="min-h-screen flex flex-col" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
                 {children}
               </div>
             </Suspense>

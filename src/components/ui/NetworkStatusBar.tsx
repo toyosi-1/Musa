@@ -36,7 +36,7 @@ export default function NetworkStatusBar() {
   // Connection restored
   if (showRestored) {
     return (
-      <div className="fixed top-0 left-0 right-0 z-[9999] bg-emerald-600 text-white text-center text-xs font-medium py-1.5 px-4 animate-slide-down safe-area-top">
+      <div className="fixed top-0 left-0 right-0 z-[9999] bg-emerald-600 text-white text-center text-xs font-medium px-4 animate-slide-down" style={{ paddingTop: 'max(6px, env(safe-area-inset-top, 6px))', paddingBottom: '6px' }}>
         <span className="flex items-center justify-center gap-1.5">
           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.14 0M1.394 9.393c5.857-5.858 15.355-5.858 21.213 0" />
@@ -50,7 +50,7 @@ export default function NetworkStatusBar() {
   // Offline
   if (!online) {
     return (
-      <div className="fixed top-0 left-0 right-0 z-[9999] bg-red-600 text-white text-center text-xs font-medium py-1.5 px-4 safe-area-top">
+      <div className="fixed top-0 left-0 right-0 z-[9999] bg-red-600 text-white text-center text-xs font-medium px-4" style={{ paddingTop: 'max(6px, env(safe-area-inset-top, 6px))', paddingBottom: '6px' }}>
         <span className="flex items-center justify-center gap-1.5">
           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 5.636a9 9 0 11-12.728 0M12 9v4m0 4h.01" />
@@ -64,7 +64,7 @@ export default function NetworkStatusBar() {
   // Slow connection
   if (quality === 'slow') {
     return (
-      <div className="fixed top-0 left-0 right-0 z-[9999] bg-amber-600 text-white text-center text-xs font-medium py-1.5 px-4 safe-area-top">
+      <div className="fixed top-0 left-0 right-0 z-[9999] bg-amber-600 text-white text-center text-xs font-medium px-4" style={{ paddingTop: 'max(6px, env(safe-area-inset-top, 6px))', paddingBottom: '6px' }}>
         <span className="flex items-center justify-center gap-1.5">
           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />

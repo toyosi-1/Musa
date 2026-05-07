@@ -7,6 +7,12 @@
 @import '../styles/professional-ui.css';
 
 :root {
+  /* iOS safe-area inset variables — available everywhere via var() */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+
   --background-light: #e6f0ee; /* Mint background from image */
   --background-dark: #0f172a;
   --foreground-light: #1F2937;
@@ -47,13 +53,17 @@
   }
 }
 
-/* Improved mobile scrolling and keyboard handling */
-html, body {
-  height: 100%;
+/* ─── Base reset for iOS PWA safe-area support ─── */
+html, body, #__next {
+  margin: 0;
+  padding: 0;
   width: 100%;
+  /* Use dvh so the height tracks the visible viewport (keyboard-aware) */
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: #080d1a;
+  overscroll-behavior: none;
   -webkit-overflow-scrolling: touch;
-  overflow-y: auto;
-  overscroll-behavior-y: auto;
 }
 
 /* Mobile Responsive Layout — targeted styles only, no !important overrides on Tailwind utilities */
@@ -70,12 +80,22 @@ html, body {
   }
 }
 
-/* Mobile viewport height fix */
-@supports (-webkit-touch-callout: none) {
+/* ─── Modern viewport height — dvh tracks visible area on mobile ─── */
+.min-h-screen {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+.h-screen {
+  height: 100vh;
+  height: 100dvh;
+}
+
+/* Legacy WebKit fallback for very old iOS (< 15.4) */
+@supports (-webkit-touch-callout: none) and (not (min-height: 1dvh)) {
   .min-h-screen {
     min-height: -webkit-fill-available;
   }
-  
   .h-screen {
     height: -webkit-fill-available;
   }
@@ -122,7 +142,7 @@ body {
   position: relative;
   width: 100%;
   min-height: 100vh;
-  min-height: -webkit-fill-available;
+  min-height: 100dvh;
   overflow-x: hidden;
   overflow-y: auto;
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
@@ -135,20 +155,23 @@ body {
   /* Safe-area handled per-component, not on body — avoids top gap */
 }
 
-/* Fix for mobile viewport units */
-@supports (-webkit-touch-callout: none) {
-  .min-h-screen {
-    min-height: -webkit-fill-available;
-  }
-  
-  .h-screen {
-    height: -webkit-fill-available;
-  }
+/* ─── iOS-specific safe-area utility classes ─── */
+
+/* Apply top safe-area padding — use on fixed/sticky top elements */
+.safe-area-top {
+  padding-top: max(8px, env(safe-area-inset-top));
 }
 
-/* Better scrolling */
+/* Full safe-area padding on all sides — use on page wrappers */
+.safe-area-all {
+  padding-top: max(16px, env(safe-area-inset-top));
+  padding-bottom: max(16px, env(safe-area-inset-bottom));
+  padding-left: max(0px, env(safe-area-inset-left));
+  padding-right: max(0px, env(safe-area-inset-right));
+}
+
+/* ─── html root tweaks ─── */
 html {
-  height: 100%;
   overflow-y: scroll;
   -webkit-overflow-scrolling: touch;
   scroll-behavior: smooth;

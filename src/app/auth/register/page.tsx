@@ -25,7 +25,6 @@ export default function RegisterPage({
   return (
     <div
       className="min-h-screen flex flex-col bg-[#080d1a] relative overflow-hidden"
-      style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}
     >
       {/* Background glow effects */}
       <div className="absolute -top-24 right-[-40px] w-80 h-80 bg-purple-600/15 rounded-full blur-[120px] pointer-events-none" />

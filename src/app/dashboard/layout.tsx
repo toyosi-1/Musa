@@ -93,7 +93,7 @@ export default function DashboardLayout({
     }`;
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-950 safe-area-inset-bottom">
+    <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-950">
       {/* ─── Desktop Top Header ─── */}
       <header className="md:block hidden sticky top-0 z-40">
         {/* Gradient accent line */}
@@ -147,9 +147,9 @@ export default function DashboardLayout({
 
       {/* ─── Main Content ─── */}
       <main className="flex-grow overflow-y-auto overflow-x-hidden md:pb-0" style={{ paddingBottom: 'calc(5.5rem + env(safe-area-inset-bottom, 16px))' }}>
-        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 md:py-8" style={{ paddingTop: 'max(1.25rem, env(safe-area-inset-top, 1.25rem))' }}>
-          {/* Mobile Top Bar — premium feel */}
-          <div className="md:hidden flex items-center justify-between mb-5">
+        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 md:py-8">
+          {/* Mobile Top Bar — sits below Dynamic Island / notch */}
+          <div className="md:hidden flex items-center justify-between mb-5" style={{ paddingTop: 'max(4px, env(safe-area-inset-top, 4px))' }}>
             <div className="flex items-center gap-3">
               <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white flex items-center justify-center text-base font-bold shadow-lg shadow-blue-500/25">
                 {firstName.charAt(0).toUpperCase()}
@@ -175,8 +175,8 @@ export default function DashboardLayout({
       </main>
 
       {/* ─── Mobile Bottom Navigation — refined ─── */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 pointer-events-none" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
-        <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-2xl border-t border-gray-200/60 dark:border-gray-800/60 pointer-events-auto">
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-50">
+        <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-2xl border-t border-gray-200/60 dark:border-gray-800/60" style={{ paddingBottom: 'max(8px, env(safe-area-inset-bottom, 8px))' }}>
           <nav className="h-[56px] flex items-stretch justify-around px-2">
             {/* Tab: Feed */}
             <Link href="/dashboard/feed" className="flex-1" aria-label="Feed">
