@@ -42,6 +42,9 @@ export function translateLoginError(err: unknown): string | null {
   ) {
     return "Hmm, that email or password doesn't match. Please try again.";
   }
+  if (msg.includes('auth/too-many-requests') || msg.includes('too-many-requests') || msg.includes('access to this account has been temporarily disabled')) {
+    return 'Too many attempts — this account is temporarily locked. Please wait 30–60 minutes then try again, or use Forgot Password to reset.';
+  }
   if (msg.includes('network') || msg.includes('timeout') || msg.includes('timed out') || msg.includes('connection')) {
     return "Connection is taking a while. Please check your signal and try again.";
   }
