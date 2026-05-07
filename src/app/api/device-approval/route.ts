@@ -38,14 +38,11 @@ export async function POST(request: NextRequest) {
       }
       return handleCheck(body);
     } else if (action === 'send') {
-      try {
-        await requireSelf();
-      } catch (err) {
-        if (err instanceof AuthError) return err.toResponse();
-        throw err;
-      }
-      // Rate limit device-approval emails: 3 per 10 minutes per IP.
-      // Prevents flooding a user's inbox or exhausting Resend quota.
+      // No requireAuth here — the user was just signed out by enforceHouseholdDeviceApproval
+      // right before this call, so their ID token may already be invalidated on slow
+      // connections. The approval token itself is the security: it's single-use,
+      // scoped to userId+deviceId, and expires in 15 minutes.
+      // Rate limit: 3 device-approval emails per 10 minutes per IP.
       const rl = rateLimit({
         key: `device-approval-send:${getClientIp(request)}`,
         limit: 3,

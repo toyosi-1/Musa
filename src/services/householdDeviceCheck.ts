@@ -60,18 +60,28 @@ export async function enforceHouseholdDeviceApproval(user: User): Promise<void> 
     }
 
     // Has known devices, but not this one — send approval email and sign out
-    console.log('🔐 New device detected for Head of House — requesting approval');
-    await fetchWithAuth('/api/device-approval', {
-      method: 'POST',
-      body: JSON.stringify({
-        action: 'send',
-        userId: user.uid,
-        deviceId,
-        deviceLabel,
-        email: user.email,
-        displayName: user.displayName,
-      }),
-    });
+    console.log('🔐 New device detected for Head of House — requesting approval email to:', user.email);
+    try {
+      const sendRes = await fetchWithAuth('/api/device-approval', {
+        method: 'POST',
+        body: JSON.stringify({
+          action: 'send',
+          userId: user.uid,
+          deviceId,
+          deviceLabel,
+          email: user.email,
+          displayName: user.displayName,
+        }),
+      });
+      const sendData = await sendRes.json();
+      if (!sendRes.ok || !sendData.success) {
+        console.error('❌ Device approval email API failed:', sendRes.status, sendData);
+      } else {
+        console.log('✅ Device approval email sent to:', user.email);
+      }
+    } catch (sendErr) {
+      console.error('❌ Device approval email request threw:', sendErr);
+    }
 
     const auth = await getFirebaseAuth();
     await firebaseSignOut(auth);
