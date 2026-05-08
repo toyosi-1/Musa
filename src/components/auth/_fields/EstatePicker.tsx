@@ -27,7 +27,7 @@ export function EstatePicker({ estates, register, disabled, errorMessage }: Esta
         <select
           id="estateId"
           {...register}
-          className="w-full h-12 pl-10 pr-10 rounded-xl bg-white/[0.08] border border-white/15 text-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all text-sm appearance-none"
+          className="w-full h-12 pl-10 pr-10 rounded-xl bg-[#1a2035] border border-white/15 text-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all text-sm appearance-none"
           style={{ colorScheme: 'dark', WebkitAppearance: 'none', MozAppearance: 'none' }}
           disabled={disabled || estates.length === 0}
         >

@@ -848,6 +848,17 @@ select {
     -webkit-appearance: none;
   }
   
+  /* Suppress iOS/Chrome autofill white/yellow background on dark inputs */
+  .autofill-dark:-webkit-autofill,
+  .autofill-dark:-webkit-autofill:hover,
+  .autofill-dark:-webkit-autofill:focus,
+  .autofill-dark:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 9999px #1a2035 inset !important;
+    box-shadow: 0 0 0 9999px #1a2035 inset !important;
+    -webkit-text-fill-color: #ffffff !important;
+    caret-color: #ffffff;
+  }
+
   /* Better select dropdowns */
   select {
     background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");

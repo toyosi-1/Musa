@@ -349,7 +349,7 @@ export default function AuthForm({ mode, defaultRole, redirectTo }: AuthFormProp
               id="displayName"
               type="text"
               {...register('displayName')}
-              className="w-full h-12 px-4 rounded-xl bg-white/[0.08] border border-white/15 text-white placeholder:text-gray-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all text-sm"
+              className="w-full h-12 px-4 rounded-xl bg-[#1a2035] border border-white/15 text-white placeholder:text-gray-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all text-sm autofill-dark"
               placeholder="Your full name"
               disabled={loading}
             />
@@ -367,7 +367,7 @@ export default function AuthForm({ mode, defaultRole, redirectTo }: AuthFormProp
             id="email"
             type="email"
             {...register('email')}
-            className="w-full h-12 px-4 rounded-xl bg-white/[0.08] border border-white/15 text-white placeholder:text-gray-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all text-sm"
+            className="w-full h-12 px-4 rounded-xl bg-[#1a2035] border border-white/15 text-white placeholder:text-gray-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all text-sm autofill-dark"
             placeholder="you@example.com"
             autoCapitalize="none"
             autoCorrect="off"

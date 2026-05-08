@@ -35,11 +35,11 @@ function LoginContent() {
 
       {/* Top navigation */}
       <nav className="relative z-10 flex items-center justify-between px-6 pt-5 pb-2">
-        <Link href="/" className="flex items-center gap-2.5 group">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-900/40 to-orange-900/30 border border-amber-700/30 flex items-center justify-center overflow-hidden shadow-sm">
-            <MusaCharacterSVG size={28} animated={false} />
-          </div>
-          <span className="text-white font-semibold text-lg tracking-tight group-hover:text-blue-100 transition-colors">Musa</span>
+        <Link href="/" className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+            <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" />
+          </svg>
+          <span className="text-sm font-medium">Back</span>
         </Link>
         <Link href="/auth/register" className="text-sm text-gray-400">
           New here?{' '}
