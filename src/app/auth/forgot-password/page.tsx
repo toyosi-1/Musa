@@ -46,7 +46,21 @@ export default function ForgotPasswordPage() {
       };
 
       // Send with actionCodeSettings to redirect to our custom reset-password page
-      await sendPasswordResetEmail(auth, email, actionCodeSettings);
+      // Retry up to 3 times on network failures (common on 2G/3G)
+      let lastErr: any;
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+          await sendPasswordResetEmail(auth, email, actionCodeSettings);
+          lastErr = null;
+          break;
+        } catch (e: any) {
+          lastErr = e;
+          if (e?.code !== 'auth/network-request-failed' || attempt === 3) break;
+          console.warn(`[ForgotPassword] Network error attempt ${attempt}/3, retrying...`);
+          await new Promise(res => setTimeout(res, 800 * attempt));
+        }
+      }
+      if (lastErr) throw lastErr;
       console.log('[ForgotPassword] Reset email sent successfully');
       setSuccess(true);
       setCooldown(60);
@@ -65,8 +79,10 @@ export default function ForgotPasswordPage() {
       } else if (code === 'auth/unauthorized-continue-uri') {
         console.error('[ForgotPassword] Domain not authorized in Firebase Console!');
         setError('Configuration error — please contact support.');
+      } else if (code === 'auth/network-request-failed') {
+        setError('Network error — could not reach the server. Please check your connection and try again.');
       } else {
-        setError(`Could not send reset email (${code || 'unknown'}). Please try again.`);
+        setError(`Could not send reset email. Please try again.`);
       }
     } finally {
       setLoading(false);

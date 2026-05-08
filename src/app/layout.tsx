@@ -10,7 +10,6 @@ import { ThemeProvider } from '@/contexts/ThemeContext';
 import { getPublicEnvScript } from '@/utils/env';
 import MobileInitializer from '@/components/layout/MobileInitializer';
 import DeviceApprovalNotice from '@/components/auth/DeviceApprovalNotice';
-import NetworkStatusBar from '@/components/ui/NetworkStatusBar';
 import { Toaster } from 'react-hot-toast';
 
 const inter = Inter({ 
@@ -217,7 +216,6 @@ export default function RootLayout({
         <MobileInitializer />
         <ThemeProvider>
           <AuthWrapper>
-            <NetworkStatusBar />
             <Suspense fallback={<LoadingScreen />}>
               <div className="min-h-screen flex flex-col">
                 {children}

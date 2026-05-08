@@ -1,6 +1,6 @@
 import { getFirebaseDatabase } from '@/lib/firebase';
 import { Household, HouseholdInvite } from '@/types/user';
-import { ref, get, set, push, update, query, orderByChild, equalTo, remove } from 'firebase/database';
+import { ref, get, set, push, update, remove } from 'firebase/database';
 import { sendHouseholdInvitationEmail as sendHouseholdInvitationSMTP } from './smtpEmailService';
 import { withRetry } from '@/lib/withRetry';
 
@@ -58,59 +58,47 @@ export const leaveHousehold = async (
 ): Promise<void> => {
   try {
     const db = await getFirebaseDatabase();
-    
-    // Get the household
-    const householdRef = ref(db, `households/${householdId}`);
-    const householdSnapshot = await get(householdRef);
-    
+
+    const householdSnapshot = await withRetry(
+      () => get(ref(db, `households/${householdId}`)),
+      { maxAttempts: 3, baseDelayMs: 600, label: 'leaveHousehold-read' },
+    );
+
     if (!householdSnapshot.exists()) {
       throw new Error('Household not found');
     }
-    
+
     const household = householdSnapshot.val() as Household;
-    
-    // Check if user is a member of this household
+
     if (!household.members || !household.members[userId]) {
       throw new Error('You are not a member of this household');
     }
-    
-    // Check if user is the head of household
+
     if (household.headId === userId) {
-      // Count remaining members
       const memberCount = Object.keys(household.members).length;
-      
       if (memberCount > 1) {
         throw new Error('As the household head, you cannot leave while there are other members. Please transfer ownership or remove other members first.');
       }
-      
-      // If head is the only member, delete the entire household
-      await remove(householdRef);
-      
-      // Also remove user's household reference
-      const userRef = ref(db, `users/${userId}`);
-      await update(userRef, {
-        householdId: null,
-        updatedAt: Date.now()
-      });
-      
+      // Head is the only member — delete the whole household then clear user record
+      await withRetry(() => remove(ref(db, `households/${householdId}`)), { label: 'leaveHousehold-remove' });
+      await withRetry(
+        () => update(ref(db, `users/${userId}`), { householdId: null, isHouseholdHead: false, updatedAt: Date.now() }),
+        { label: 'leaveHousehold-user-clear' },
+      );
     } else {
-      // Remove user from household members
-      const memberRef = ref(db, `households/${householdId}/members/${userId}`);
-      await remove(memberRef);
-      
-      // Update household's updatedAt timestamp
-      await update(householdRef, {
-        updatedAt: Date.now()
-      });
-      
-      // Remove household reference from user
-      const userRef = ref(db, `users/${userId}`);
-      await update(userRef, {
-        householdId: null,
-        updatedAt: Date.now()
-      });
+      // Regular member — use a single atomic multi-path update so either
+      // both writes succeed or neither does. Each path is independently
+      // authorised: members/$userId by the new member-level rule, and
+      // users/$userId by the user's own-record write rule.
+      await withRetry(
+        () => update(ref(db), {
+          [`households/${householdId}/members/${userId}`]: null,
+          [`users/${userId}/householdId`]: null,
+          [`users/${userId}/updatedAt`]: Date.now(),
+        }),
+        { maxAttempts: 3, baseDelayMs: 600, label: 'leaveHousehold-atomic' },
+      );
     }
-    
   } catch (error) {
     console.error('Error leaving household:', error);
     throw error;
@@ -269,14 +257,15 @@ export const createHouseholdInvite = async (
 ): Promise<HouseholdInvite> => {
   // Ensure the database is initialized
   try {
-    // Run household read + duplicate-invite check in parallel to save round-trips
     const db = await getFirebaseDatabase();
-    const householdRef = ref(db, `households/${householdId}`);
-    const invitesRef = ref(db, 'householdInvites');
-    const invitesQuery = query(invitesRef, orderByChild('email'), equalTo(email.toLowerCase()));
+    const emailKey = email.replace(/\./g, ',').toLowerCase();
 
-    const [householdSnapshot, existingInvitesSnapshot] = await withRetry(
-      () => Promise.all([get(householdRef), get(invitesQuery)]),
+    // Use invitesByEmail index (O(1)) instead of scanning all householdInvites
+    const householdRef = ref(db, `households/${householdId}`);
+    const emailIndexRef = ref(db, `invitesByEmail/${emailKey}`);
+
+    const [householdSnapshot, emailIndexSnapshot] = await withRetry(
+      () => Promise.all([get(householdRef), get(emailIndexRef)]),
       { maxAttempts: 3, baseDelayMs: 700, label: 'createHouseholdInvite-reads' },
     );
 
@@ -292,22 +281,22 @@ export const createHouseholdInvite = async (
       throw new Error('Only the household head can invite members');
     }
 
-    if (existingInvitesSnapshot.exists()) {
-      const invites = Object.values(existingInvitesSnapshot.val() as { [key: string]: HouseholdInvite });
-      const activeInvite = invites.find(
-        (invite) =>
-          invite.householdId === householdId &&
-          invite.status === 'pending' &&
-          invite.expiresAt > Date.now()
-      );
-      if (activeInvite) {
-        console.error('Active invitation already exists for this email');
-        throw new Error('An active invitation already exists for this email');
+    // Check for an active pending invite using the email index
+    if (emailIndexSnapshot.exists()) {
+      const inviteIds = Object.keys(emailIndexSnapshot.val() as Record<string, boolean>);
+      for (const inviteId of inviteIds) {
+        const invSnap = await get(ref(db, `householdInvites/${inviteId}`));
+        if (invSnap.exists()) {
+          const inv = invSnap.val() as HouseholdInvite;
+          if (inv.householdId === householdId && inv.status === 'pending' && inv.expiresAt > Date.now()) {
+            throw new Error('An active invitation already exists for this email');
+          }
+        }
       }
     }
     
     // Create the invitation
-    const inviteRef = push(invitesRef);
+    const inviteRef = push(ref(db, 'householdInvites'));
     
     if (!inviteRef.key) {
       console.error('Failed to generate invitation ID');
@@ -327,8 +316,7 @@ export const createHouseholdInvite = async (
       expiresAt
     };
     
-    // Save invite + email index in one atomic write
-    const emailKey = email.replace(/\./g, ',').toLowerCase();
+    // Save invite + email index in one atomic write (emailKey already computed above)
     await update(ref(db), {
       [`householdInvites/${invite.id}`]: invite,
       [`invitesByEmail/${emailKey}/${invite.id}`]: true,

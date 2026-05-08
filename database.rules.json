@@ -48,7 +48,12 @@
       "$householdId": {
         ".read": "auth != null",
         ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('households').child($householdId).child('headId').val() === auth.uid || (!data.exists() && auth != null) || newData.child('members').child(auth.uid).exists())",
-        ".validate": "newData.hasChildren(['name', 'headId', 'members', 'createdAt'])"
+        ".validate": "newData.hasChildren(['name', 'headId', 'members', 'createdAt'])",
+        "members": {
+          "$memberId": {
+            ".write": "auth != null && (auth.uid === $memberId || root.child('households').child($householdId).child('headId').val() === auth.uid || root.child('users').child(auth.uid).child('role').val() === 'admin')"
+          }
+        }
       }
     },
     "accessCodes": {
