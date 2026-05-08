@@ -16,7 +16,7 @@ import {
   authenticateWithBiometric,
 } from '@/utils/biometricAuth';
 import { getDashboardRoute } from '@/utils/dashboardRoute';
-import { translateAuthError, translateLoginError } from '@/utils/authFormErrors';
+import { translateAuthError, translateLoginError, NEW_DEVICE_APPROVAL_MESSAGE } from '@/utils/authFormErrors';
 import { useFirebaseReadiness } from '@/hooks/useFirebaseReadiness';
 import { useEstatesList } from '@/hooks/useEstatesList';
 import { PasswordField } from './_fields/PasswordField';
@@ -60,6 +60,9 @@ export default function AuthForm({ mode, defaultRole, redirectTo }: AuthFormProp
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [biometricReady, setBiometricReady] = useState(false);
   const [biometricLoading, setBiometricLoading] = useState(false);
+  const [isDeviceApprovalError, setIsDeviceApprovalError] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendSuccess, setResendSuccess] = useState(false);
 
   const estates = useEstatesList(mode === 'register' && firebase.status === 'ready');
 
@@ -92,9 +95,26 @@ export default function AuthForm({ mode, defaultRole, redirectTo }: AuthFormProp
     },
   });
 
+  const handleResendApprovalEmail = async () => {
+    if (!lastCredentials || resendLoading) return;
+    setResendLoading(true);
+    setResendSuccess(false);
+    try {
+      // Re-run sign in — it will re-trigger enforceHouseholdDeviceApproval which sends the email
+      await signIn(lastCredentials.email, lastCredentials.password);
+    } catch {
+      // Expected — it will throw NEW_DEVICE_APPROVAL_REQUIRED again, which means email was re-sent
+    } finally {
+      setResendLoading(false);
+      setResendSuccess(true);
+      setTimeout(() => setResendSuccess(false), 5000);
+    }
+  };
+
   const performLogin = async (email: string, password: string) => {
     setSlowNetwork(false);
     setIsNetworkError(false);
+    setIsDeviceApprovalError(false);
 
     let timedOut = false;
     const slowWarnId = setTimeout(() => setSlowNetwork(true), SLOW_NETWORK_WARN_MS);
@@ -120,6 +140,9 @@ export default function AuthForm({ mode, defaultRole, redirectTo }: AuthFormProp
       const msg = mapped instanceof Error ? mapped.message : String(mapped);
       if (msg.toLowerCase().includes('network') || msg.toLowerCase().includes('timed out') || msg.toLowerCase().includes('connection')) {
         setIsNetworkError(true);
+      }
+      if (msg === NEW_DEVICE_APPROVAL_MESSAGE) {
+        setIsDeviceApprovalError(true);
       }
       throw mapped;
     }
@@ -265,7 +288,7 @@ export default function AuthForm({ mode, defaultRole, redirectTo }: AuthFormProp
         </div>
       )}
 
-      {(error || initError) && (
+      {(error || initError) && !isDeviceApprovalError && (
         <div className="bg-red-500/10 border border-red-500/25 text-red-400 p-3.5 rounded-2xl mb-5 flex items-start gap-2.5">
           <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 shrink-0 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
             <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
@@ -285,6 +308,34 @@ export default function AuthForm({ mode, defaultRole, redirectTo }: AuthFormProp
               </button>
             )}
           </div>
+        </div>
+      )}
+
+      {isDeviceApprovalError && mode === 'login' && (
+        <div className="bg-amber-500/10 border border-amber-500/25 text-amber-300 p-4 rounded-2xl mb-5">
+          <div className="flex items-start gap-2.5 mb-3">
+            <span className="text-lg shrink-0">🔐</span>
+            <p className="text-sm font-medium leading-snug">
+              New device detected! A verification email has been sent to your inbox. Approve this device before signing in.
+            </p>
+          </div>
+          <p className="text-xs text-amber-400/70 mb-3">Didn&apos;t receive the email? Check your spam folder, or resend below.</p>
+          {resendSuccess ? (
+            <p className="text-xs text-green-400 font-medium">✅ Email resent! Check your inbox and spam folder.</p>
+          ) : (
+            <button
+              type="button"
+              onClick={handleResendApprovalEmail}
+              disabled={resendLoading}
+              className="w-full h-9 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/30 text-amber-300 text-sm font-semibold transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              {resendLoading ? (
+                <><svg className="animate-spin h-3.5 w-3.5" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>Sending...</>
+              ) : (
+                <><svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>Resend approval email</>
+              )}
+            </button>
+          )}
         </div>
       )}
 

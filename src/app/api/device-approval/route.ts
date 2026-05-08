@@ -42,10 +42,11 @@ export async function POST(request: NextRequest) {
       // right before this call, so their ID token may already be invalidated on slow
       // connections. The approval token itself is the security: it's single-use,
       // scoped to userId+deviceId, and expires in 15 minutes.
-      // Rate limit: 3 device-approval emails per 10 minutes per IP.
+      // Rate limit: 10 device-approval emails per 10 minutes per IP.
+      // Bumped from 3 — legitimate users may need to resend several times.
       const rl = rateLimit({
         key: `device-approval-send:${getClientIp(request)}`,
-        limit: 3,
+        limit: 10,
         windowMs: 10 * 60_000,
       });
       if (!rl.success) return rateLimitResponse(rl);

@@ -42,6 +42,7 @@ import { formatUser, fetchUserProfile } from '@/services/userProfileService';
 import { configureAuthPersistence, isIosPwa } from '@/services/authPersistence';
 import { setupPwaSessionEvents } from '@/services/pwaSessionEvents';
 import { useFCMToken } from '@/hooks/useFCMToken';
+import { useRealtimeNotifications } from '@/hooks/useRealtimeNotifications';
 
 interface AuthContextType {
   currentUser: User | null;
@@ -85,6 +86,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Register FCM push token whenever the signed-in uid changes
   useFCMToken(currentUser?.uid);
+  // Realtime DB notification listener — works on iOS Safari PWA where FCM is unavailable
+  useRealtimeNotifications(currentUser?.uid);
 
   // Live refs so long-lived event handlers always see the latest state.
   const currentUserRef = useRef<User | null>(initialUser);

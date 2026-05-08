@@ -98,16 +98,14 @@ const checkRateLimit = async (userId: string): Promise<{ allowed: boolean; messa
 
 // Generate a random access code
 export const generateAccessCode = (): string => {
-  const prefix = 'MUSA';
-  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  let result = '';
-  
-  // Generate 6 random characters
+  // Format: MUSA-XXXXXX where X is a digit (0-9)
+  // Digits-only suffix avoids ambiguous chars (O/0, I/1) and is faster to type manually.
+  // The hyphen makes it easy to read and dictate aloud.
+  let digits = '';
   for (let i = 0; i < 6; i++) {
-    result += characters.charAt(Math.floor(Math.random() * characters.length));
+    digits += Math.floor(Math.random() * 10).toString();
   }
-  
-  return `${prefix}${result}`;
+  return `MUSA-${digits}`;
 };
 
 // Create a new access code for a resident

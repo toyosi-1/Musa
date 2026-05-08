@@ -10,6 +10,7 @@ import { ThemeProvider } from '@/contexts/ThemeContext';
 import { getPublicEnvScript } from '@/utils/env';
 import MobileInitializer from '@/components/layout/MobileInitializer';
 import DeviceApprovalNotice from '@/components/auth/DeviceApprovalNotice';
+import InAppNotificationToast from '@/components/ui/InAppNotificationToast';
 import { Toaster } from 'react-hot-toast';
 
 const inter = Inter({ 
@@ -222,6 +223,7 @@ export default function RootLayout({
               </div>
             </Suspense>
             <DeviceApprovalNotice />
+            <InAppNotificationToast />
           </AuthWrapper>
           <Toaster
             position="top-center"
