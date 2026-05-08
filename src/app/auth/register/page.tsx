@@ -25,6 +25,7 @@ export default function RegisterPage({
   return (
     <div
       className="min-h-screen flex flex-col bg-[#080d1a] relative overflow-hidden"
+      style={{ paddingTop: 'env(safe-area-inset-top)' }}
     >
       {/* Background glow effects */}
       <div className="absolute -top-24 right-[-40px] w-80 h-80 bg-purple-600/15 rounded-full blur-[120px] pointer-events-none" />
@@ -32,7 +33,7 @@ export default function RegisterPage({
       <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none" />
 
       {/* Top navigation */}
-      <nav className="relative z-10 flex items-center justify-between px-6 pt-5 pb-2">
+      <nav className="relative z-10 flex items-center justify-between px-6 pt-4 pb-2">
         <Link href="/" className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors">
           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
             <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" />
