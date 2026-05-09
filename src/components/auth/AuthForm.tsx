@@ -43,8 +43,8 @@ interface AuthFormProps {
   redirectTo?: string;
 }
 
-const LOGIN_TIMEOUT_MS = 60_000;
-const SLOW_NETWORK_WARN_MS = 12_000;
+const LOGIN_TIMEOUT_MS = 90_000;
+const SLOW_NETWORK_WARN_MS = 30_000; // device-approval flow takes 15-25s on good network — don't false-fire
 const POST_LOGIN_NAV_DELAY_MS = 500;
 
 export default function AuthForm({ mode, defaultRole, redirectTo }: AuthFormProps) {

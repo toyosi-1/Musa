@@ -145,7 +145,7 @@ async function handleSend(body: any) {
     const resend = new Resend(process.env.RESEND_API_KEY);
     const fromEmail = process.env.RESEND_FROM_EMAIL || 'Musa Security <noreply@musa-security.com>';
 
-    const { error: sendError } = await resend.emails.send({
+    const { data: sendData, error: sendError } = await resend.emails.send({
       from: fromEmail,
       to: [email],
       subject: '🔐 New Device Login – Approval Required',
@@ -153,13 +153,22 @@ async function handleSend(body: any) {
     });
 
     if (sendError) {
-      console.error('Resend error sending device approval email:', sendError);
-    } else {
-      console.log('Device approval email sent to:', email);
+      console.error('Resend error sending device approval email:', JSON.stringify(sendError));
+      return NextResponse.json({
+        success: false,
+        message: 'Email could not be delivered.',
+        resendError: sendError,
+      }, { status: 500 });
     }
-  } catch (emailError) {
-    console.error('Failed to send device approval email:', emailError);
-    // Don't fail the request — the token is stored, user can retry
+
+    console.log('✅ Device approval email sent to:', email, '| Resend ID:', sendData?.id);
+  } catch (emailError: any) {
+    console.error('Failed to send device approval email:', emailError?.message || emailError);
+    return NextResponse.json({
+      success: false,
+      message: 'Email service error.',
+      detail: emailError?.message || String(emailError),
+    }, { status: 500 });
   }
 
   return NextResponse.json({
