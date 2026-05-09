@@ -27,8 +27,8 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   minimumScale: 1,
-  maximumScale: 5, // Allow zooming for accessibility
-  userScalable: true,
+  maximumScale: 1,
+  userScalable: false,
   
   // PWA and theme settings
   themeColor: [
