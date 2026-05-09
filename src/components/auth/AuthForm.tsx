@@ -100,10 +100,30 @@ export default function AuthForm({ mode, defaultRole, redirectTo }: AuthFormProp
     setResendLoading(true);
     setResendSuccess(false);
     try {
-      // Re-run sign in — it will re-trigger enforceHouseholdDeviceApproval which sends the email
-      await signIn(lastCredentials.email, lastCredentials.password);
-    } catch {
-      // Expected — it will throw NEW_DEVICE_APPROVAL_REQUIRED again, which means email was re-sent
+      // Call the device-approval API directly — faster than re-running full signIn
+      // and guarantees the fetch completes before we update UI state.
+      const res = await fetch('/api/device-approval', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'send',
+          email: lastCredentials.email,
+          // userId/deviceId will be looked up by the API from the email if not provided;
+          // pass them if available from a prior attempt stored in sessionStorage
+          ...((() => {
+            try {
+              const stored = sessionStorage.getItem('musa_pending_device');
+              return stored ? JSON.parse(stored) : {};
+            } catch { return {}; }
+          })()),
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.success) {
+        console.error('Resend approval email failed:', data);
+      }
+    } catch (err) {
+      console.error('Resend approval email threw:', err);
     } finally {
       setResendLoading(false);
       setResendSuccess(true);

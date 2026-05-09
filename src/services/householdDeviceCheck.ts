@@ -78,30 +78,43 @@ export async function enforceHouseholdDeviceApproval(user: User): Promise<void> 
       return;
     }
 
-    // Has known devices, but not this one — send approval email (fire-and-forget, don't block sign-out)
+    // Has known devices, but not this one — send approval email then sign out
     console.log('🔐 New device detected for Head of House — requesting approval email to:', user.email);
-    // Do NOT await — Resend can take 3-8s and we don't want to block or trigger slow-network warning
-    fetch('/api/device-approval', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action: 'send',
+    // MUST await before signing out — fire-and-forget causes the fetch to be
+    // cancelled by the browser when the page navigates after the sign-out throws.
+    try {
+      const sendRes = await fetch('/api/device-approval', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'send',
+          userId: user.uid,
+          deviceId,
+          deviceLabel,
+          email: user.email,
+          displayName: user.displayName,
+        }),
+      });
+      const sendData = await sendRes.json().catch(() => ({}));
+      if (!sendRes.ok || !sendData.success) {
+        console.error('❌ Device approval email API failed:', sendRes.status, JSON.stringify(sendData));
+      } else {
+        console.log('✅ Device approval email sent to:', user.email);
+      }
+    } catch (sendErr) {
+      console.error('❌ Device approval email request threw:', sendErr);
+    }
+
+    // Persist device info so the "Resend" button can call the API directly
+    try {
+      sessionStorage.setItem('musa_pending_device', JSON.stringify({
         userId: user.uid,
         deviceId,
         deviceLabel,
         email: user.email,
         displayName: user.displayName,
-      }),
-    }).then(async (res) => {
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok || !data.success) {
-        console.error('❌ Device approval email API failed:', res.status, data);
-      } else {
-        console.log('✅ Device approval email queued to:', user.email);
-      }
-    }).catch((err) => {
-      console.error('❌ Device approval email request threw:', err);
-    });
+      }));
+    } catch { /* non-fatal */ }
 
     const auth = await getFirebaseAuth();
     await firebaseSignOut(auth);
