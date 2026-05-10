@@ -1,23 +1,63 @@
 "use client";
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import { getFirebaseDatabase } from '@/lib/firebase';
+import { ref, onValue, off } from 'firebase/database';
+import type { User } from '@/types/user';
 
 export default function PendingPage() {
   const { currentUser, loading, signOut, refreshCurrentUser } = useAuth();
   const router = useRouter();
-  const [lastChecked, setLastChecked] = useState<Date | null>(null);
-  const [nextCheckIn, setNextCheckIn] = useState(45);
-  const [isBackgroundChecking, setIsBackgroundChecking] = useState(false);
-  const [hasInitialized, setHasInitialized] = useState(false);
-  const pollingRef = useRef<NodeJS.Timeout | null>(null);
-  const countdownRef = useRef<NodeJS.Timeout | null>(null);
+  const [liveStatus, setLiveStatus] = useState<'pending' | 'approved' | 'rejected' | null>(null);
+  const [listenerActive, setListenerActive] = useState(false);
 
+  // Real-time listener: when admin updates status, user sees it instantly
   useEffect(() => {
-    // If user is not logged in or is already approved, redirect appropriately
+    if (!currentUser?.uid || loading) return;
+
+    let unsub: (() => void) | null = null;
+
+    (async () => {
+      try {
+        const db = await getFirebaseDatabase();
+        const userRef = ref(db, `users/${currentUser.uid}`);
+        
+        unsub = onValue(userRef, (snapshot) => {
+          if (!snapshot.exists()) return;
+          
+          const userData = snapshot.val() as User;
+          const status = userData.status;
+          
+          setLiveStatus(status);
+          setListenerActive(true);
+          
+          if (status === 'approved') {
+            // Refresh context then redirect
+            refreshCurrentUser().then(() => {
+              router.push('/dashboard');
+            });
+          } else if (status === 'rejected') {
+            router.push('/auth/rejected');
+          }
+        }, (error) => {
+          console.error('Realtime listener error:', error);
+        });
+      } catch (err) {
+        console.error('Failed to attach listener:', err);
+      }
+    })();
+
+    return () => {
+      if (unsub) unsub();
+    };
+  }, [currentUser?.uid, loading, router, refreshCurrentUser]);
+
+  // Initial redirect check
+  useEffect(() => {
     if (!loading) {
       if (!currentUser) {
         router.push('/auth/login');
@@ -29,61 +69,6 @@ export default function PendingPage() {
     }
   }, [currentUser, loading, router]);
 
-  // Smooth background polling without visual flicker
-  useEffect(() => {
-    // Initialize polling only once for pending users
-    if (currentUser && currentUser.status === 'pending' && !loading && !hasInitialized) {
-      setHasInitialized(true);
-      setLastChecked(new Date());
-      
-      console.log('🔄 Starting smooth approval status polling...');
-      
-      // Countdown timer (updates every second)
-      countdownRef.current = setInterval(() => {
-        setNextCheckIn(prev => {
-          if (prev <= 1) {
-            return 45; // Reset to 45 seconds for less aggressive polling
-          }
-          return prev - 1;
-        });
-      }, 1000);
-      
-      // Background status check (every 45 seconds)
-      pollingRef.current = setInterval(async () => {
-        try {
-          setIsBackgroundChecking(true);
-          console.log('🔍 Silently checking approval status...');
-          
-          // Use a silent refresh that doesn't trigger re-renders
-          await refreshCurrentUser();
-          setLastChecked(new Date());
-          setNextCheckIn(45); // Reset countdown
-          
-          console.log('✅ Background check completed');
-        } catch (error) {
-          console.error('❌ Error during background approval check:', error);
-        } finally {
-          // Small delay to prevent any visual flicker
-          setTimeout(() => {
-            setIsBackgroundChecking(false);
-          }, 100);
-        }
-      }, 45000); // Check every 45 seconds (more professional interval)
-    }
-    
-    // Cleanup function
-    return () => {
-      if (pollingRef.current) {
-        clearInterval(pollingRef.current);
-        pollingRef.current = null;
-      }
-      if (countdownRef.current) {
-        clearInterval(countdownRef.current);
-        countdownRef.current = null;
-      }
-      console.log('🛑 Stopped approval status polling');
-    };
-  }, [currentUser, loading, hasInitialized, refreshCurrentUser]);
 
   const handleSignOut = async () => {
     try {
@@ -186,30 +171,16 @@ export default function PendingPage() {
                 : 'Your approval is taking longer than expected. Please contact support if this continues.'}
             </p>
 
-            {/* Polling indicator */}
-            {hasInitialized && (
-              <div className="rounded-xl bg-blue-500/10 border border-blue-500/15 p-3">
-                <div className="flex items-center justify-center gap-2 text-xs">
-                  {isBackgroundChecking ? (
-                    <>
-                      <svg className="w-3 h-3 animate-spin text-blue-400" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                      </svg>
-                      <span className="text-blue-400">Checking for updates...</span>
-                    </>
-                  ) : (
-                    <>
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                      <span className="text-gray-400">Auto-checking in <span className="text-white font-medium">{nextCheckIn}s</span></span>
-                    </>
-                  )}
+            {/* Real-time connection status */}
+            {listenerActive && (
+              <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/20 p-3">
+                <div className="flex items-center justify-center gap-2 text-xs text-emerald-400">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                  </span>
+                  <span>Live updates enabled — you'll be notified instantly</span>
                 </div>
-                {lastChecked && (
-                  <p className="text-[10px] text-gray-600 text-center mt-1.5">
-                    Last checked: {lastChecked.toLocaleTimeString()}
-                  </p>
-                )}
               </div>
             )}
 
