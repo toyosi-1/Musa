@@ -37,7 +37,7 @@ export function PasswordField({
           id={id}
           type={show ? 'text' : 'password'}
           {...register}
-          className="w-full h-12 px-4 pr-11 rounded-xl bg-white/[0.08] border border-white/15 text-white placeholder:text-gray-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all text-sm"
+          className="w-full h-12 px-4 pr-11 rounded-xl bg-white/[0.08] border border-white/15 text-white placeholder:text-gray-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all text-base"
           placeholder={placeholder}
           disabled={disabled}
         />
