@@ -96,6 +96,8 @@ export default function UtilitiesPage() {
   const [errorMessage, setErrorMessage] = useState('');
   const [transactionRef, setTransactionRef] = useState('');
   const [purchaseToken, setPurchaseToken] = useState<string | null>(null);
+  const [transactionKey, setTransactionKey] = useState<string | null>(null);
+  const [checkingToken, setCheckingToken] = useState(false);
   const [saveMeterChecked, setSaveMeterChecked] = useState(true);
   const paymentInProgress = useRef(false);
 
@@ -367,6 +369,7 @@ export default function UtilitiesPage() {
             if (data.success) {
               setTransactionRef(data.reference || txRef);
               setPurchaseToken(data.token || null);
+              setTransactionKey(data.transactionKey || null);
               if (saveMeterChecked && meterInfo) {
                 const alreadySaved = savedMeters.some(
                   (m) => m.meterNumber === meterNumber && m.itemCode === selectedItem?.itemCode
@@ -426,6 +429,8 @@ export default function UtilitiesPage() {
     setErrorMessage('');
     setTransactionRef('');
     setPurchaseToken(null);
+    setTransactionKey(null);
+    setCheckingToken(false);
   };
 
   const goBack = () => {
@@ -895,10 +900,55 @@ export default function UtilitiesPage() {
 
           <div className="bg-white dark:bg-gray-800/80 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden">
             <div className="divide-y divide-gray-50 dark:divide-gray-700/50">
-              {purchaseToken && (
+              {purchaseToken ? (
                 <div className="px-4 py-3 bg-emerald-50 dark:bg-emerald-900/10">
                   <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium mb-1">Electricity Token</p>
                   <p className="font-mono text-base font-bold text-emerald-700 dark:text-emerald-300 break-all">{purchaseToken}</p>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(purchaseToken);
+                      alert('Token copied to clipboard!');
+                    }}
+                    className="mt-2 text-xs text-emerald-600 dark:text-emerald-400 underline"
+                  >
+                    Copy Token
+                  </button>
+                </div>
+              ) : (
+                <div className="px-4 py-4 bg-amber-50 dark:bg-amber-900/10">
+                  <div className="flex items-center gap-3">
+                    <LoadingSpinner size="sm" />
+                    <div>
+                      <p className="text-sm font-medium text-amber-700 dark:text-amber-300">Token Processing...</p>
+                      <p className="text-xs text-amber-600 dark:text-amber-400 mt-0.5">
+                        Your token will appear here shortly. This may take 1-3 minutes.
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={async () => {
+                      if (!transactionKey) return;
+                      setCheckingToken(true);
+                      try {
+                        const res = await fetchWithAuth(`/api/utilities/transaction-status?transactionKey=${transactionKey}`);
+                        const data = await res.json();
+                        if (data.success && data.transaction?.token) {
+                          setPurchaseToken(data.transaction.token);
+                        } else {
+                          alert('Token not yet available. Please check again in a few minutes.');
+                        }
+                      } catch (err) {
+                        console.error('Error checking token:', err);
+                        alert('Could not check token status. Please try again.');
+                      } finally {
+                        setCheckingToken(false);
+                      }
+                    }}
+                    disabled={checkingToken || !transactionKey}
+                    className="mt-3 w-full py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-sm font-medium disabled:opacity-50 transition-all"
+                  >
+                    {checkingToken ? 'Checking...' : 'Check for Token Now'}
+                  </button>
                 </div>
               )}
               <div className="flex justify-between items-center px-4 py-3">

@@ -3,6 +3,7 @@ import { invalidateBillersCache } from '@/lib/billersCache';
 import { rankBillerCandidates, type BillerCandidate, type FlutterwaveBillItem } from '@/utils/billerMatching';
 import { requireAuth, AuthError } from '@/lib/requireAuth';
 import { rateLimit, getClientIp, rateLimitResponse } from '@/lib/rateLimit';
+import { getAdminDatabase } from '@/lib/firebaseAdmin';
 
 const FLUTTERWAVE_SECRET_KEY = process.env.FLUTTERWAVE_SECRET_KEY;
 const FLUTTERWAVE_BASE_URL = 'https://api.flutterwave.com/v3';
@@ -99,32 +100,113 @@ const PROXY_SECRET  = process.env.FLW_PROXY_SECRET; // shared secret to authenti
 /**
  * Poll Flutterwave's bill-status endpoint for the electricity token.
  * Flutterwave returns prepaid tokens asynchronously in the `extra` field.
- * We try up to `maxAttempts` times with a delay between each.
+ * Extended polling for up to 60 seconds as tokens can take time.
  */
 async function pollForToken(
   flwRef: string,
   flwHeaders: Record<string, string>,
-  maxAttempts = 3,
-  delayMs = 3000
+  useProxy: boolean,
+  maxAttempts = 10,
+  delayMs = 6000
 ): Promise<string | null> {
   for (let i = 0; i < maxAttempts; i++) {
     await new Promise((r) => setTimeout(r, delayMs));
     try {
-      const res = await fetch(
-        `${FLUTTERWAVE_BASE_URL}/bills/${encodeURIComponent(flwRef)}`,
-        { method: 'GET', headers: flwHeaders }
-      );
+      let res: Response;
+      
+      if (useProxy) {
+        // Use proxy for bill status check
+        const proxyUrl = process.env.FLW_PROXY_URL;
+        const proxySecret = process.env.FLW_PROXY_SECRET;
+        res = await fetch(`${proxyUrl}/bill-status/${encodeURIComponent(flwRef)}`, {
+          method: 'GET',
+          headers: { 'X-Proxy-Secret': proxySecret || '' },
+        });
+      } else {
+        res = await fetch(
+          `${FLUTTERWAVE_BASE_URL}/bills/${encodeURIComponent(flwRef)}`,
+          { method: 'GET', headers: flwHeaders }
+        );
+      }
+      
       const json = await res.json();
       console.log(`[pollForToken] Attempt ${i + 1}/${maxAttempts} for ${flwRef}:`, JSON.stringify(json).substring(0, 500));
+      
       if (json.status === 'success' && json.data) {
-        const token = json.data.extra || json.data.recharge_token || json.data.token || null;
-        if (token) return token;
+        // Try multiple possible token locations
+        const token = 
+          json.data.extracted_token ||  // From proxy
+          json.data.extra || 
+          json.data.recharge_token || 
+          json.data.token || 
+          json.data.voucher || 
+          json.data.pin || 
+          null;
+        if (token) {
+          console.log(`[pollForToken] Token found after ${i + 1} attempts`);
+          return token;
+        }
       }
     } catch (err) {
       console.warn(`[pollForToken] Attempt ${i + 1} failed:`, err);
     }
   }
+  console.log(`[pollForToken] Token not found after ${maxAttempts} attempts`);
   return null;
+}
+
+/**
+ * Save transaction record to Firebase for tracking and async token delivery
+ */
+async function saveTransactionRecord(
+  userId: string,
+  transactionData: {
+    transactionId: string;
+    flwRef: string;
+    reference: string;
+    meterNumber: string;
+    amount: number;
+    billerName: string;
+    status: 'pending' | 'completed' | 'failed';
+    token: string | null;
+    createdAt: number;
+  }
+) {
+  try {
+    const db = getAdminDatabase();
+    const ref = db.ref(`transactions/${userId}`).push();
+    await ref.set({
+      ...transactionData,
+      id: ref.key,
+    });
+    console.log(`[saveTransaction] Saved transaction ${ref.key} for user ${userId}`);
+    return ref.key;
+  } catch (err) {
+    console.error('[saveTransaction] Failed to save:', err);
+    return null;
+  }
+}
+
+/**
+ * Update transaction with token when it arrives
+ */
+async function updateTransactionWithToken(
+  userId: string,
+  transactionKey: string | null,
+  token: string
+) {
+  if (!transactionKey) return;
+  try {
+    const db = getAdminDatabase();
+    await db.ref(`transactions/${userId}/${transactionKey}`).update({
+      token,
+      status: 'completed',
+      tokenReceivedAt: Date.now(),
+    });
+    console.log(`[updateTransaction] Token saved for transaction ${transactionKey}`);
+  } catch (err) {
+    console.error('[updateTransaction] Failed to update:', err);
+  }
 }
 
 /**
@@ -280,10 +362,12 @@ export async function POST(request: NextRequest) {
           let token = result.data?.extra || result.data?.recharge_token || result.data?.token || null;
 
           // Flutterwave returns prepaid tokens asynchronously — poll if not immediately available
+          let asyncToken = null;
           if (!token && flwRef) {
             console.log(`[CompletePurchase] Token not in initial response, polling status for ${flwRef}...`);
-            token = await pollForToken(flwRef, flwHeaders);
-            if (token) {
+            asyncToken = await pollForToken(flwRef, flwHeaders, useProxy);
+            if (asyncToken) {
+              token = asyncToken;
               console.log(`[CompletePurchase] Token obtained via polling: ${token.substring(0, 8)}...`);
             } else {
               console.log(`[CompletePurchase] Token not yet available after polling — meter may still be credited async.`);
@@ -295,16 +379,30 @@ export async function POST(request: NextRequest) {
             console.log(`[CompletePurchase] Succeeded with different code: ${clientItemCode} → ${candidate.itemCode}. Clearing billers cache.`);
             invalidateBillersCache();
           }
+          
+          // Save transaction record for tracking and potential async token delivery
+          const transactionKey = await saveTransactionRecord(authUser.uid, {
+            transactionId,
+            flwRef: flwRef || reference,
+            reference,
+            meterNumber: String(meterNumber),
+            amount: Number(amount),
+            billerName: candidate.billerCode,
+            status: token ? 'completed' : 'pending',
+            token,
+            createdAt: Date.now(),
+          });
 
           return NextResponse.json({
             success: true,
             reference: flwRef || reference,
             token,
             transactionId,
+            transactionKey,
             provider: 'flutterwave',
             message: token
               ? 'Purchase successful! Your electricity token is ready.'
-              : 'Purchase initiated! Your meter will be credited shortly.',
+              : 'Purchase initiated! Your meter will be credited shortly. Check back in a few minutes or contact support if your token does not arrive.',
           });
         }
 

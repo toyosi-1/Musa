@@ -12,12 +12,13 @@ function isUserRole(role: string | undefined): role is UserRole {
   return role === 'resident' || role === 'guard';
 }
 
-export default function RegisterPage({
+export default async function RegisterPage({
   searchParams,
 }: {
-  searchParams: { [key: string]: string | string[] | undefined };
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
-  const roleParam = searchParams.role;
+  const params = await searchParams;
+  const roleParam = params.role;
   const roleValue = Array.isArray(roleParam) ? roleParam[0] : roleParam;
   const defaultRole: UserRole = isUserRole(roleValue) ? roleValue : 'resident';
   const isGuard = defaultRole === 'guard';
