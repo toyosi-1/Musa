@@ -341,14 +341,14 @@ export async function POST(request: NextRequest) {
       let lastRaw = '';
 
       for (const candidate of candidates) {
+        // Flutterwave bills API requires customer_id (meter number for electricity)
+        // Reference: https://developer.flutterwave.com/v3.0/docs/bill-payment
         const billPayload = {
           country: 'NG',
-          customer: String(meterNumber),
           customer_id: String(meterNumber),
           amount: Number(amount),
           recurrence: 'ONCE',
           type: candidate.itemCode,
-          biller_name: candidate.billerCode,
           reference: reference,
         };
 
