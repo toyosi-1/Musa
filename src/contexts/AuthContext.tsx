@@ -88,6 +88,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useFCMToken(currentUser?.uid);
   // Realtime DB notification listener — works on iOS Safari PWA where FCM is unavailable
   useRealtimeNotifications(currentUser?.uid);
+  // Process any pending notifications that failed while offline
+  useEffect(() => {
+    if (currentUser?.uid) {
+      import('@/services/notificationQueue').then(({ initNotificationQueue }) => {
+        const cleanup = initNotificationQueue();
+        return cleanup;
+      }).catch(() => {});
+    }
+  }, [currentUser?.uid]);
 
   // Live refs so long-lived event handlers always see the latest state.
   const currentUserRef = useRef<User | null>(initialUser);

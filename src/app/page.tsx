@@ -6,20 +6,48 @@ import SessionRedirect from '@/components/auth/SessionRedirect';
 export default function Home() {
   return (
     <main className="min-h-screen flex flex-col bg-[#06080f] text-white overflow-x-hidden">
-      {/* Full-bleed background — covers Dynamic Island / notch and home
-          indicator zones with the app colour even before JS runs */}
-      <div
-        aria-hidden="true"
-        style={{
-          position: 'fixed',
-          inset: 0,
-          background: '#06080f',
-          zIndex: -1,
-          // Extend into safe areas explicitly
-          top: 'calc(-1 * env(safe-area-inset-top, 0px))',
-          bottom: 'calc(-1 * env(safe-area-inset-bottom, 0px))',
+      {/* CRITICAL: Inline script runs BEFORE React hydration to prevent flash on iOS */}
+      <script
+        dangerouslySetInnerHTML={{
+          __html: `
+            (function() {
+              try {
+                // Check for persisted session in localStorage (iOS Safari backup)
+                const cached = localStorage.getItem('musa_user_profile_cache');
+                const backup = localStorage.getItem('musa_session_backup');
+                if (cached || backup) {
+                  // Show loading state immediately while auth initializes
+                  document.documentElement.classList.add('auth-loading');
+                  // Try to parse and redirect early if we have enough info
+                  const data = cached ? JSON.parse(cached) : JSON.parse(backup || '{}');
+                  const user = data.user || data;
+                  if (user?.uid && user?.role) {
+                    // We have session data - redirect immediately to prevent flash
+                    const target = user.role === 'estate_admin' ? '/estate-admin/dashboard'
+                      : user.role === 'admin' ? '/admin/dashboard'
+                      : user.role === 'guard' ? '/dashboard/guard'
+                      : '/dashboard/resident';
+                    // Replace current history entry so back button works
+                    window.location.replace(target);
+                  }
+                }
+              } catch (e) { /* ignore */ }
+            })();
+          `
         }}
       />
+      {/* Loading overlay - shown while auth initializes on iOS */}
+      <div
+        id="auth-loading-overlay"
+        className="fixed inset-0 z-[9999] bg-[#06080f] flex items-center justify-center hidden [.auth-loading_&]:flex"
+      >
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-500/20 to-yellow-500/20 border border-amber-500/30 flex items-center justify-center animate-pulse">
+            <MusaCharacterSVG size={32} animated={true} />
+          </div>
+          <p className="text-gray-400 text-sm">Opening Musa...</p>
+        </div>
+      </div>
       <SessionRedirect />
 
       {/* ─── Navbar ─── */}

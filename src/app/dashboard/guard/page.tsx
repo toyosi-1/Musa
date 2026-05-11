@@ -61,6 +61,13 @@ export default function GuardDashboardPage() {
         } catch (error) {
           console.error('Error verifying user role:', error);
         }
+        
+        // Process any pending notifications from offline scans
+        if (currentUser?.role === 'guard') {
+          import('@/services/notificationQueue').then(({ processNotificationQueue }) => {
+            processNotificationQueue().catch(() => {});
+          }).catch(() => {});
+        }
       }
     };
 

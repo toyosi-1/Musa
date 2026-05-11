@@ -4,6 +4,7 @@ import * as QRCodeLib from 'qrcode';
 import { AccessCode } from '@/types/user';
 import { logActivity } from './activityService';
 import { fetchWithAuth } from '@/lib/fetchWithAuth';
+import { queueNotification, processNotificationQueue } from './notificationQueue';
 // import { verifyHouseholdMembership } from './householdService'; // TODO: Re-enable if needed
 
 // Rate limiting constants
@@ -471,24 +472,42 @@ export const verifyAccessCode = async (
     }
 
     // Send notification to resident that their guest has checked in
+    // CRITICAL: This must work even when offline - we queue and retry
+    const notificationPayload = {
+      accessCodeId: accessCode.id,
+      guardName: options?.guardName || 'Security'
+    };
+    
     try {
       console.log('Sending guest check-in notification to resident...');
-      const notificationResponse = await fetchWithAuth('/api/notifications/guest-checkin', {
-        method: 'POST',
-        body: JSON.stringify({
-          accessCodeId: accessCode.id,
-          guardName: options?.guardName || 'Security'
-        })
-      });
       
-      if (notificationResponse.ok) {
-        console.log('Guest check-in notification sent successfully');
+      // If offline, queue for later
+      if (typeof navigator !== 'undefined' && !navigator.onLine) {
+        console.log('Device offline - queuing notification for later');
+        queueNotification('guest-checkin', notificationPayload);
       } else {
-        console.error('Failed to send notification:', await notificationResponse.text());
+        // Online - try to send immediately
+        const notificationResponse = await fetchWithAuth('/api/notifications/guest-checkin', {
+          method: 'POST',
+          body: JSON.stringify(notificationPayload)
+        });
+        
+        if (notificationResponse.ok) {
+          console.log('Guest check-in notification sent successfully');
+        } else {
+          // API failed - queue for retry
+          console.error('Notification API failed, queuing for retry:', await notificationResponse.text());
+          queueNotification('guest-checkin', notificationPayload);
+        }
       }
+      
+      // Also try to process any pending notifications
+      processNotificationQueue().catch(() => {});
+      
     } catch (notificationError) {
-      // Don't fail verification if notification fails
-      console.error('Error sending guest check-in notification:', notificationError);
+      // Don't fail verification if notification fails - just queue it
+      console.error('Error sending guest check-in notification, queuing:', notificationError);
+      queueNotification('guest-checkin', notificationPayload);
     }
 
     console.log('Access code verification successful!');
