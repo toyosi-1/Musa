@@ -128,6 +128,16 @@ async function handleSend(body: any) {
     status: 'pending',
   });
 
+  // Check if Resend API key is configured
+  if (!process.env.RESEND_API_KEY) {
+    console.error('❌ RESEND_API_KEY not configured - cannot send device approval email');
+    return NextResponse.json({
+      success: false,
+      message: 'Email service not configured. Please contact support.',
+      error: 'RESEND_API_KEY_MISSING',
+    }, { status: 500 });
+  }
+
   // Send the approval email
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://musa-security.com';
   const approvalLink = `${appUrl}/approve-device?token=${token}`;
@@ -140,10 +150,13 @@ async function handleSend(body: any) {
       expiresInMinutes: 15,
     });
 
-    // Send email via Resend using the /api/send-email route internally
+    // Send email via Resend
     const { Resend } = require('resend');
     const resend = new Resend(process.env.RESEND_API_KEY);
     const fromEmail = process.env.RESEND_FROM_EMAIL || 'Musa Security <noreply@musa-security.com>';
+
+    console.log('📧 Sending device approval email via Resend to:', email);
+    console.log('📧 From:', fromEmail);
 
     const { data: sendData, error: sendError } = await resend.emails.send({
       from: fromEmail,
@@ -153,7 +166,7 @@ async function handleSend(body: any) {
     });
 
     if (sendError) {
-      console.error('Resend error sending device approval email:', JSON.stringify(sendError));
+      console.error('❌ Resend error sending device approval email:', JSON.stringify(sendError));
       return NextResponse.json({
         success: false,
         message: 'Email could not be delivered.',
@@ -163,7 +176,7 @@ async function handleSend(body: any) {
 
     console.log('✅ Device approval email sent to:', email, '| Resend ID:', sendData?.id);
   } catch (emailError: any) {
-    console.error('Failed to send device approval email:', emailError?.message || emailError);
+    console.error('❌ Failed to send device approval email:', emailError?.message || emailError);
     return NextResponse.json({
       success: false,
       message: 'Email service error.',

@@ -63,6 +63,7 @@ export default function AuthForm({ mode, defaultRole, redirectTo }: AuthFormProp
   const [isDeviceApprovalError, setIsDeviceApprovalError] = useState(false);
   const [resendLoading, setResendLoading] = useState(false);
   const [resendSuccess, setResendSuccess] = useState(false);
+  const [resendError, setResendError] = useState('');
 
   const estates = useEstatesList(mode === 'register' && firebase.status === 'ready');
 
@@ -99,6 +100,7 @@ export default function AuthForm({ mode, defaultRole, redirectTo }: AuthFormProp
     if (!lastCredentials || resendLoading) return;
     setResendLoading(true);
     setResendSuccess(false);
+    setResendError('');
     try {
       // Call the device-approval API directly — faster than re-running full signIn
       // and guarantees the fetch completes before we update UI state.
@@ -121,13 +123,19 @@ export default function AuthForm({ mode, defaultRole, redirectTo }: AuthFormProp
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.success) {
         console.error('Resend approval email failed:', data);
+        setResendError(data.message || data.error || 'Failed to send email. Please try again.');
+        setResendSuccess(false);
+      } else {
+        setResendSuccess(true);
+        setResendError('');
+        setTimeout(() => setResendSuccess(false), 5000);
       }
     } catch (err) {
       console.error('Resend approval email threw:', err);
+      setResendError('Network error. Please check your connection and try again.');
+      setResendSuccess(false);
     } finally {
       setResendLoading(false);
-      setResendSuccess(true);
-      setTimeout(() => setResendSuccess(false), 5000);
     }
   };
 
@@ -340,6 +348,9 @@ export default function AuthForm({ mode, defaultRole, redirectTo }: AuthFormProp
             </p>
           </div>
           <p className="text-xs text-amber-400/70 mb-3">Didn&apos;t receive the email? Check your spam folder, or resend below.</p>
+          {resendError && (
+            <p className="text-xs text-red-400 mb-3">❌ {resendError}</p>
+          )}
           {resendSuccess ? (
             <p className="text-xs text-green-400 font-medium">✅ Email resent! Check your inbox and spam folder.</p>
           ) : (
