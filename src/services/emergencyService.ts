@@ -1,6 +1,7 @@
 import { getFirebaseDatabase } from '@/lib/firebase';
 import { ref, push, set, get, update, query, orderByChild, equalTo, onValue, off, DataSnapshot } from 'firebase/database';
 import { EmergencyAlert, EmergencyType } from '@/types/user';
+import { sendFcmNotification } from '@/lib/fcmAdmin';
 
 /**
  * Trigger a new emergency alert for the estate
@@ -55,6 +56,8 @@ export const triggerEmergencyAlert = async (data: {
   }
 
   // Send notifications to all guards and estate admins in this estate
+  let notifiedCount = 0;
+  let pushCount = 0;
   try {
     const usersRef = ref(db, 'users');
     const usersSnap = await get(usersRef);
@@ -62,23 +65,33 @@ export const triggerEmergencyAlert = async (data: {
       const typeInfo = getEmergencyTypeInfo(data.type);
       const usersData = usersSnap.val();
       const notifPromises: Promise<void>[] = [];
+      
+      // Collect FCM push targets (Android/Chrome users)
+      const fcmTargets: Array<{ token: string; uid: string }> = [];
+      
       Object.entries(usersData).forEach(([uid, userData]: [string, any]) => {
         if (
           userData.estateId === data.estateId &&
           (userData.role === 'guard' || userData.role === 'estate_admin') &&
           uid !== data.triggeredBy
         ) {
+          notifiedCount++;
           const notifId = `emergency-${alert.id}-${uid}`;
           const notifRef = ref(db, `notifications/${uid}/${notifId}`);
+          const title = `🚨 EMERGENCY: ${typeInfo.label}`;
+          const message = `${data.triggeredByName} triggered an emergency alert${data.householdName ? ` from ${data.householdName}` : ''}`;
+          
+          // DB notification (works on all platforms including iOS Safari)
           notifPromises.push(
             set(notifRef, {
               id: notifId,
               userId: uid,
               type: 'emergency_alert',
-              title: `🚨 EMERGENCY: ${typeInfo.label}`,
-              message: `${data.triggeredByName} triggered an emergency alert${data.householdName ? ` from ${data.householdName}` : ''}`,
+              title,
+              message,
               timestamp: Date.now(),
               read: false,
+              priority: 'high',
               data: {
                 alertId: alert.id,
                 emergencyType: data.type,
@@ -89,10 +102,36 @@ export const triggerEmergencyAlert = async (data: {
               },
             })
           );
+          
+          // Collect FCM token for push notification (Android/Chrome)
+          if (userData.fcmToken) {
+            fcmTargets.push({ token: userData.fcmToken, uid });
+          }
         }
       });
+      
+      // Send FCM push notifications (fire-and-forget, don't block)
+      fcmTargets.forEach(({ token, uid }) => {
+        pushCount++;
+        sendFcmNotification({
+          token,
+          title: `🚨 EMERGENCY: ${typeInfo.label}`,
+          body: `${data.triggeredByName} triggered an emergency alert${data.householdName ? ` from ${data.householdName}` : ''}`,
+          icon: '/images/icon-192x192.png',
+          tag: `emergency-${alert.id}`,
+          requireInteraction: true, // Keep on lock screen until dismissed
+          vibrate: [500, 200, 500, 200, 500, 200, 500], // Urgent pattern
+          url: '/dashboard/emergency',
+          data: {
+            type: 'emergency_alert',
+            alertId: alert.id,
+            emergencyType: data.type,
+          },
+        }).catch(err => console.warn(`[emergencyService] FCM push failed for ${uid}:`, err));
+      });
+      
       await Promise.allSettled(notifPromises);
-      console.log(`📢 Emergency notifications sent to ${notifPromises.length} guards/admins`);
+      console.log(`📢 Emergency notifications: ${notifiedCount} DB, ${pushCount} FCM push`);
     }
   } catch (notifErr) {
     console.error('Failed to send emergency notifications (alert still active):', notifErr);

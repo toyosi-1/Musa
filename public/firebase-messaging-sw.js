@@ -44,20 +44,45 @@ self.addEventListener('push', (event) => {
   const title = notification.title || 'Musa Security';
   const body  = notification.body  || 'You have a new notification.';
 
+  const isEmergency = data.type === 'emergency_alert';
+  const isGuestCheckin = data.type === 'guest-checkin';
+  
   const options = {
     body,
     icon: '/images/icon-192x192.png',
     badge: '/images/icon-192x192.png',
-    tag: data.type || 'musa-notification',
+    tag: data.tag || data.type || 'musa-notification',
     data: { url: data.url || '/', ...data },
-    requireInteraction: data.type === 'guest-checkin',
-    vibrate: [200, 100, 200],
-    actions: data.type === 'guest-checkin'
+    // Emergency: require interaction (stays on lock screen until dismissed)
+    requireInteraction: isEmergency || isGuestCheckin,
+    // Emergency: urgent vibration pattern; Guest: standard pattern
+    vibrate: isEmergency 
+      ? [500, 200, 500, 200, 500, 200, 500] 
+      : [200, 100, 200],
+    // Emergency: high priority for Android lock screen
+    priority: isEmergency ? 'high' : 'default',
+    // Emergency: show on lock screen even with sensitive content hidden
+    visibility: 'public',
+    actions: isGuestCheckin
       ? [{ action: 'view', title: 'View Details' }]
-      : [],
+      : isEmergency
+        ? [{ action: 'acknowledge', title: 'Acknowledge' }]
+        : [],
   };
 
   event.waitUntil(self.registration.showNotification(title, options));
+  
+  // For emergency, also try to play a sound via Audio if possible in SW context
+  if (isEmergency) {
+    // Service Workers can't directly play audio, but we can tell the client to do so
+    event.waitUntil(
+      clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
+        clients.forEach(client => {
+          client.postMessage({ type: 'PLAY_EMERGENCY_SOUND' });
+        });
+      }).catch(() => {})
+    );
+  }
 });
 
 // Handle notification click — open/focus the app
