@@ -43,10 +43,9 @@ export const approveUserWithEstate = async (
   updates[`usersByEstate/${estateId}/${userId}`] = true;
   updates[`pendingUsers/${userId}`] = null;
   
-  // Set HoH status if provided
-  if (isHouseholdHead !== undefined) {
-    updates[`users/${userId}/isHouseholdHead`] = isHouseholdHead;
-  }
+  // Default residents to HoH=true unless explicitly passed as false
+  // Residents own their household by default; admins can revoke later
+  updates[`users/${userId}/isHouseholdHead`] = isHouseholdHead !== undefined ? isHouseholdHead : true;
 
   console.log('Approving user with updates:', updates);
   await update(ref(db), updates);
