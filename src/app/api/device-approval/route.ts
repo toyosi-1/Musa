@@ -269,11 +269,25 @@ function generateDeviceApprovalEmailHTML(data: {
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8fafc;">
   <div style="background: white; border-radius: 12px; padding: 40px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
     <div style="text-align: center; margin-bottom: 30px;">
-      <div style="width: 80px; height: 80px; margin: 0 auto 16px; background: linear-gradient(135deg, #fef3c7, #fbbf24); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-        <span style="font-size: 36px;">🔐</span>
+      <div style="width: 100px; height: 100px; margin: 0 auto 20px; background: linear-gradient(135deg, #f59e0b, #d97706); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+        <!-- Musa Character SVG -->
+        <svg width="70" height="70" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+          <!-- Face -->
+          <circle cx="50" cy="45" r="25" fill="#d4a574"/>
+          <!-- Mustache -->
+          <path d="M 30 45 Q 50 55 70 45" stroke="#8b4513" stroke-width="2" fill="none"/>
+          <!-- Eyes -->
+          <circle cx="42" cy="42" r="2" fill="#333"/>
+          <circle cx="58" cy="42" r="2" fill="#333"/>
+          <!-- Golden Cap -->
+          <path d="M 25 25 L 75 25 L 65 10 L 35 10 Z" fill="#fbbf24"/>
+          <circle cx="50" cy="10" r="3" fill="#f59e0b"/>
+          <!-- Body -->
+          <rect x="35" y="65" width="30" height="25" fill="#8b4513" rx="2"/>
+        </svg>
       </div>
-      <h1 style="color: #1f2937; font-size: 24px; margin: 0;">New Device Login</h1>
-      <p style="color: #6b7280; font-size: 14px; margin-top: 8px;">Approval required for your Musa account</p>
+      <h1 style="color: #1f2937; font-size: 28px; margin: 0;">Device Authorization Required</h1>
+      <p style="color: #6b7280; font-size: 16px; margin-top: 8px;">Musa Security is protecting your account</p>
     </div>
 
     <div style="margin: 24px 0;">
@@ -298,8 +312,9 @@ function generateDeviceApprovalEmailHTML(data: {
       </div>
     </div>
 
-    <div style="margin-top: 32px; padding-top: 16px; border-top: 1px solid #e5e7eb; text-align: center; color: #9ca3af; font-size: 12px;">
-      <p>Musa Security App &middot; Keeping your estate safe</p>
+    <div style="margin-top: 32px; padding-top: 16px; border-top: 1px solid #e5e7eb; text-align: center; background: #fef3c7; padding: 16px; margin: 32px -40px -40px -40px; border-radius: 0 0 12px 12px;">
+      <p style="margin: 0; color: #92400e; font-size: 12px; font-weight: 600;">🛡️ Musa Security - Your Estate Guardian</p>
+      <p style="margin: 4px 0 0; color: #78350f; font-size: 12px;">&copy; ${new Date().getFullYear()} Musa Security. All rights reserved.</p>
     </div>
   </div>
 </body>
