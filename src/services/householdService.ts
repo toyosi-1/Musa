@@ -282,14 +282,24 @@ export const createHouseholdInvite = async (
     }
 
     // Check for an active pending invite using the email index
+    // OPTIMIZATION: Fetch all invites at once instead of N+1 queries
     if (emailIndexSnapshot.exists()) {
       const inviteIds = Object.keys(emailIndexSnapshot.val() as Record<string, boolean>);
-      for (const inviteId of inviteIds) {
-        const invSnap = await get(ref(db, `householdInvites/${inviteId}`));
-        if (invSnap.exists()) {
-          const inv = invSnap.val() as HouseholdInvite;
-          if (inv.householdId === householdId && inv.status === 'pending' && inv.expiresAt > Date.now()) {
-            throw new Error('An active invitation already exists for this email');
+      
+      if (inviteIds.length > 0) {
+        // Fetch all invites in parallel
+        const invitePromises = inviteIds.map(id => 
+          get(ref(db, `householdInvites/${id}`)).catch(() => null)
+        );
+        const inviteSnapshots = await Promise.all(invitePromises);
+        
+        // Check for active pending invite for this household
+        for (const invSnap of inviteSnapshots) {
+          if (invSnap && invSnap.exists()) {
+            const inv = invSnap.val() as HouseholdInvite;
+            if (inv.householdId === householdId && inv.status === 'pending' && inv.expiresAt > Date.now()) {
+              throw new Error('An active invitation already exists for this email');
+            }
           }
         }
       }

@@ -74,11 +74,11 @@ export async function getPendingUsers(): Promise<User[]> {
   if (!snapshot.exists()) return [];
 
   const pendingIds = Object.keys(snapshot.val());
-  const users: User[] = [];
-  for (const uid of pendingIds) {
-    const user = await fetchUserProfile(uid);
-    if (user) users.push(user);
-  }
+  if (pendingIds.length === 0) return [];
+
+  // OPTIMIZATION: Fetch all pending users in parallel
+  const userPromises = pendingIds.map(uid => fetchUserProfile(uid));
+  const users = (await Promise.all(userPromises)).filter((u): u is User => u !== null);
   return users;
 }
 
@@ -89,9 +89,15 @@ export async function batchApproveUsers(uids: string[], adminUid: string): Promi
   const updates: Record<string, unknown> = {};
   const timestamp = Date.now();
 
-  for (const uid of uids) {
-    const snapshot = await get(ref(db, `users/${uid}`));
+  // OPTIMIZATION: Fetch all users in parallel first
+  const userSnapshots = await Promise.all(
+    uids.map(uid => get(ref(db, `users/${uid}`)))
+  );
+
+  for (let i = 0; i < uids.length; i++) {
+    const snapshot = userSnapshots[i];
     if (!snapshot.exists()) continue;
+    const uid = uids[i];
     updates[`users/${uid}/status`] = 'approved';
     updates[`users/${uid}/approvedBy`] = adminUid;
     updates[`users/${uid}/approvedAt`] = timestamp;
@@ -113,9 +119,15 @@ export async function batchRejectUsers(
   const updates: Record<string, unknown> = {};
   const timestamp = Date.now();
 
-  for (const uid of uids) {
-    const snapshot = await get(ref(db, `users/${uid}`));
+  // OPTIMIZATION: Fetch all users in parallel first
+  const userSnapshots = await Promise.all(
+    uids.map(uid => get(ref(db, `users/${uid}`)))
+  );
+
+  for (let i = 0; i < uids.length; i++) {
+    const snapshot = userSnapshots[i];
     if (!snapshot.exists()) continue;
+    const uid = uids[i];
     updates[`users/${uid}/status`] = 'rejected';
     updates[`users/${uid}/rejectedBy`] = adminUid;
     updates[`users/${uid}/rejectedAt`] = timestamp;

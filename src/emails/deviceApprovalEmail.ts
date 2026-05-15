@@ -27,10 +27,28 @@ export function generateDeviceApprovalEmail(props: DeviceApprovalEmailProps): st
       <td align="center" style="padding: 40px 0;">
         <table role="presentation" style="width: 600px; max-width: 100%; border-collapse: collapse; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
           
-          <!-- Header -->
+          <!-- Header with Musa Character -->
           <tr>
-            <td style="padding: 40px 40px 20px 40px; text-align: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px 8px 0 0;">
-              <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 600;">🔐 Device Authorization Required</h1>
+            <td style="padding: 40px 40px 20px 40px; text-align: center; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); border-radius: 8px 8px 0 0;">
+              <!-- Musa Character SVG -->
+              <div style="width: 100px; height: 100px; margin: 0 auto 20px; background: rgba(255,255,255,0.15); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                <svg width="70" height="70" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                  <!-- Face -->
+                  <circle cx="50" cy="45" r="25" fill="#d4a574"/>
+                  <!-- Mustache -->
+                  <path d="M 30 45 Q 50 55 70 45" stroke="#8b4513" stroke-width="2" fill="none"/>
+                  <!-- Eyes -->
+                  <circle cx="42" cy="42" r="2" fill="#333"/>
+                  <circle cx="58" cy="42" r="2" fill="#333"/>
+                  <!-- Golden Cap -->
+                  <path d="M 25 25 L 75 25 L 65 10 L 35 10 Z" fill="#fbbf24"/>
+                  <circle cx="50" cy="10" r="3" fill="#f59e0b"/>
+                  <!-- Body -->
+                  <rect x="35" y="65" width="30" height="25" fill="#8b4513" rx="2"/>
+                </svg>
+              </div>
+              <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 600;">Device Authorization Required</h1>
+              <p style="margin: 8px 0 0 0; color: rgba(255,255,255,0.9); font-size: 16px;">Musa Security is protecting your account</p>
             </td>
           </tr>
 
@@ -125,12 +143,12 @@ export function generateDeviceApprovalEmail(props: DeviceApprovalEmailProps): st
 
           <!-- Footer -->
           <tr>
-            <td style="padding: 20px 40px; text-align: center; background-color: #f8f9fa; border-radius: 0 0 8px 8px;">
-              <p style="margin: 0; color: #999999; font-size: 12px;">
-                © ${new Date().getFullYear()} Musa Security App. All rights reserved.
+            <td style="padding: 20px 40px; text-align: center; background-color: #fef3c7; border-radius: 0 0 8px 8px;">
+              <p style="margin: 0; color: #92400e; font-size: 12px; font-weight: 600;">
+                🛡️ Musa Security - Your Estate Guardian
               </p>
-              <p style="margin: 10px 0 0 0; color: #999999; font-size: 12px;">
-                Keeping your estate secure, one device at a time.
+              <p style="margin: 8px 0 0 0; color: #78350f; font-size: 12px;">
+                © ${new Date().getFullYear()} Musa Security. All rights reserved.
               </p>
             </td>
           </tr>

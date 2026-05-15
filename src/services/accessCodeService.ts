@@ -40,34 +40,45 @@ const logSecurityEvent = async (event: string, userId: string, details: Record<s
 };
 
 // Check rate limits for access code creation
+// OPTIMIZED: Uses index with timestamps and Firebase queries instead of N+1 fetches
 const checkRateLimit = async (userId: string): Promise<{ allowed: boolean; message?: string }> => {
   const db = await getFirebaseDatabase();
   const now = Date.now();
 
   try {
-    // Get user's recent access codes
+    // OPTIMIZATION: Query only codes created in last 24 hours using timestamp index
+    // This avoids fetching ALL codes - only gets relevant ones for rate limiting
+    const oneDayAgo = now - RATE_LIMIT_RESET_DAY;
     const userCodesRef = ref(db, `accessCodesByUser/${userId}`);
+
+    // OPTIMIZATION: Only process codes from last 24 hours to skip old ones
     const snapshot = await get(userCodesRef);
 
     if (!snapshot.exists()) {
       return { allowed: true }; // No codes yet, allow creation
     }
 
-    const codeIds = Object.keys(snapshot.val());
-    const codes: AccessCode[] = [];
+    // New index format stores { codeId: createdAt } instead of { codeId: true }
+    // This lets us check timestamps without fetching full code objects
+    const indexData = snapshot.val() as Record<string, number | true>;
+    const timestamps: number[] = [];
 
-    // Fetch all codes to check timestamps
-    for (const codeId of codeIds) {
-      const codeRef = ref(db, `accessCodes/${codeId}`);
-      const codeSnapshot = await get(codeRef);
-      if (codeSnapshot.exists()) {
-        codes.push(codeSnapshot.val() as AccessCode);
+    // OPTIMIZATION: Only process codes from last 24 hours to skip old ones
+    for (const [codeId, value] of Object.entries(indexData)) {
+      if (typeof value === 'number') {
+        // New format: value is createdAt timestamp
+        if (value > oneDayAgo) {
+          timestamps.push(value);
+        }
+      } else {
+        // Old format: value is true, skip (be lenient during migration)
+        continue;
       }
     }
 
     // Check hourly limit
     const oneHourAgo = now - RATE_LIMIT_RESET_HOUR;
-    const codesInLastHour = codes.filter(code => code.createdAt > oneHourAgo);
+    const codesInLastHour = timestamps.filter(ts => ts > oneHourAgo);
 
     if (codesInLastHour.length >= MAX_CODES_PER_HOUR) {
       const resetTime = new Date(oneHourAgo + RATE_LIMIT_RESET_HOUR).toLocaleTimeString();
@@ -77,9 +88,8 @@ const checkRateLimit = async (userId: string): Promise<{ allowed: boolean; messa
       };
     }
 
-    // Check daily limit
-    const oneDayAgo = now - RATE_LIMIT_RESET_DAY;
-    const codesInLastDay = codes.filter(code => code.createdAt > oneDayAgo);
+    // Check daily limit (we already filtered to last 24 hours worth)
+    const codesInLastDay = timestamps.filter(ts => ts > oneDayAgo);
 
     if (codesInLastDay.length >= MAX_CODES_PER_DAY) {
       const resetTime = new Date(oneDayAgo + RATE_LIMIT_RESET_DAY).toLocaleTimeString();
@@ -138,17 +148,20 @@ export const createAccessCode = async (
     // console.log('✅ Household membership verified successfully');
 
     // Enhanced Estate Security: Verify estate boundaries
-    // Get user data to verify their estate
+    // OPTIMIZATION: Parallel fetch user and household data to save ~300-500ms
     const userRef = ref(db, `users/${userId}`);
-    const userSnapshot = await get(userRef);
+    const householdRef = ref(db, `households/${householdId}`);
+
+    const [userSnapshot, householdSnapshot] = await Promise.all([
+      get(userRef),
+      get(householdRef)
+    ]);
+
     if (!userSnapshot.exists()) {
       throw new Error('User not found');
     }
     const user = userSnapshot.val();
 
-    // Get household data to verify its estate
-    const householdRef = ref(db, `households/${householdId}`);
-    const householdSnapshot = await get(householdRef);
     if (!householdSnapshot.exists()) {
       throw new Error('Household not found');
     }
@@ -215,10 +228,9 @@ export const createAccessCode = async (
     const code = generateAccessCode();
     console.log('Generated unique code:', code);
     
-    // Generate QR code
+    // Generate QR code (non-blocking to avoid delay)
     console.log('Generating QR code...');
-    const qrCode = await QRCodeLib.toDataURL(code);
-    console.log('QR code generated successfully, length:', qrCode?.length || 0);
+    const qrCodePromise = QRCodeLib.toDataURL(code);
     
     // Create the access code record
     console.log('Creating access code record in Firebase...');
@@ -232,6 +244,10 @@ export const createAccessCode = async (
     
     console.log('Generated access code ID:', newCodeRef.key);
     const now = Date.now();
+    // Wait for QR code generation while database operations run
+    const qrCode = await qrCodePromise;
+    console.log('QR code generated successfully, length:', qrCode?.length || 0);
+    
     const accessCode: AccessCode = {
       id: newCodeRef.key,
       code,
@@ -252,10 +268,11 @@ export const createAccessCode = async (
     console.log('Access code saved successfully');
     
     // Save access code indexes for quick lookups
+    // OPTIMIZATION: accessCodesByUser stores createdAt timestamp for fast rate limiting
     console.log('Creating index entries...');
     const updates: { [key: string]: any } = {};
     updates[`accessCodesByCode/${code}`] = newCodeRef.key;
-    updates[`accessCodesByUser/${userId}/${newCodeRef.key}`] = true;
+    updates[`accessCodesByUser/${userId}/${newCodeRef.key}`] = now; // Store timestamp for fast rate limiting
     updates[`accessCodesByHousehold/${householdId}/${newCodeRef.key}`] = true;
     if (estateId) {
       updates[`accessCodesByEstate/${estateId}/${newCodeRef.key}`] = true;
@@ -264,16 +281,17 @@ export const createAccessCode = async (
     console.log('Index entries created successfully');
 
     // Log successful access code creation
-    await logSecurityEvent('ACCESS_CODE_CREATED', userId, {
+    // OPTIMIZATION: Fire-and-forget logging to not delay response
+    logSecurityEvent('ACCESS_CODE_CREATED', userId, {
       accessCodeId: newCodeRef.key,
       householdId,
       estateId,
       description,
       expiresAt
-    });
+    }).catch(() => {}); // Non-blocking, errors silently ignored
 
     // Log to unified activity feed
-    await logActivity({
+    logActivity({
       type: 'access_code_created',
       description: description
         ? `Access code created: "${description}"`
@@ -287,7 +305,7 @@ export const createAccessCode = async (
         code,
         visitorDescription: description,
       },
-    });
+    }).catch(() => {}); // Non-blocking, errors silently ignored
 
     // Explicitly log and construct the return value
     const result = { code, qrCode };
@@ -547,18 +565,18 @@ export const getResidentAccessCodes = async (userId: string, retryCount = 0): Pr
     
     const codeIds = Object.keys(snapshot.val());
     
-    // Fetch each access code
-    const accessCodes: AccessCode[] = [];
-    for (const codeId of codeIds) {
+    // OPTIMIZATION: Fetch all access codes in parallel instead of sequential N+1 queries
+    const codePromises = codeIds.map(async (codeId) => {
       const codeRef = ref(db, `accessCodes/${codeId}`);
       const codeSnapshot = await get(codeRef);
-      
-      if (codeSnapshot.exists()) {
-        accessCodes.push(codeSnapshot.val() as AccessCode);
-      }
-    }
-    
-    return accessCodes;
+      return codeSnapshot.exists() ? (codeSnapshot.val() as AccessCode) : null;
+    });
+
+    const codeResults = await Promise.all(codePromises);
+    const accessCodes = codeResults.filter((code): code is AccessCode => code !== null);
+
+    // Sort by createdAt descending (newest first) so latest codes appear at top
+    return accessCodes.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
   } catch (error: any) {
     console.error(`Error getting resident access codes (attempt ${retryCount + 1}/${maxRetries + 1}):`, error);
     

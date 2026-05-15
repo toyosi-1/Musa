@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAdminDatabase } from '@/lib/firebaseAdmin';
+import { getAdminDatabase, isAdminConfigured } from '@/lib/firebaseAdmin';
 
 /**
  * POST /api/admin/fix-hoh
@@ -11,6 +11,14 @@ export async function POST(request: NextRequest) {
   const secret = request.headers.get('x-admin-secret');
   if (!secret || secret !== process.env.ADMIN_SECRET) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  // Check Firebase Admin configuration
+  if (!isAdminConfigured()) {
+    return NextResponse.json({ 
+      error: 'Firebase Admin not configured', 
+      message: 'Missing FCM_PROJECT_ID, FCM_CLIENT_EMAIL, FCM_PRIVATE_KEY, or FIREBASE_SERVICE_ACCOUNT_KEY' 
+    }, { status: 500 });
   }
 
   try {

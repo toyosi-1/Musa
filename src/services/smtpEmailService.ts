@@ -258,9 +258,9 @@ function generateApprovalNotificationHTML(data: ApprovalNotificationData): strin
             display: flex;
             align-items: center;
             justify-content: center;
-            background: linear-gradient(135deg, #fef3c7, #fbbf24);
+            background: linear-gradient(135deg, #f59e0b, #d97706);
             border-radius: 50%;
-            box-shadow: 0 4px 12px rgba(251, 191, 36, 0.3);
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
         }
         .title {
             font-size: 28px;
@@ -355,22 +355,21 @@ function generateApprovalNotificationHTML(data: ApprovalNotificationData): strin
     <div class="container">
         <div class="header">
             <div class="logo">
-                <!-- Updated Musa Character - Email Compatible Version -->
-    <!-- Email-friendly Musa Mascot -->
-    <table cellpadding="0" cellspacing="0" border="0" align="center" width="100px" style="margin: 0 auto;">
-      <tr>
-        <td align="center">
-          <table cellpadding="0" cellspacing="0" border="0">
-            <tr>
-              <td bgcolor="#DAA520" style="background-color: #DAA520; width: 90px; height: 90px; border-radius: 45px; border: 4px solid #FFD700; text-align: center; vertical-align: middle;">
-                <span style="font-size: 45px; line-height: 90px;">🏠</span>
-              </td>
-            </tr>
-          </table>
-        </td>
-      </tr>
-    </table>
-  
+                <!-- Musa Character SVG -->
+                <svg width="70" height="70" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                  <!-- Face -->
+                  <circle cx="50" cy="45" r="25" fill="#d4a574"/>
+                  <!-- Mustache -->
+                  <path d="M 30 45 Q 50 55 70 45" stroke="#8b4513" stroke-width="2" fill="none"/>
+                  <!-- Eyes -->
+                  <circle cx="42" cy="42" r="2" fill="#333"/>
+                  <circle cx="58" cy="42" r="2" fill="#333"/>
+                  <!-- Golden Cap -->
+                  <path d="M 25 25 L 75 25 L 65 10 L 35 10 Z" fill="#fbbf24"/>
+                  <circle cx="50" cy="10" r="3" fill="#f59e0b"/>
+                  <!-- Body -->
+                  <rect x="35" y="65" width="30" height="25" fill="#8b4513" rx="2"/>
+                </svg>
             </div>
             <h1 class="title">🎉 Account Approved!</h1>
             <p class="subtitle">Welcome to Musa Security</p>
@@ -673,12 +672,26 @@ export function generateWelcomeEmailHTML(data: WelcomeEmailData): string {
   <title>Welcome to Musa Security</title>
 </head>
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8fafc;">
-  <div style="background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); border-radius: 16px 16px 0 0; padding: 40px 30px; text-align: center;">
-    <div style="width: 80px; height: 80px; margin: 0 auto 16px; background: rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-      <span style="font-size: 40px;">🏠</span>
+  <div style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); border-radius: 16px 16px 0 0; padding: 40px 30px; text-align: center;">
+    <!-- Musa Character SVG -->
+    <div style="width: 100px; height: 100px; margin: 0 auto 20px; background: rgba(255,255,255,0.15); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+      <svg width="70" height="70" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+        <!-- Face -->
+        <circle cx="50" cy="45" r="25" fill="#d4a574"/>
+        <!-- Mustache -->
+        <path d="M 30 45 Q 50 55 70 45" stroke="#8b4513" stroke-width="2" fill="none"/>
+        <!-- Eyes -->
+        <circle cx="42" cy="42" r="2" fill="#333"/>
+        <circle cx="58" cy="42" r="2" fill="#333"/>
+        <!-- Golden Cap -->
+        <path d="M 25 25 L 75 25 L 65 10 L 35 10 Z" fill="#fbbf24"/>
+        <circle cx="50" cy="10" r="3" fill="#f59e0b"/>
+        <!-- Body -->
+        <rect x="35" y="65" width="30" height="25" fill="#8b4513" rx="2"/>
+      </svg>
     </div>
-    <h1 style="color: white; font-size: 28px; margin: 0; font-weight: 700;">Welcome to Musa!</h1>
-    <p style="color: rgba(255,255,255,0.85); font-size: 15px; margin-top: 8px;">Modern Estate Access Control</p>
+    <h1 style="color: white; font-size: 28px; margin: 0; font-weight: 700;">Welcome to Musa Security!</h1>
+    <p style="color: rgba(255,255,255,0.9); font-size: 16px; margin-top: 8px;">Your trusted estate security guardian</p>
   </div>
 
   <div style="background: white; border-radius: 0 0 16px 16px; padding: 32px 30px; box-shadow: 0 4px 12px rgba(0,0,0,0.08);">
@@ -704,9 +717,9 @@ export function generateWelcomeEmailHTML(data: WelcomeEmailData): string {
 
     <p style="font-size: 14px; color: #6b7280;">If you did not create this account, please ignore this email.</p>
 
-    <div style="margin-top: 32px; padding-top: 16px; border-top: 1px solid #e5e7eb; text-align: center; color: #9ca3af; font-size: 12px;">
-      <p style="margin: 0;">Musa Security &middot; Modern Estate Access Control</p>
-      <p style="margin: 4px 0 0;">&copy; ${new Date().getFullYear()} Musa. All rights reserved.</p>
+    <div style="margin-top: 32px; padding-top: 16px; border-top: 1px solid #e5e7eb; text-align: center; background: #fef3c7; padding: 16px; margin: 32px -30px -30px -30px; border-radius: 0 0 16px 16px;">
+      <p style="margin: 0; color: #92400e; font-size: 12px; font-weight: 600;">🛡️ Musa Security - Your Estate Guardian</p>
+      <p style="margin: 4px 0 0; color: #78350f; font-size: 12px;">&copy; ${new Date().getFullYear()} Musa Security. All rights reserved.</p>
     </div>
   </div>
 </body>

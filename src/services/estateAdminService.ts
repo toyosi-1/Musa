@@ -15,27 +15,29 @@ export const createEstateAdmin = async (
 ): Promise<{ uid: string; tempPassword: string }> => {
   const db = await getFirebaseDatabase();
 
-  // Verify the creator is a super admin
+  // OPTIMIZATION: Parallel verification of creator, estate, and email uniqueness
   const creatorRef = ref(db, `users/${createdBy}`);
-  const creatorSnapshot = await get(creatorRef);
+  const estateRef = ref(db, `estates/${estateId}`);
+  const usersRef = ref(db, 'users');
+  const emailQuery = query(usersRef, orderByChild('email'), equalTo(email));
   
+  const [creatorSnapshot, estateSnapshot, existingUserSnapshot] = await Promise.all([
+    get(creatorRef),
+    get(estateRef),
+    get(emailQuery)
+  ]);
+  
+  // Verify the creator is a super admin
   if (!creatorSnapshot.exists() || creatorSnapshot.val().role !== 'admin') {
     throw new Error('Only super admins can create estate admins');
   }
 
   // Verify estate exists
-  const estateRef = ref(db, `estates/${estateId}`);
-  const estateSnapshot = await get(estateRef);
-  
   if (!estateSnapshot.exists()) {
     throw new Error('Estate does not exist');
   }
 
   // Check if email already exists
-  const usersRef = ref(db, 'users');
-  const emailQuery = query(usersRef, orderByChild('email'), equalTo(email));
-  const existingUserSnapshot = await get(emailQuery);
-  
   if (existingUserSnapshot.exists()) {
     throw new Error('User with this email already exists');
   }
@@ -85,17 +87,19 @@ export const createEstateAdmin = async (
 export const listEstateAdmins = async (requestingUserId: string): Promise<User[]> => {
   const db = await getFirebaseDatabase();
 
-  // Verify requester is super admin
+  // OPTIMIZATION: Parallel verification and query
   const requesterRef = ref(db, `users/${requestingUserId}`);
-  const requesterSnapshot = await get(requesterRef);
+  const estateAdminQuery = query(ref(db, 'users'), orderByChild('role'), equalTo('estate_admin'));
   
+  const [requesterSnapshot, snapshot] = await Promise.all([
+    get(requesterRef),
+    get(estateAdminQuery)
+  ]);
+  
+  // Verify requester is super admin
   if (!requesterSnapshot.exists() || requesterSnapshot.val().role !== 'admin') {
     throw new Error('Only super admins can list estate admins');
   }
-
-  const usersRef = ref(db, 'users');
-  const estateAdminQuery = query(usersRef, orderByChild('role'), equalTo('estate_admin'));
-  const snapshot = await get(estateAdminQuery);
 
   if (!snapshot.exists()) {
     return [];
@@ -118,16 +122,16 @@ export const getEstateAdmin = async (
 ): Promise<User | null> => {
   const db = await getFirebaseDatabase();
 
-  // Verify requester is super admin
-  const requesterRef = ref(db, `users/${requestingUserId}`);
-  const requesterSnapshot = await get(requesterRef);
+  // OPTIMIZATION: Parallel fetch requester and target admin
+  const [requesterSnapshot, snapshot] = await Promise.all([
+    get(ref(db, `users/${requestingUserId}`)),
+    get(ref(db, `users/${uid}`))
+  ]);
   
+  // Verify requester is super admin
   if (!requesterSnapshot.exists() || requesterSnapshot.val().role !== 'admin') {
     throw new Error('Only super admins can view estate admin details');
   }
-
-  const estateAdminRef = ref(db, `users/${uid}`);
-  const snapshot = await get(estateAdminRef);
 
   if (!snapshot.exists()) {
     return null;
@@ -153,22 +157,23 @@ export const removeEstateAdmin = async (
 ): Promise<void> => {
   const db = await getFirebaseDatabase();
 
-  // Verify remover is super admin
-  const removerRef = ref(db, `users/${removedBy}`);
-  const removerSnapshot = await get(removerRef);
+  // OPTIMIZATION: Parallel fetch remover and target admin
+  const [removerSnapshot, snapshot] = await Promise.all([
+    get(ref(db, `users/${removedBy}`)),
+    get(ref(db, `users/${uid}`))
+  ]);
   
+  // Verify remover is super admin
   if (!removerSnapshot.exists() || removerSnapshot.val().role !== 'admin') {
     throw new Error('Only super admins can remove estate admins');
   }
-
-  const estateAdminRef = ref(db, `users/${uid}`);
-  const snapshot = await get(estateAdminRef);
 
   if (!snapshot.exists()) {
     throw new Error('Estate admin not found');
   }
 
   const estateAdmin = snapshot.val() as User;
+  const estateAdminRef = ref(db, `users/${uid}`);
 
   if (estateAdmin.role !== 'estate_admin') {
     throw new Error('User is not an estate admin');
