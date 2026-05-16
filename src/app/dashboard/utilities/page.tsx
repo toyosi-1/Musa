@@ -11,6 +11,7 @@ import { getDiscoBrand } from '@/utils/discoLogos';
 import ModernBanner, { AlertBanner } from '@/components/ui/ModernBanner';
 import { logActivity } from '@/services/activityService';
 import { fetchWithAuth } from '@/lib/fetchWithAuth';
+import { getFirebaseAuth } from '@/lib/firebase';
 
 declare global {
   interface Window {
@@ -249,6 +250,20 @@ export default function UtilitiesPage() {
     setStep('enter-details');
   };
 
+  // Force-refresh the Firebase ID token before sensitive API calls.
+  // On Android PWA, the token can expire silently after the app is backgrounded.
+  const ensureFreshToken = async (): Promise<boolean> => {
+    try {
+      const auth = await getFirebaseAuth();
+      const user = auth.currentUser;
+      if (!user) return false;
+      await user.getIdToken(true); // force refresh
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
   const validateMeter = async () => {
     if (!meterNumber || meterNumber.length < 10) {
       setErrorMessage('Please enter a valid meter number (at least 10 digits)');
@@ -261,6 +276,9 @@ export default function UtilitiesPage() {
 
     setValidatingMeter(true);
     setErrorMessage('');
+
+    // Proactively refresh token before making the request
+    await ensureFreshToken();
 
     try {
       const response = await fetchWithAuth('/api/utilities/validate-meter', {
@@ -280,6 +298,9 @@ export default function UtilitiesPage() {
         setMeterInfo(data.meterInfo);
         localStorage.setItem('musa_saved_meter', meterNumber);
         if (phoneNumber) localStorage.setItem('musa_saved_phone', phoneNumber);
+      } else if (data.code === 'invalid_token' || data.code === 'missing_token') {
+        // Session expired — send user to login
+        setErrorMessage('Your session has expired. Please sign out and sign back in, then try again.');
       } else {
         setErrorMessage(data.message || 'Unable to validate meter number');
       }
@@ -351,6 +372,8 @@ export default function UtilitiesPage() {
         if (response.status === 'successful' || response.status === 'completed') {
           setStep('processing');
           try {
+            // Force token refresh before completing purchase — PWA tokens can expire during checkout
+            await ensureFreshToken();
             const res = await fetchWithAuth('/api/utilities/complete-purchase', {
               method: 'POST',
               body: JSON.stringify({
