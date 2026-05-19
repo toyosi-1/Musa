@@ -334,6 +334,7 @@ export async function POST(request: NextRequest) {
 
     // ── Step 2: Try each candidate code until one succeeds ──
     const useProxy = !!FLW_PROXY_URL && !!PROXY_SECRET;
+    console.log('[CompletePurchase] proxy config — FLW_PROXY_URL set:', !!FLW_PROXY_URL, '| PROXY_SECRET set:', !!PROXY_SECRET, '| useProxy:', useProxy);
     console.log('[CompletePurchase] Purchasing via Flutterwave bills API...', useProxy ? '(via proxy)' : '(direct)');
 
     try {
@@ -355,7 +356,7 @@ export async function POST(request: NextRequest) {
         console.log(`[CompletePurchase] Trying candidate: type=${candidate.itemCode}, biller_name=${candidate.billerCode} (${candidate.label}), customer=${meterNumber}`);
 
         const result = await attemptBillPurchase(billPayload, flwHeaders, useProxy);
-        console.log(`[CompletePurchase] Result for ${candidate.itemCode}: success=${result.success}, message=${result.message}`);
+        console.log(`[CompletePurchase] Result for ${candidate.itemCode}: success=${result.success}, message=${result.message}, raw=${result.raw.substring(0, 600)}`);
 
         if (result.success) {
           const flwRef = result.data?.flw_ref || result.data?.tx_ref || '';
