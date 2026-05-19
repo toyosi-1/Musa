@@ -94,11 +94,11 @@ export async function requireAuth(
   // forged) surfaces as an exception we map to 401.
   let decoded: DecodedIdToken;
   try {
-    decoded = await getAuth().verifyIdToken(token, /* checkRevoked */ true);
+    decoded = await getAuth().verifyIdToken(token);
   } catch (err) {
     throw new AuthError(
       401,
-      'Your session is invalid or expired. Please sign in again.',
+      'Authentication failed. Please try again or sign in again.',
       'invalid_token',
     );
   }
