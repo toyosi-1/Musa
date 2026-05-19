@@ -1,5 +1,4 @@
-import { getFirebaseDatabase } from '@/lib/firebase';
-import { ref, push, set, get, update, query, orderByChild, equalTo } from 'firebase/database';
+import { getAdminDatabase } from '@/lib/firebaseAdmin';
 import crypto from 'crypto';
 
 export interface Device {
@@ -62,19 +61,15 @@ async function logDeviceEvent(
   details: Record<string, any> = {}
 ): Promise<void> {
   try {
-    const db = await getFirebaseDatabase();
-    const logsRef = ref(db, 'securityLogs');
-    const newLogRef = push(logsRef);
-
-    if (newLogRef.key) {
-      await set(newLogRef, {
-        id: newLogRef.key,
-        event,
-        userId,
-        timestamp: Date.now(),
-        ...details,
-      });
-    }
+    const db = getAdminDatabase();
+    const newLogRef = db.ref('securityLogs').push();
+    await newLogRef.set({
+      id: newLogRef.key,
+      event,
+      userId,
+      timestamp: Date.now(),
+      ...details,
+    });
   } catch (error) {
     console.error('Error logging device event:', error);
   }
@@ -85,14 +80,11 @@ async function logDeviceEvent(
  */
 async function checkDeviceAuthRateLimit(userId: string): Promise<boolean> {
   try {
-    const db = await getFirebaseDatabase();
-    const logsRef = ref(db, 'securityLogs');
-    const recentLogsQuery = query(
-      logsRef,
-      orderByChild('userId'),
-      equalTo(userId)
-    );
-    const snapshot = await get(recentLogsQuery);
+    const db = getAdminDatabase();
+    const snapshot = await db.ref('securityLogs')
+      .orderByChild('userId')
+      .equalTo(userId)
+      .get();
 
     if (!snapshot.exists()) return true;
 
@@ -102,10 +94,7 @@ async function checkDeviceAuthRateLimit(userId: string): Promise<boolean> {
 
     snapshot.forEach((child) => {
       const log = child.val();
-      if (
-        log.event === 'DEVICE_AUTH_STARTED' &&
-        log.timestamp > cutoff
-      ) {
+      if (log.event === 'DEVICE_AUTH_STARTED' && log.timestamp > cutoff) {
         count++;
       }
     });
@@ -113,7 +102,7 @@ async function checkDeviceAuthRateLimit(userId: string): Promise<boolean> {
     return count < DEVICE_AUTH_RATE_LIMIT;
   } catch (error) {
     console.error('Error checking rate limit:', error);
-    return true; // Allow on error
+    return true;
   }
 }
 
@@ -128,35 +117,25 @@ export async function getOrCreateDevice(
   platform: string,
   ipAddress?: string
 ): Promise<{ device: Device; isNew: boolean; needsApproval: boolean }> {
-  const db = await getFirebaseDatabase();
+  const db = getAdminDatabase();
 
-  // Check if device already exists
-  const devicesRef = ref(db, `devicesByUser/${userId}`);
-  const snapshot = await get(devicesRef);
+  const snapshot = await db.ref(`devicesByUser/${userId}`).get();
 
   if (snapshot.exists()) {
     const devices = snapshot.val();
-    // Look for matching fingerprint
     for (const deviceId in devices) {
-      const deviceRef = ref(db, `devices/${deviceId}`);
-      const deviceSnap = await get(deviceRef);
+      const deviceSnap = await db.ref(`devices/${deviceId}`).get();
       if (deviceSnap.exists()) {
         const device = deviceSnap.val() as Device;
         if (device.fingerprint === fingerprint) {
-          // Update last used
-          await update(deviceRef, { lastUsed: Date.now() });
-          return {
-            device,
-            isNew: false,
-            needsApproval: device.status === 'pending',
-          };
+          await db.ref(`devices/${deviceId}`).update({ lastUsed: Date.now() });
+          return { device, isNew: false, needsApproval: device.status === 'pending' };
         }
       }
     }
   }
 
-  // Device not found - create new one
-  const newDeviceRef = push(ref(db, 'devices'));
+  const newDeviceRef = db.ref('devices').push();
   if (!newDeviceRef.key) throw new Error('Failed to create device ID');
 
   const now = Date.now();
@@ -172,11 +151,10 @@ export async function getOrCreateDevice(
     ipAddress,
   };
 
-  const updates: { [key: string]: any } = {};
-  updates[`devices/${newDeviceRef.key}`] = newDevice;
-  updates[`devicesByUser/${userId}/${newDeviceRef.key}`] = true;
-
-  await update(ref(db), updates);
+  await db.ref().update({
+    [`devices/${newDeviceRef.key}`]: newDevice,
+    [`devicesByUser/${userId}/${newDeviceRef.key}`]: true,
+  });
 
   await logDeviceEvent('DEVICE_AUTH_STARTED', userId, {
     deviceId: newDeviceRef.key,
@@ -196,16 +174,14 @@ export async function isDeviceAuthorized(
   fingerprint: string
 ): Promise<boolean> {
   try {
-    const db = await getFirebaseDatabase();
-    const devicesRef = ref(db, `devicesByUser/${userId}`);
-    const snapshot = await get(devicesRef);
+    const db = getAdminDatabase();
+    const snapshot = await db.ref(`devicesByUser/${userId}`).get();
 
     if (!snapshot.exists()) return false;
 
     const devices = snapshot.val();
     for (const deviceId in devices) {
-      const deviceRef = ref(db, `devices/${deviceId}`);
-      const deviceSnap = await get(deviceRef);
+      const deviceSnap = await db.ref(`devices/${deviceId}`).get();
       if (deviceSnap.exists()) {
         const device = deviceSnap.val() as Device;
         if (device.fingerprint === fingerprint && device.status === 'authorized') {
@@ -228,7 +204,6 @@ export async function createDeviceApprovalToken(
   deviceId: string,
   userId: string
 ): Promise<string> {
-  // Check rate limit
   const withinLimit = await checkDeviceAuthRateLimit(userId);
   if (!withinLimit) {
     await logDeviceEvent('DEVICE_AUTH_RATE_LIMIT', userId, {
@@ -238,7 +213,7 @@ export async function createDeviceApprovalToken(
     throw new Error('Rate limit exceeded. Please try again later.');
   }
 
-  const db = await getFirebaseDatabase();
+  const db = getAdminDatabase();
   const token = generateApprovalToken();
   const now = Date.now();
   const expiresAt = now + TOKEN_EXPIRY_MINUTES * 60 * 1000;
@@ -253,7 +228,7 @@ export async function createDeviceApprovalToken(
     used: false,
   };
 
-  await set(ref(db, `deviceApprovalTokens/${token}`), tokenData);
+  await db.ref(`deviceApprovalTokens/${token}`).set(tokenData);
 
   return token;
 }
@@ -266,41 +241,28 @@ export async function approveDeviceWithToken(token: string): Promise<{
   message: string;
   device?: Device;
 }> {
-  const db = await getFirebaseDatabase();
-  const tokenRef = ref(db, `deviceApprovalTokens/${token}`);
-  const tokenSnap = await get(tokenRef);
+  const db = getAdminDatabase();
+  const tokenSnap = await db.ref(`deviceApprovalTokens/${token}`).get();
 
   if (!tokenSnap.exists()) {
-    await logDeviceEvent('DEVICE_AUTH_TOKEN_INVALID', 'system', {
-      token,
-      reason: 'Token not found',
-    });
+    await logDeviceEvent('DEVICE_AUTH_TOKEN_INVALID', 'system', { token, reason: 'Token not found' });
     return { success: false, message: 'Invalid or expired approval link' };
   }
 
   const tokenData = tokenSnap.val() as DeviceApprovalToken;
 
-  // Check if token is expired
   if (Date.now() > tokenData.expiresAt) {
-    await logDeviceEvent('DEVICE_AUTH_TOKEN_EXPIRED', tokenData.userId, {
-      deviceId: tokenData.deviceId,
-      token,
-    });
+    await logDeviceEvent('DEVICE_AUTH_TOKEN_EXPIRED', tokenData.userId, { deviceId: tokenData.deviceId, token });
     return { success: false, message: 'Approval link has expired' };
   }
 
-  // Check if token already used
   if (tokenData.used) {
     return { success: false, message: 'This approval link has already been used' };
   }
 
-  // Mark token as used
-  await update(tokenRef, { used: true });
+  await db.ref(`deviceApprovalTokens/${token}`).update({ used: true });
 
-  // Approve the device
-  const deviceRef = ref(db, `devices/${tokenData.deviceId}`);
-  const deviceSnap = await get(deviceRef);
-
+  const deviceSnap = await db.ref(`devices/${tokenData.deviceId}`).get();
   if (!deviceSnap.exists()) {
     return { success: false, message: 'Device not found' };
   }
@@ -308,10 +270,10 @@ export async function approveDeviceWithToken(token: string): Promise<{
   const device = deviceSnap.val() as Device;
   const now = Date.now();
 
-  await update(deviceRef, {
+  await db.ref(`devices/${tokenData.deviceId}`).update({
     status: 'authorized',
     approvedAt: now,
-    approvedBy: tokenData.userId, // Self-approval
+    approvedBy: tokenData.userId,
   });
 
   await logDeviceEvent('DEVICE_AUTH_APPROVED', tokenData.userId, {
@@ -334,9 +296,8 @@ export async function revokeDevice(
   deviceId: string,
   revokedBy: string
 ): Promise<void> {
-  const db = await getFirebaseDatabase();
-  const deviceRef = ref(db, `devices/${deviceId}`);
-  const deviceSnap = await get(deviceRef);
+  const db = getAdminDatabase();
+  const deviceSnap = await db.ref(`devices/${deviceId}`).get();
 
   if (!deviceSnap.exists()) {
     throw new Error('Device not found');
@@ -344,9 +305,7 @@ export async function revokeDevice(
 
   const device = deviceSnap.val() as Device;
 
-  await update(deviceRef, {
-    status: 'revoked',
-  });
+  await db.ref(`devices/${deviceId}`).update({ status: 'revoked' });
 
   await logDeviceEvent('DEVICE_AUTH_REVOKED', device.userId, {
     deviceId,
@@ -359,24 +318,19 @@ export async function revokeDevice(
  * Get all devices for a user
  */
 export async function getUserDevices(userId: string): Promise<Device[]> {
-  const db = await getFirebaseDatabase();
-  const devicesRef = ref(db, `devicesByUser/${userId}`);
-  const snapshot = await get(devicesRef);
+  const db = getAdminDatabase();
+  const snapshot = await db.ref(`devicesByUser/${userId}`).get();
 
   if (!snapshot.exists()) return [];
 
   const devices: Device[] = [];
-  const deviceIds = Object.keys(snapshot.val());
-
-  for (const deviceId of deviceIds) {
-    const deviceRef = ref(db, `devices/${deviceId}`);
-    const deviceSnap = await get(deviceRef);
+  for (const deviceId of Object.keys(snapshot.val())) {
+    const deviceSnap = await db.ref(`devices/${deviceId}`).get();
     if (deviceSnap.exists()) {
       devices.push(deviceSnap.val() as Device);
     }
   }
 
-  // Sort by last used (most recent first)
   return devices.sort((a, b) => b.lastUsed - a.lastUsed);
 }
 
@@ -384,9 +338,8 @@ export async function getUserDevices(userId: string): Promise<Device[]> {
  * Get all devices for an estate (admin view)
  */
 export async function getEstateDevices(estateId: string): Promise<Device[]> {
-  const db = await getFirebaseDatabase();
-  const devicesRef = ref(db, 'devices');
-  const snapshot = await get(devicesRef);
+  const db = getAdminDatabase();
+  const snapshot = await db.ref('devices').get();
 
   if (!snapshot.exists()) return [];
 
