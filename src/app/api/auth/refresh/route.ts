@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getAdminDatabase } from '@/lib/firebaseAdmin'; // ensures Admin SDK is initialized with FCM_* vars
 
 const FIREBASE_API_KEY = process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
 
@@ -59,31 +60,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Step 2: Create a custom token using Firebase Admin SDK
+    // Step 2: Create a custom token using the shared Firebase Admin SDK
+    // (initialized via FCM_PROJECT_ID + FCM_CLIENT_EMAIL + FCM_PRIVATE_KEY)
     let customToken: string;
     try {
-      const { getApps } = await import('firebase-admin/app');
+      // Trigger shared admin initialization (reads FCM_* env vars on Netlify)
+      getAdminDatabase();
       const { getAuth: getAdminAuth } = await import('firebase-admin/auth');
-
-      // Ensure admin app is initialized
-      if (getApps().length === 0) {
-        const { initializeApp, cert } = await import('firebase-admin/app');
-        const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
-        
-        if (!serviceAccountKey) {
-          return NextResponse.json(
-            { success: false, message: 'Server not configured for session recovery' },
-            { status: 500 }
-          );
-        }
-        
-        const parsed = JSON.parse(serviceAccountKey);
-        initializeApp({
-          credential: cert(parsed),
-          databaseURL: process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL,
-        });
-      }
-
       const adminAuth = getAdminAuth();
       customToken = await adminAuth.createCustomToken(uid);
       console.log('✅ Created custom token for user:', uid);
