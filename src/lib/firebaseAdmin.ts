@@ -49,6 +49,7 @@ function getAdminApp(): App {
       const resolvedKey = privateKeyB64
         ? Buffer.from(privateKeyB64, 'base64').toString('utf8')
         : privateKey ? privateKey.replace(/\\n/g, '\n') : null;
+      console.log('[firebaseAdmin] individual vars — projectId:', !!projectId, 'clientEmail:', !!clientEmail, 'privateKey:', !!resolvedKey, 'startsCorrectly:', resolvedKey?.startsWith('-----BEGIN'));
       if (projectId && clientEmail && resolvedKey) {
         serviceAccount = { type: 'service_account', project_id: projectId, client_email: clientEmail, private_key: resolvedKey };
       }

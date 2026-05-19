@@ -95,7 +95,8 @@ export async function requireAuth(
   let decoded: DecodedIdToken;
   try {
     decoded = await getAuth().verifyIdToken(token);
-  } catch (err) {
+  } catch (err: any) {
+    console.error('[requireAuth] verifyIdToken failed:', err?.code, err?.message);
     throw new AuthError(
       401,
       'Authentication failed. Please try again or sign in again.',
