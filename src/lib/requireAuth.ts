@@ -92,6 +92,14 @@ export async function requireAuth(
 
   // Verify token via Firebase Admin SDK. Any failure (expired, revoked,
   // forged) surfaces as an exception we map to 401.
+  // Ensure the Admin app is initialized (reads FCM_* env vars) before verifying.
+  // Without this, getAuth() throws "app/no-app: The default Firebase app does not exist."
+  try {
+    getAdminDatabase();
+  } catch {
+    // initialization failure logged inside getAdminDatabase — continue anyway
+  }
+
   let decoded: DecodedIdToken;
   try {
     decoded = await getAuth().verifyIdToken(token);
