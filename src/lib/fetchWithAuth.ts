@@ -22,7 +22,7 @@
  * - Content-Type header is set to `application/json` by default when a body
  *   is provided. Override via `init.headers` if you need something else.
  */
-import { getFirebaseAuth, waitForAuthUser } from './firebase';
+import { getFirebaseAuth } from './firebase';
 import { withRetry } from './withRetry';
 
 export interface FetchWithAuthInit extends RequestInit {
@@ -76,9 +76,18 @@ export async function fetchWithAuth(
   const { retryOn401 = true, waitForAuth = true, ...rest } = init;
 
   // On Android PWA cold start, auth.currentUser is null until Firebase restores
-  // the session from IndexedDB. Wait for that before trying to get a token.
+  // the session from IndexedDB. authStateReady() resolves as soon as that
+  // happens — it's fast (~100-500ms) and reliable unlike waiting on listeners.
   if (waitForAuth) {
-    await waitForAuthUser(8000);
+    try {
+      const auth = await getFirebaseAuth();
+      await Promise.race([
+        auth.authStateReady(),
+        new Promise<void>((res) => setTimeout(res, 5000)), // 5s hard cap
+      ]);
+    } catch {
+      // non-fatal — proceed without waiting
+    }
   }
 
   const token = await getIdTokenOrNull(false);
@@ -88,9 +97,9 @@ export async function fetchWithAuth(
     { maxAttempts: 3, baseDelayMs: 600, label: 'fetchWithAuth' },
   );
 
-  // If the server rejected the token, try a force-refresh regardless of whether
-  // we had a token before — on Android PWA the session may have just been
-  // restored and currentUser is now available even if it was null earlier.
+  // If the server rejected the token, try a force-refresh.
+  // Also handles the case where token was null (session restored after the
+  // initial getIdTokenOrNull call on Android PWA).
   if (firstResponse.status === 401 && retryOn401) {
     const fresh = await getIdTokenOrNull(true);
     if (fresh && fresh !== token) {

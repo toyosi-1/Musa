@@ -250,20 +250,16 @@ export default function UtilitiesPage() {
     setStep('enter-details');
   };
 
-  // Wait for auth session to restore, then force-refresh the ID token.
-  // On Android PWA, auth.currentUser is null on cold start until Firebase
-  // restores the session from IndexedDB — this waits for that to happen.
-  const ensureFreshToken = async (): Promise<boolean> => {
+  // Best-effort token refresh before API calls. Never blocks the request.
+  const ensureFreshToken = async (): Promise<void> => {
     try {
-      const { waitForAuthUser } = await import('@/lib/firebase');
-      await waitForAuthUser(8000); // wait up to 8s for session to restore
       const auth = await getFirebaseAuth();
       const user = auth.currentUser;
-      if (!user) return false;
-      await user.getIdToken(true); // force refresh the token
-      return true;
+      if (user) {
+        await user.getIdToken(true);
+      }
     } catch {
-      return false;
+      // non-fatal — fetchWithAuth has its own retry logic
     }
   };
 
@@ -301,9 +297,12 @@ export default function UtilitiesPage() {
         setMeterInfo(data.meterInfo);
         localStorage.setItem('musa_saved_meter', meterNumber);
         if (phoneNumber) localStorage.setItem('musa_saved_phone', phoneNumber);
-      } else if (data.code === 'invalid_token' || data.code === 'missing_token') {
-        // Session expired — send user to login
-        setErrorMessage('Your session has expired. Please sign out and sign back in, then try again.');
+      } else if (data.code === 'missing_token') {
+        // No token at all — user genuinely not signed in
+        setErrorMessage('Please sign out and sign back in, then try again.');
+      } else if (data.code === 'invalid_token') {
+        // Token rejected — retry once by reloading the page to restore session
+        setErrorMessage('Session error. Please close and reopen the app, then try again.');
       } else {
         setErrorMessage(data.message || 'Unable to validate meter number');
       }
