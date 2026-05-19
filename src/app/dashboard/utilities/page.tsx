@@ -250,14 +250,17 @@ export default function UtilitiesPage() {
     setStep('enter-details');
   };
 
-  // Force-refresh the Firebase ID token before sensitive API calls.
-  // On Android PWA, the token can expire silently after the app is backgrounded.
+  // Wait for auth session to restore, then force-refresh the ID token.
+  // On Android PWA, auth.currentUser is null on cold start until Firebase
+  // restores the session from IndexedDB — this waits for that to happen.
   const ensureFreshToken = async (): Promise<boolean> => {
     try {
+      const { waitForAuthUser } = await import('@/lib/firebase');
+      await waitForAuthUser(8000); // wait up to 8s for session to restore
       const auth = await getFirebaseAuth();
       const user = auth.currentUser;
       if (!user) return false;
-      await user.getIdToken(true); // force refresh
+      await user.getIdToken(true); // force refresh the token
       return true;
     } catch {
       return false;

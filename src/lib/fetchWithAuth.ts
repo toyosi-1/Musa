@@ -22,7 +22,7 @@
  * - Content-Type header is set to `application/json` by default when a body
  *   is provided. Override via `init.headers` if you need something else.
  */
-import { getFirebaseAuth } from './firebase';
+import { getFirebaseAuth, waitForAuthUser } from './firebase';
 import { withRetry } from './withRetry';
 
 export interface FetchWithAuthInit extends RequestInit {
@@ -31,6 +31,12 @@ export interface FetchWithAuthInit extends RequestInit {
    * when the first response is 401. Set to false to disable.
    */
   retryOn401?: boolean;
+  /**
+   * If true (default), wait for Firebase auth state to settle before
+   * fetching. Important for Android PWA cold starts where auth.currentUser
+   * is null until Firebase restores the session from IndexedDB.
+   */
+  waitForAuth?: boolean;
 }
 
 async function getIdTokenOrNull(forceRefresh = false): Promise<string | null> {
@@ -67,7 +73,13 @@ export async function fetchWithAuth(
   input: string | URL | Request,
   init: FetchWithAuthInit = {},
 ): Promise<Response> {
-  const { retryOn401 = true, ...rest } = init;
+  const { retryOn401 = true, waitForAuth = true, ...rest } = init;
+
+  // On Android PWA cold start, auth.currentUser is null until Firebase restores
+  // the session from IndexedDB. Wait for that before trying to get a token.
+  if (waitForAuth) {
+    await waitForAuthUser(8000);
+  }
 
   const token = await getIdTokenOrNull(false);
 
@@ -76,8 +88,10 @@ export async function fetchWithAuth(
     { maxAttempts: 3, baseDelayMs: 600, label: 'fetchWithAuth' },
   );
 
-  // If the server rejected the token and we have one to retry, refresh once.
-  if (firstResponse.status === 401 && retryOn401 && token) {
+  // If the server rejected the token, try a force-refresh regardless of whether
+  // we had a token before — on Android PWA the session may have just been
+  // restored and currentUser is now available even if it was null earlier.
+  if (firstResponse.status === 401 && retryOn401) {
     const fresh = await getIdTokenOrNull(true);
     if (fresh && fresh !== token) {
       return withRetry(
