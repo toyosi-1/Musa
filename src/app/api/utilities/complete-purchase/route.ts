@@ -350,11 +350,16 @@ export async function POST(request: NextRequest) {
         // Use Flutterwave's correct structured endpoint:
         // POST /v3/billers/{biller_code}/items/{item_code}/payment
         // with customer_id (NOT the legacy /v3/bills with "type" field)
+        // Each retry needs a unique reference to avoid "Transaction reference already exist" errors
+        const retryReference = candidates.indexOf(candidate) === 0
+          ? reference
+          : `${reference}-R${candidates.indexOf(candidate)}`;
+
         const billPayload = {
           country: 'NG',
           customer_id: String(meterNumber),
           amount: Number(amount),
-          reference: reference,
+          reference: retryReference,
         };
 
         console.log(`[CompletePurchase] Trying candidate: billerCode=${candidate.billerCode}, itemCode=${candidate.itemCode} (${candidate.label}), customer_id=${meterNumber}`);
@@ -415,9 +420,15 @@ export async function POST(request: NextRequest) {
         lastError = result.message;
         lastRaw = result.raw;
 
-        // If error is NOT about invalid biller, stop trying — it's a different kind of error
-        if (!msg.includes('invalid biller') && !msg.includes('invalid item') && !msg.includes('biller not found') && !msg.includes('not found')) {
-          console.log(`[CompletePurchase] Non-biller error, stopping retries: ${result.message}`);
+        // Stop immediately on non-retryable errors
+        if (
+          msg.includes('insufficient') ||
+          msg.includes('balance') ||
+          msg.includes('unauthorized') ||
+          msg.includes('authentication') ||
+          (!msg.includes('invalid biller') && !msg.includes('invalid item') && !msg.includes('biller not found') && !msg.includes('not found'))
+        ) {
+          console.log(`[CompletePurchase] Non-retryable error, stopping: ${result.message}`);
           break;
         }
 
@@ -431,15 +442,16 @@ export async function POST(request: NextRequest) {
       const flwMsg = (lastError || '').toLowerCase();
       let userMessage: string;
 
-      if (flwMsg.includes('invalid biller') || flwMsg.includes('invalid item') || flwMsg.includes('biller not found')) {
-        userMessage = `Invalid Biller selected. Your payment of ₦${paidAmount} was verified — please contact support. Ref: ${reference}`;
+      if (flwMsg.includes('insufficient') || flwMsg.includes('balance')) {
+        userMessage = `Electricity service is temporarily unavailable due to a provider issue. Your payment of ₦${paidAmount} was verified and is safe — you will receive a full refund or your token will be delivered manually. Please contact support with Ref: ${reference}`;
+        console.error(`[CompletePurchase] Insufficient wallet balance on Flutterwave payout account. Ref: ${reference}`);
+      } else if (flwMsg.includes('invalid biller') || flwMsg.includes('invalid item') || flwMsg.includes('biller not found')) {
+        userMessage = `Invalid provider configuration. Your payment of ₦${paidAmount} was verified — please contact support. Ref: ${reference}`;
         console.error(`[CompletePurchase] ALL candidates failed with invalid biller. Tried: ${candidates.map(c => c.itemCode).join(', ')}. Client sent: ${clientItemCode}/${clientBillerCode}`);
       } else if (flwMsg.includes('unauthorized') || flwMsg.includes('authentication') || flwMsg.includes('ip') || flwMsg.includes('whitelist')) {
         userMessage = `Server authorization failed. Your payment of ₦${paidAmount} was verified — please contact support. Ref: ${reference}`;
       } else if (flwMsg.includes('cannot be processed') || flwMsg.includes('account administrator')) {
         userMessage = `Electricity service temporarily unavailable. Your payment of ₦${paidAmount} was verified — please contact support for your token or refund. Ref: ${reference}`;
-      } else if (flwMsg.includes('balance') || flwMsg.includes('insufficient')) {
-        userMessage = `Electricity service temporarily unavailable. Your payment of ₦${paidAmount} was verified — please contact support. Ref: ${reference}`;
       } else {
         userMessage = `${lastError || 'Electricity purchase could not be completed'}. Your payment of ₦${paidAmount} was verified — please contact support. Ref: ${reference}`;
       }
