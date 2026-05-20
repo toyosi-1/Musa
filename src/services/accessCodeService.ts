@@ -162,6 +162,10 @@ export const createAccessCode = async (
     }
     const user = userSnapshot.val();
 
+    if (user.accessSuspended) {
+      throw new Error('SUSPENDED: Your access has been suspended by the estate admin. Please contact your estate admin or pay your outstanding dues to restore access.');
+    }
+
     if (!householdSnapshot.exists()) {
       throw new Error('Household not found');
     }

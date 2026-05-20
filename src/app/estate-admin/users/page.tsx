@@ -19,6 +19,7 @@ export default function EstateAdminUsersPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!currentUser) {
@@ -75,6 +76,46 @@ export default function EstateAdminUsersPage() {
       setError('Failed to load users');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleToggleSuspension = async (user: User) => {
+    if (!currentUser?.uid) return;
+    const isSuspended = !!user.accessSuspended;
+    setUpdatingUserId(user.uid);
+    setError(null);
+
+    try {
+      const db = await getFirebaseDatabase();
+      const userRef = ref(db, `users/${user.uid}`);
+
+      if (isSuspended) {
+        await update(userRef, {
+          accessSuspended: false,
+          suspendedAt: null,
+          suspendedBy: null,
+          suspensionReason: null,
+        });
+        setSuccessMessage(`${user.displayName || user.email} can now create access codes`);
+      } else {
+        await update(userRef, {
+          accessSuspended: true,
+          suspendedAt: Date.now(),
+          suspendedBy: currentUser.uid,
+          suspensionReason: 'Estate dues unpaid',
+        });
+        setSuccessMessage(`${user.displayName || user.email} has been suspended`);
+      }
+
+      setTimeout(() => {
+        loadData();
+        setSuccessMessage(null);
+      }, 2000);
+    } catch (err) {
+      console.error('Error toggling suspension:', err);
+      setError('Failed to update suspension status');
+    } finally {
+      setUpdatingUserId(null);
     }
   };
 
@@ -235,22 +276,41 @@ export default function EstateAdminUsersPage() {
                         HoH
                       </span>
                     )}
+                    {user.accessSuspended && (
+                      <span className="inline-flex items-center px-1.5 py-0.5 text-[10px] sm:text-xs font-semibold rounded bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400">
+                        Suspended
+                      </span>
+                    )}
                     <span className="text-[10px] sm:text-xs text-gray-400 dark:text-gray-500">
                       Joined {user.approvedAt ? new Date(user.approvedAt).toLocaleDateString() : 'N/A'}
                     </span>
                   </div>
                 </div>
                 {user.role === 'resident' && (
-                  <button
-                    onClick={() => handleToggleHoH(user.uid, user.isHouseholdHead || false)}
-                    className={`flex-shrink-0 px-2.5 py-1.5 text-xs font-medium rounded-lg transition-colors ${
-                      user.isHouseholdHead
-                        ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30'
-                        : 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30'
-                    }`}
-                  >
-                    {user.isHouseholdHead ? 'Revoke HoH' : 'Grant HoH'}
-                  </button>
+                  <div className="flex flex-col gap-1.5 flex-shrink-0">
+                    <button
+                      onClick={() => handleToggleHoH(user.uid, user.isHouseholdHead || false)}
+                      disabled={updatingUserId === user.uid}
+                      className={`px-2.5 py-1.5 text-xs font-medium rounded-lg transition-colors disabled:opacity-50 ${
+                        user.isHouseholdHead
+                          ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30'
+                          : 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30'
+                      }`}
+                    >
+                      {user.isHouseholdHead ? 'Revoke HoH' : 'Grant HoH'}
+                    </button>
+                    <button
+                      onClick={() => handleToggleSuspension(user)}
+                      disabled={updatingUserId === user.uid}
+                      className={`px-2.5 py-1.5 text-xs font-medium rounded-lg transition-colors disabled:opacity-50 ${
+                        user.accessSuspended
+                          ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/30'
+                          : 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400 hover:bg-orange-100 dark:hover:bg-orange-900/30'
+                      }`}
+                    >
+                      {updatingUserId === user.uid ? '...' : user.accessSuspended ? 'Reinstate' : 'Suspend'}
+                    </button>
+                  </div>
                 )}
               </div>
             </div>

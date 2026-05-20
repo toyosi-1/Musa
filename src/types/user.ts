@@ -24,6 +24,10 @@ export interface User {
   canApproveUsers?: boolean; // For estate_admin role
   canAssignHoH?: boolean; // For estate_admin role
   createdBy?: string; // UID of admin who created this user
+  accessSuspended?: boolean; // Estate admin can suspend resident from creating access codes
+  suspendedAt?: number; // Timestamp when suspended
+  suspendedBy?: string; // UID of estate admin who suspended
+  suspensionReason?: string; // Optional reason (e.g. unpaid dues)
 }
 
 export interface Household {

@@ -102,7 +102,9 @@ export default function CreateAccessCodeForm({ onCreateCode, disabled, noHouseho
       if (err instanceof Error) {
         const errorMessage = err.message;
         
-        if (errorMessage.includes('permission-denied') || errorMessage.includes('permission denied')) {
+        if (errorMessage.startsWith('SUSPENDED:')) {
+          userFriendlyMessage = 'Your access has been suspended by the estate admin. Please contact your estate admin or pay your outstanding dues to restore access.';
+        } else if (errorMessage.includes('permission-denied') || errorMessage.includes('permission denied')) {
           userFriendlyMessage = 'You do not have permission to create access codes.';
         } else if (errorMessage.includes('quota-exceeded') || errorMessage.includes('quota exceeded')) {
           userFriendlyMessage = 'You have reached the maximum number of access codes allowed.';

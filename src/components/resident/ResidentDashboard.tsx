@@ -303,6 +303,23 @@ export default function ResidentDashboard({ user }: ResidentDashboardProps) {
         </div>
       </div>
 
+      {/* ─── Suspension Banner ─── */}
+      {user.accessSuspended && (
+        <div className="flex items-start gap-3 p-4 rounded-2xl bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800/50">
+          <div className="w-9 h-9 rounded-xl bg-orange-100 dark:bg-orange-900/40 flex items-center justify-center flex-shrink-0">
+            <svg className="w-5 h-5 text-orange-600 dark:text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+            </svg>
+          </div>
+          <div>
+            <p className="text-sm font-bold text-orange-800 dark:text-orange-300">Access Suspended</p>
+            <p className="text-xs text-orange-700 dark:text-orange-400 mt-0.5">
+              Your ability to create access codes has been suspended by your estate admin. Please contact your estate admin or settle any outstanding dues to restore access.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* ─── Household Card ─── */}
       {household && (
         <div className="bg-white dark:bg-gray-800/80 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-5">
