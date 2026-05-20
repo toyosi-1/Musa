@@ -670,9 +670,9 @@ export default function UtilitiesPage() {
                           )}
                         </div>
                         <div className="text-left">
-                          <p className="font-medium text-gray-800 dark:text-white">{biller.name}</p>
+                          <p className="font-medium text-gray-800 dark:text-white">{brand.fullName}</p>
                           <p className="text-xs text-gray-500 dark:text-gray-400">
-                            {biller.items.length} option{biller.items.length !== 1 ? 's' : ''}
+                            {biller.items.map(i => i.name.toLowerCase().includes('prepaid') ? 'Prepaid' : i.name.toLowerCase().includes('postpaid') ? 'Postpaid' : i.name).join(' · ')}
                           </p>
                         </div>
                       </div>
@@ -691,35 +691,77 @@ export default function UtilitiesPage() {
       {/* Select Meter Type / Item */}
       {step === 'select-item' && selectedBiller && (
         <div className="space-y-4">
-          <div className="bg-white dark:bg-gray-800/80 rounded-2xl p-4 border border-gray-100 dark:border-gray-800 shadow-sm">
-            <p className="text-xs text-gray-400 dark:text-gray-500 mb-0.5">Provider</p>
-            <p className="font-bold text-gray-900 dark:text-white">{selectedBiller.name}</p>
-          </div>
+          {(() => {
+            const brand = getDiscoBrand(selectedBiller.billerCode, selectedBiller.name);
+            return (
+              <div className="bg-white dark:bg-gray-800/80 rounded-2xl p-4 border border-gray-100 dark:border-gray-800 shadow-sm flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg flex items-center justify-center shadow-sm flex-shrink-0 overflow-hidden bg-white border border-gray-100">
+                  {brand.logoImage ? (
+                    <img src={brand.logoImage} alt={brand.fullName} className="w-full h-full object-contain p-1" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center" style={{ background: `linear-gradient(135deg, ${brand.color}, ${brand.secondaryColor})` }}>
+                      <svg className="w-5 h-5" viewBox="0 0 24 24" fill={brand.textColor}><path d={brand.logoSvg} /></svg>
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <p className="text-xs text-gray-400 dark:text-gray-500">Provider</p>
+                  <p className="font-bold text-gray-900 dark:text-white">{brand.fullName}</p>
+                </div>
+              </div>
+            );
+          })()}
 
           <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
             Select Meter Type
           </h3>
 
           <div className="space-y-2">
-            {selectedBiller.items.map((item) => (
-              <button
-                key={item.itemCode}
-                onClick={() => handleItemSelect(item)}
-                className="w-full flex items-center justify-between p-4 bg-white dark:bg-gray-800/80 rounded-xl border border-gray-100 dark:border-gray-800 hover:border-amber-400 dark:hover:border-amber-600 hover:shadow-sm shadow-sm transition-all"
-              >
-                <div className="text-left">
-                  <p className="font-medium text-gray-800 dark:text-white">{item.name}</p>
-                  {item.fee > 0 && (
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      Service fee: ₦{item.fee}
-                    </p>
-                  )}
-                </div>
-                <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </button>
-            ))}
+            {selectedBiller.items.map((item) => {
+              const isPrepaid = item.name.toLowerCase().includes('prepaid');
+              const isPostpaid = item.name.toLowerCase().includes('postpaid');
+              const meterLabel = isPrepaid ? 'Prepaid' : isPostpaid ? 'Postpaid' : item.name;
+              const meterDesc = isPrepaid
+                ? 'Token-based top-up meter'
+                : isPostpaid
+                ? 'Monthly bill payment meter'
+                : 'Select this meter type';
+              return (
+                <button
+                  key={item.itemCode}
+                  onClick={() => handleItemSelect(item)}
+                  className="w-full flex items-center justify-between p-4 bg-white dark:bg-gray-800/80 rounded-xl border border-gray-100 dark:border-gray-800 hover:border-amber-400 dark:hover:border-amber-600 hover:shadow-sm shadow-sm transition-all"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                      isPrepaid ? 'bg-emerald-50 dark:bg-emerald-900/20' : isPostpaid ? 'bg-blue-50 dark:bg-blue-900/20' : 'bg-gray-100 dark:bg-gray-700'
+                    }`}>
+                      {isPrepaid ? (
+                        <svg className="w-5 h-5 text-emerald-600 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                      ) : isPostpaid ? (
+                        <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                        </svg>
+                      ) : (
+                        <BoltIcon className="w-5 h-5 text-amber-500" />
+                      )}
+                    </div>
+                    <div className="text-left">
+                      <p className="font-semibold text-gray-800 dark:text-white">{meterLabel}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">{meterDesc}</p>
+                      {item.fee > 0 && (
+                        <p className="text-xs text-amber-600 dark:text-amber-400 font-medium mt-0.5">Service fee: ₦{item.fee}</p>
+                      )}
+                    </div>
+                  </div>
+                  <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              );
+            })}
           </div>
         </div>
       )}
@@ -727,11 +769,33 @@ export default function UtilitiesPage() {
       {/* Enter Details */}
       {step === 'enter-details' && selectedBiller && selectedItem && (
         <div className="space-y-4">
-          <div className="bg-white dark:bg-gray-800/80 rounded-2xl p-4 border border-gray-100 dark:border-gray-800 shadow-sm">
-            <p className="text-xs text-gray-400 dark:text-gray-500 mb-0.5">Provider</p>
-            <p className="font-bold text-gray-900 dark:text-white">{selectedBiller.name}</p>
-            <p className="text-xs text-amber-600 dark:text-amber-400 mt-0.5 font-medium">{selectedItem.name}</p>
-          </div>
+          {(() => {
+            const brand = getDiscoBrand(selectedBiller.billerCode, selectedBiller.name);
+            const isPrepaid = selectedItem.name.toLowerCase().includes('prepaid');
+            const isPostpaid = selectedItem.name.toLowerCase().includes('postpaid');
+            const meterLabel = isPrepaid ? 'Prepaid' : isPostpaid ? 'Postpaid' : selectedItem.name;
+            return (
+              <div className="bg-white dark:bg-gray-800/80 rounded-2xl p-4 border border-gray-100 dark:border-gray-800 shadow-sm flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg flex items-center justify-center shadow-sm flex-shrink-0 overflow-hidden bg-white border border-gray-100">
+                  {brand.logoImage ? (
+                    <img src={brand.logoImage} alt={brand.fullName} className="w-full h-full object-contain p-1" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center" style={{ background: `linear-gradient(135deg, ${brand.color}, ${brand.secondaryColor})` }}>
+                      <svg className="w-5 h-5" viewBox="0 0 24 24" fill={brand.textColor}><path d={brand.logoSvg} /></svg>
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <p className="font-bold text-gray-900 dark:text-white">{brand.fullName}</p>
+                  <span className={`inline-block mt-0.5 text-xs font-semibold px-2 py-0.5 rounded-full ${
+                    isPrepaid ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                    : isPostpaid ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+                    : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+                  }`}>{meterLabel}</span>
+                </div>
+              </div>
+            );
+          })()}
 
           <div>
             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
