@@ -59,10 +59,18 @@ app.post('/bill', async (req, res) => {
   // Try up to 3 times with exponential backoff
   for (let attempt = 1; attempt <= 3; attempt++) {
     try {
-      const { proxySecret, ...payload } = req.body;
-      console.log(`[flw-proxy] POST /bill attempt ${attempt}/3:`, JSON.stringify(payload));
+      const { proxySecret, useStructuredEndpoint, billerCode, itemCode, ...payload } = req.body;
+      
+      // Use correct structured endpoint as recommended by Flutterwave support:
+      // POST /v3/billers/{biller_code}/items/{item_code}/payment
+      // instead of the legacy POST /v3/bills with "type" field
+      const flwUrl = useStructuredEndpoint && billerCode && itemCode
+        ? `${FLW_BASE}/billers/${encodeURIComponent(billerCode)}/items/${encodeURIComponent(itemCode)}/payment`
+        : `${FLW_BASE}/bills`;
 
-      const flwRes = await fetch(`${FLW_BASE}/bills`, {
+      console.log(`[flw-proxy] POST /bill attempt ${attempt}/3 → ${flwUrl}:`, JSON.stringify(payload));
+
+      const flwRes = await fetch(flwUrl, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${FLW_SECRET_KEY}`,

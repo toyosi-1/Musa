@@ -53,23 +53,28 @@ async function resolveFreshCandidates(
 
 /**
  * Attempt a bill payment with Flutterwave.
- * Returns the parsed response or throws on network errors.
+ * Uses the correct v3 structured endpoint:
+ *   POST /v3/billers/{biller_code}/items/{item_code}/payment
+ * as recommended by Flutterwave support (not the legacy /v3/bills).
  */
 async function attemptBillPurchase(
+  billerCode: string,
+  itemCode: string,
   payload: Record<string, unknown>,
   flwHeaders: Record<string, string>,
   useProxy: boolean
 ): Promise<{ success: boolean; data: any; message: string; raw: string }> {
   let billRes: Response;
+  const structuredUrl = `${FLUTTERWAVE_BASE_URL}/billers/${encodeURIComponent(billerCode)}/items/${encodeURIComponent(itemCode)}/payment`;
 
   if (useProxy) {
     billRes = await fetch(`${FLW_PROXY_URL}/bill`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...payload, proxySecret: PROXY_SECRET }),
+      body: JSON.stringify({ ...payload, billerCode, itemCode, useStructuredEndpoint: true, proxySecret: PROXY_SECRET }),
     });
   } else {
-    billRes = await fetch(`${FLUTTERWAVE_BASE_URL}/bills`, {
+    billRes = await fetch(structuredUrl, {
       method: 'POST',
       headers: flwHeaders,
       body: JSON.stringify(payload),
@@ -342,20 +347,19 @@ export async function POST(request: NextRequest) {
       let lastRaw = '';
 
       for (const candidate of candidates) {
-        // Flutterwave bills API requires customer_id (meter number for electricity)
-        // Reference: https://developer.flutterwave.com/v3.0/docs/bill-payment
+        // Use Flutterwave's correct structured endpoint:
+        // POST /v3/billers/{biller_code}/items/{item_code}/payment
+        // with customer_id (NOT the legacy /v3/bills with "type" field)
         const billPayload = {
           country: 'NG',
-          customer: String(meterNumber),
+          customer_id: String(meterNumber),
           amount: Number(amount),
-          recurrence: 'ONCE',
-          type: candidate.itemCode,
           reference: reference,
         };
 
-        console.log(`[CompletePurchase] Trying candidate: type=${candidate.itemCode}, biller_name=${candidate.billerCode} (${candidate.label}), customer=${meterNumber}`);
+        console.log(`[CompletePurchase] Trying candidate: billerCode=${candidate.billerCode}, itemCode=${candidate.itemCode} (${candidate.label}), customer_id=${meterNumber}`);
 
-        const result = await attemptBillPurchase(billPayload, flwHeaders, useProxy);
+        const result = await attemptBillPurchase(candidate.billerCode, candidate.itemCode, billPayload, flwHeaders, useProxy);
         console.log(`[CompletePurchase] Result for ${candidate.itemCode}: success=${result.success}, message=${result.message}, raw=${result.raw.substring(0, 600)}`);
 
         if (result.success) {
