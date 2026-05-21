@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { fetchWithAuth } from '@/lib/fetchWithAuth';
+import { generateDeviceId, computeFingerprintHash } from '@/utils/deviceFingerprint';
 
 interface DeviceAuthStatus {
   isChecking: boolean;
@@ -10,34 +11,8 @@ interface DeviceAuthStatus {
 }
 
 /**
- * Client-side device fingerprinting (simple version)
- * In production, use a library like FingerprintJS for better accuracy
- */
-function getDeviceFingerprint(): string {
-  if (typeof window === 'undefined') return '';
-
-  const ua = navigator.userAgent;
-  const platform = navigator.platform;
-  const language = navigator.language;
-  const screenRes = `${window.screen.width}x${window.screen.height}`;
-  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-
-  // Create a simple fingerprint
-  const data = `${ua}|${platform}|${language}|${screenRes}|${timezone}`;
-  
-  // Simple hash function (in production, use crypto.subtle.digest)
-  let hash = 0;
-  for (let i = 0; i < data.length; i++) {
-    const char = data.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash; // Convert to 32bit integer
-  }
-  
-  return Math.abs(hash).toString(36);
-}
-
-/**
- * Hook to check and manage device authorization for Head of Household accounts
+ * Hook to check device authorization for Head of Household accounts.
+ * Uses the same knownDevices system as the login check to avoid conflicts.
  */
 export function useDeviceAuthorization() {
   const { currentUser } = useAuth();
@@ -51,17 +26,11 @@ export function useDeviceAuthorization() {
   useEffect(() => {
     // Only check for Head of Household accounts
     if (!currentUser || !currentUser.isHouseholdHead) {
-      setStatus({
-        isChecking: false,
-        needsApproval: false,
-        deviceId: null,
-        error: null,
-      });
+      setStatus({ isChecking: false, needsApproval: false, deviceId: null, error: null });
       return;
     }
-
     checkDeviceAuthorization();
-  }, [currentUser]);
+  }, [currentUser?.uid]);
 
   const checkDeviceAuthorization = async () => {
     if (!currentUser) return;
@@ -69,77 +38,34 @@ export function useDeviceAuthorization() {
     try {
       setStatus(prev => ({ ...prev, isChecking: true, error: null }));
 
-      const fingerprint = getDeviceFingerprint();
-      const ua = navigator.userAgent;
-      const platform = navigator.platform;
+      const deviceId = generateDeviceId();
+      const fingerprintHash = computeFingerprintHash();
 
-      // Call API to check/create device
-      const response = await fetchWithAuth('/api/device/check', {
+      // Use the same /api/device-approval check endpoint as the login flow
+      // so approvals from email links are immediately recognised here too
+      const response = await fetchWithAuth('/api/device-approval', {
         method: 'POST',
-        body: JSON.stringify({
-          userId: currentUser.uid,
-          fingerprint,
-          userAgent: ua,
-          platform,
-        }),
+        body: JSON.stringify({ action: 'check', userId: currentUser.uid, deviceId, fingerprintHash }),
       });
+
+      if (!response.ok) {
+        // Server error — fail open so the user isn't blocked
+        setStatus({ isChecking: false, needsApproval: false, deviceId, error: null });
+        return;
+      }
 
       const data = await response.json();
 
-      if (data.success) {
-        setStatus({
-          isChecking: false,
-          needsApproval: data.needsApproval,
-          deviceId: data.deviceId,
-          error: null,
-        });
-
-        // If new device needs approval, trigger email
-        if (data.isNew && data.needsApproval) {
-          await sendDeviceApprovalEmail(data.deviceId, fingerprint);
-        }
-      } else {
-        setStatus({
-          isChecking: false,
-          needsApproval: false,
-          deviceId: null,
-          error: data.message || 'Failed to check device authorization',
-        });
-      }
-    } catch (error) {
-      console.error('Error checking device authorization:', error);
       setStatus({
         isChecking: false,
-        needsApproval: false,
-        deviceId: null,
-        error: 'Failed to check device authorization',
-      });
-    }
-  };
-
-  const sendDeviceApprovalEmail = async (deviceId: string, fingerprint: string) => {
-    if (!currentUser) return;
-
-    try {
-      const ua = navigator.userAgent;
-      const platform = navigator.platform;
-
-      await fetchWithAuth('/api/device/send-approval', {
-        method: 'POST',
-        body: JSON.stringify({
-          deviceId,
-          userId: currentUser.uid,
-          userEmail: currentUser.email,
-          userName: currentUser.displayName,
-          deviceInfo: {
-            platform,
-            userAgent: ua,
-            timestamp: Date.now(),
-          },
-        }),
+        needsApproval: !data.approved,
+        deviceId,
+        error: null,
       });
     } catch (error) {
-      console.error('Error sending device approval email:', error);
+      console.error('Error checking device authorization:', error);
+      // Fail open — never block the user due to a network error
+      setStatus({ isChecking: false, needsApproval: false, deviceId: null, error: null });
     }
   };
 
