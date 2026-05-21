@@ -20,13 +20,21 @@ export async function isBiometricAvailable(): Promise<boolean> {
 /** Check if user has already registered biometric credentials */
 export function hasBiometricRegistered(): boolean {
   if (typeof window === 'undefined') return false;
-  return localStorage.getItem('musa_biometric_enabled') === 'true';
+  if (localStorage.getItem('musa_biometric_enabled') === 'true') return true;
+  // Fallback: check sessionStorage (survives page refresh but not full close)
+  if (sessionStorage.getItem('musa_biometric_enabled') === 'true') {
+    // Restore localStorage from session
+    try { localStorage.setItem('musa_biometric_enabled', 'true'); } catch { /* non-fatal */ }
+    return true;
+  }
+  return false;
 }
 
 /** Get the email saved for biometric login */
 export function getBiometricEmail(): string | null {
   if (typeof window === 'undefined') return null;
-  return localStorage.getItem('musa_biometric_email');
+  return localStorage.getItem('musa_biometric_email')
+    || sessionStorage.getItem('musa_biometric_email');
 }
 
 /**
@@ -60,9 +68,11 @@ export async function registerBiometric(
     const verifyData = await verifyRes.json();
 
     if (verifyData.success) {
-      // Mark biometric as enabled locally
-      localStorage.setItem('musa_biometric_enabled', 'true');
-      localStorage.setItem('musa_biometric_email', email);
+      // Mark biometric as enabled in both localStorage and sessionStorage for resilience
+      try { localStorage.setItem('musa_biometric_enabled', 'true'); } catch { /* non-fatal */ }
+      try { localStorage.setItem('musa_biometric_email', email); } catch { /* non-fatal */ }
+      try { sessionStorage.setItem('musa_biometric_enabled', 'true'); } catch { /* non-fatal */ }
+      try { sessionStorage.setItem('musa_biometric_email', email); } catch { /* non-fatal */ }
       return { success: true, message: 'Biometric login enabled!' };
     }
 
@@ -83,7 +93,7 @@ export async function registerBiometric(
  */
 export async function authenticateWithBiometric(
   email: string
-): Promise<{ success: boolean; customToken?: string; userId?: string; sessionRecovery?: boolean; message?: string }> {
+): Promise<{ success: boolean; customToken?: string; userId?: string; userRole?: string; sessionRecovery?: boolean; message?: string }> {
   try {
     // 1. Get authentication options from server
     const optRes = await fetch('/api/webauthn/login-options', {
@@ -112,6 +122,7 @@ export async function authenticateWithBiometric(
         success: true,
         customToken: verifyData.customToken,
         userId: verifyData.userId,
+        userRole: optData.userRole || verifyData.userRole,
         sessionRecovery: verifyData.sessionRecovery,
       };
     }

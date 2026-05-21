@@ -44,6 +44,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, message: 'No account found' }, { status: 404 });
     }
 
+    // Get user role for routing after auth
+    const userSnap = await db.ref(`users/${userId}`).once('value');
+    const userRole = userSnap.exists() ? userSnap.val()?.role : null;
+
     // Get stored credentials
     const credSnap = await db.ref(`webauthnCredentials/${userId}`).once('value');
     if (!credSnap.exists()) {
@@ -68,7 +72,7 @@ export async function POST(request: NextRequest) {
       createdAt: Date.now(),
     });
 
-    return NextResponse.json({ success: true, options, userId });
+    return NextResponse.json({ success: true, options, userId, userRole });
   } catch (error: any) {
     console.error('WebAuthn login-options error:', error);
     return NextResponse.json({ success: false, message: error?.message || 'Server error' }, { status: 500 });

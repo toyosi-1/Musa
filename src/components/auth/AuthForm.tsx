@@ -72,7 +72,30 @@ export default function AuthForm({ mode, defaultRole, redirectTo }: AuthFormProp
     if (mode !== 'login') return;
     (async () => {
       const available = await isBiometricAvailable();
-      if (available && hasBiometricRegistered()) setBiometricReady(true);
+      if (!available) return;
+      if (hasBiometricRegistered()) {
+        setBiometricReady(true);
+        return;
+      }
+      // localStorage may have been cleared (PWA reinstall, iOS memory pressure).
+      // Check if the saved email has credentials on the server.
+      const email = getBiometricEmail();
+      if (email) {
+        try {
+          const res = await fetch('/api/webauthn/login-options', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email }),
+          });
+          const data = await res.json();
+          if (data.success && data.options) {
+            // Server has credentials — restore the local flag
+            try { localStorage.setItem('musa_biometric_enabled', 'true'); } catch { /* non-fatal */ }
+            try { sessionStorage.setItem('musa_biometric_enabled', 'true'); } catch { /* non-fatal */ }
+            setBiometricReady(true);
+          }
+        } catch { /* non-fatal — don't block login */ }
+      }
     })();
   }, [mode]);
 
@@ -271,8 +294,19 @@ export default function AuthForm({ mode, defaultRole, redirectTo }: AuthFormProp
         const { getFirebaseAuth } = await import('@/lib/firebase');
         const { signInWithCustomToken } = await import('firebase/auth');
         const auth = await getFirebaseAuth();
-        await signInWithCustomToken(auth, result.customToken);
-        router.push('/dashboard');
+        const cred = await signInWithCustomToken(auth, result.customToken);
+        // Route based on role returned from server, or look up from cached profile
+        if (result.userRole) {
+          router.push(getDashboardRoute(result.userRole));
+          return;
+        }
+        // Fallback: fetch role from Firebase
+        const { getFirebaseDatabase } = await import('@/lib/firebase');
+        const { ref: dbRef, get } = await import('firebase/database');
+        const db = await getFirebaseDatabase();
+        const snap = await get(dbRef(db, `users/${cred.user.uid}`));
+        const role = snap.exists() ? snap.val()?.role : null;
+        router.push(getDashboardRoute(role || 'resident'));
         return;
       }
 
