@@ -28,6 +28,19 @@ export async function enforceHouseholdDeviceApproval(user: User): Promise<void> 
   if (!user.isHouseholdHead) return;
 
   try {
+    // Only enforce if the household has other members — a solo HoH doesn't
+    // need device security since there's no one else's access at risk.
+    // This also prevents false triggers for residents who are auto-flagged as HoH.
+    if (user.householdId) {
+      const db = await getFirebaseDatabase();
+      const membersSnap = await get(ref(db, `households/${user.householdId}/members`));
+      const memberCount = membersSnap.exists() ? Object.keys(membersSnap.val()).length : 0;
+      if (memberCount <= 1) {
+        console.log('✅ Solo household — skipping device check');
+        return;
+      }
+    }
+
     const deviceId = generateDeviceId();
     const deviceLabel = getDeviceLabel();
 
