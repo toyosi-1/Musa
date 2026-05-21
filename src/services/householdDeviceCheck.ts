@@ -1,7 +1,7 @@
 import { ref, get, set } from 'firebase/database';
 import { signOut as firebaseSignOut } from 'firebase/auth';
 import { getFirebaseAuth, getFirebaseDatabase } from '@/lib/firebase';
-import { generateDeviceId, getDeviceLabel, isDeviceApprovedLocally, markDeviceApprovedLocally } from '@/utils/deviceFingerprint';
+import { generateDeviceId, getDeviceLabel, isDeviceApprovedLocally, markDeviceApprovedLocally, computeFingerprintHash } from '@/utils/deviceFingerprint';
 import { fetchWithAuth } from '@/lib/fetchWithAuth';
 import type { User } from '@/types/user';
 
@@ -37,23 +37,30 @@ export async function enforceHouseholdDeviceApproval(user: User): Promise<void> 
       return;
     }
 
+    const fingerprintHash = computeFingerprintHash();
+
     let serverApproved = false;
     try {
       const checkRes = await fetchWithAuth('/api/device-approval', {
         method: 'POST',
-        body: JSON.stringify({ action: 'check', userId: user.uid, deviceId }),
+        body: JSON.stringify({ action: 'check', userId: user.uid, deviceId, fingerprintHash }),
       });
       if (checkRes.ok) {
         const checkData = await checkRes.json();
         serverApproved = !!checkData.approved;
         if (serverApproved) {
-          markDeviceApprovedLocally(user.uid, deviceId);
+          // If the server recognised us by fingerprintHash (localStorage was cleared),
+          // re-persist the correct deviceId it resolved so future checks use it.
+          if (checkData.resolvedDeviceId && checkData.resolvedDeviceId !== deviceId) {
+            try { localStorage.setItem('musa_device_id', checkData.resolvedDeviceId); } catch { /* non-fatal */ }
+            markDeviceApprovedLocally(user.uid, checkData.resolvedDeviceId);
+          } else {
+            markDeviceApprovedLocally(user.uid, deviceId);
+          }
           console.log('✅ Device recognised (server) for Head of House');
           return;
         }
       } else {
-        // Server check failed (401/503/timeout) — if this device was previously
-        // auto-approved as first device, treat it as trusted rather than blocking
         console.warn('⚠️ Device check server returned', checkRes.status, '— proceeding cautiously');
       }
     } catch (checkErr) {
@@ -73,6 +80,7 @@ export async function enforceHouseholdDeviceApproval(user: User): Promise<void> 
         label: deviceLabel,
         approvedAt: Date.now(),
         autoApproved: true,
+        fingerprintHash,
       });
       markDeviceApprovedLocally(user.uid, deviceId);
       return;

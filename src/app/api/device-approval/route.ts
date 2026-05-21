@@ -67,9 +67,10 @@ export async function POST(request: NextRequest) {
 
 /**
  * Check if a device is approved for a given user.
+ * Also checks by fingerprintHash to handle "same device, localStorage cleared" case.
  */
 async function handleCheck(body: any) {
-  const { userId, deviceId } = body;
+  const { userId, deviceId, fingerprintHash } = body;
   if (!userId || !deviceId) {
     return NextResponse.json({ success: false, message: 'Missing userId or deviceId' }, { status: 400 });
   }
@@ -84,12 +85,37 @@ async function handleCheck(body: any) {
       message: 'Server configuration error. Please contact support.' 
     }, { status: 500 });
   }
-  const snapshot = await db.ref(`users/${userId}/knownDevices/${deviceId}`).once('value');
 
-  return NextResponse.json({
-    success: true,
-    approved: snapshot.exists(),
-  });
+  // 1. Direct match — fast path
+  const directSnap = await db.ref(`users/${userId}/knownDevices/${deviceId}`).once('value');
+  if (directSnap.exists()) {
+    return NextResponse.json({ success: true, approved: true });
+  }
+
+  // 2. Fingerprint match — handles "localStorage was cleared, new deviceId generated for same device"
+  // Each knownDevice entry stores a fingerprintHash field we can compare against.
+  if (fingerprintHash) {
+    const allDevicesSnap = await db.ref(`users/${userId}/knownDevices`).once('value');
+    if (allDevicesSnap.exists()) {
+      const devices = allDevicesSnap.val() as Record<string, any>;
+      for (const [knownId, knownData] of Object.entries(devices)) {
+        if (knownData.fingerprintHash === fingerprintHash) {
+          // Same physical device — re-register the new deviceId so future logins are instant
+          await db.ref(`users/${userId}/knownDevices/${deviceId}`).set({
+            label: knownData.label || 'Known Device',
+            approvedAt: Date.now(),
+            fingerprintHash,
+            reRegistered: true,
+            previousId: knownId,
+          });
+          console.log(`[device-check] Re-registered device ${deviceId} (fingerprint match from ${knownId}) for user ${userId}`);
+          return NextResponse.json({ success: true, approved: true, resolvedDeviceId: deviceId });
+        }
+      }
+    }
+  }
+
+  return NextResponse.json({ success: true, approved: false });
 }
 
 /**

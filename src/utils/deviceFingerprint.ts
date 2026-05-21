@@ -5,6 +5,28 @@
 
 const LS_KEY = 'musa_approved_devices';
 
+/**
+ * Compute a stable hash from browser fingerprint components.
+ * Used server-side to detect "same physical device, lost its localStorage ID".
+ */
+export function computeFingerprintHash(): string {
+  if (typeof window === 'undefined') return 'server';
+  const components = [
+    navigator.userAgent,
+    navigator.language,
+    navigator.platform || '',
+    `${screen.width}x${screen.height}x${screen.colorDepth}`,
+    Intl.DateTimeFormat().resolvedOptions().timeZone || '',
+    navigator.hardwareConcurrency?.toString() || '',
+  ];
+  const raw = components.join('|');
+  let hash = 5381;
+  for (let i = 0; i < raw.length; i++) {
+    hash = ((hash << 5) + hash + raw.charCodeAt(i)) >>> 0;
+  }
+  return hash.toString(36);
+}
+
 export function generateDeviceId(): string {
   if (typeof window === 'undefined') return 'server';
 
@@ -16,23 +38,7 @@ export function generateDeviceId(): string {
     if (stored) return stored;
   } catch { /* non-fatal */ }
 
-  const components = [
-    navigator.userAgent,
-    navigator.language,
-    navigator.platform || '',
-    `${screen.width}x${screen.height}x${screen.colorDepth}`,
-    Intl.DateTimeFormat().resolvedOptions().timeZone || '',
-    navigator.hardwareConcurrency?.toString() || '',
-  ];
-
-  const raw = components.join('|');
-
-  // Simple hash (djb2)
-  let hash = 5381;
-  for (let i = 0; i < raw.length; i++) {
-    hash = ((hash << 5) + hash + raw.charCodeAt(i)) >>> 0;
-  }
-  const id = `dev_${hash.toString(36)}`;
+  const id = `dev_${computeFingerprintHash()}`;
 
   // Persist it so it survives user-agent micro-changes (iOS minor updates etc.)
   try { localStorage.setItem('musa_device_id', id); } catch { /* non-fatal */ }
