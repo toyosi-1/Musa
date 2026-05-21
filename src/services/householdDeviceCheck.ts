@@ -112,6 +112,7 @@ export async function enforceHouseholdDeviceApproval(user: User): Promise<void> 
           userId: user.uid,
           deviceId,
           deviceLabel,
+          fingerprintHash,
           email: user.email,
           displayName: user.displayName,
         }),

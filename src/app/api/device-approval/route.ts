@@ -122,7 +122,7 @@ async function handleCheck(body: any) {
  * Generate a token and send device approval email.
  */
 async function handleSend(body: any) {
-  const { userId, deviceId, deviceLabel, email, displayName } = body;
+  const { userId, deviceId, deviceLabel, fingerprintHash, email, displayName } = body;
   if (!userId || !deviceId || !email) {
     return NextResponse.json({ success: false, message: 'Missing required fields' }, { status: 400 });
   }
@@ -148,6 +148,7 @@ async function handleSend(body: any) {
     userId,
     deviceId,
     deviceLabel: deviceLabel || 'Unknown Device',
+    fingerprintHash: fingerprintHash || null,
     email,
     createdAt: now,
     expiresAt,
@@ -252,10 +253,12 @@ async function handleVerify(body: any) {
     return NextResponse.json({ success: false, message: 'This approval link has expired. Please try logging in again.' });
   }
 
-  // Approve the device
+  // Approve the device — store fingerprintHash so future logins
+  // on this same device work even if localStorage is cleared
   await db.ref(`users/${data.userId}/knownDevices/${data.deviceId}`).set({
     label: data.deviceLabel,
     approvedAt: Date.now(),
+    ...(data.fingerprintHash && { fingerprintHash: data.fingerprintHash }),
   });
 
   // Mark token as used
