@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { fetchWithAuth } from '@/lib/fetchWithAuth';
 import { generateDeviceId, computeFingerprintHash } from '@/utils/deviceFingerprint';
+import { getFirebaseDatabase } from '@/lib/firebase';
+import { ref, get } from 'firebase/database';
 
 interface DeviceAuthStatus {
   isChecking: boolean;
@@ -37,6 +39,18 @@ export function useDeviceAuthorization() {
 
     try {
       setStatus(prev => ({ ...prev, isChecking: true, error: null }));
+
+      // Skip check for solo households — only enforce when HoH has actual members
+      if (currentUser.householdId) {
+        const db = await getFirebaseDatabase();
+        const membersSnap = await get(ref(db, `households/${currentUser.householdId}/members`));
+        const memberCount = membersSnap.exists() ? Object.keys(membersSnap.val()).length : 0;
+        if (memberCount <= 1) {
+          console.log('✅ Solo household — skipping device check in hook');
+          setStatus({ isChecking: false, needsApproval: false, deviceId: null, error: null });
+          return;
+        }
+      }
 
       const deviceId = generateDeviceId();
       const fingerprintHash = computeFingerprintHash();
