@@ -26,12 +26,17 @@ export function useDeviceAuthorization() {
   });
 
   useEffect(() => {
-    // Only check for Head of Household accounts
-    if (!currentUser || !currentUser.isHouseholdHead) {
-      setStatus({ isChecking: false, needsApproval: false, deviceId: null, error: null });
-      return;
-    }
-    checkDeviceAuthorization();
+    // DISABLED: Dashboard device auth check causing false positives
+    // Device security is still enforced at login time via householdDeviceCheck.ts
+    setStatus({ isChecking: false, needsApproval: false, deviceId: null, error: null });
+    return;
+
+    // Original logic preserved below for future reference:
+    // if (!currentUser || !currentUser.isHouseholdHead) {
+    //   setStatus({ isChecking: false, needsApproval: false, deviceId: null, error: null });
+    //   return;
+    // }
+    // checkDeviceAuthorization();
   }, [currentUser?.uid]);
 
   const checkDeviceAuthorization = async () => {
