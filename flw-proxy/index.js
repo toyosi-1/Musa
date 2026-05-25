@@ -256,6 +256,11 @@ app.get('/health', (req, res) => {
 });
 
 app.listen(PORT, () => {
+  // Diagnostic: show key type at startup (safe - only shows prefix)
+  const keyPrefix = FLW_SECRET_KEY ? FLW_SECRET_KEY.substring(0, 20) + '...' : 'NOT_SET';
+  const keyType = FLW_SECRET_KEY && FLW_SECRET_KEY.includes('TEST') ? 'TEST' : (FLW_SECRET_KEY ? 'LIVE' : 'NOT_SET');
+  console.log(`[flw-proxy] Key loaded: ${keyPrefix} (type: ${keyType})`);
+  
   console.log(`[flw-proxy] Listening on port ${PORT}`);
   console.log(`[flw-proxy] Health check: http://localhost:${PORT}/health`);
   console.log(`[flw-proxy] Configured for Flutterwave: ${FLW_BASE}`);
