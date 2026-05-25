@@ -368,8 +368,18 @@ export async function POST(request: NextRequest) {
         console.log(`[CompletePurchase] Result for ${candidate.itemCode}: success=${result.success}, message=${result.message}, raw=${result.raw.substring(0, 600)}`);
 
         if (result.success) {
-          const flwRef = result.data?.flw_ref || result.data?.tx_ref || '';
-          let token = result.data?.extra || result.data?.recharge_token || result.data?.token || null;
+          // Debug: log full response structure
+          console.log('[CompletePurchase] Payment success. Full response data:', JSON.stringify(result.data, null, 2).substring(0, 2000));
+          
+          // Try multiple possible reference fields
+          const flwRef = result.data?.flw_ref || result.data?.flwRef || result.data?.reference || result.data?.tx_ref || result.data?.flwref || '';
+          
+          // Try multiple possible token fields in immediate response
+          let token = result.data?.extra || result.data?.recharge_token || result.data?.token || 
+                      result.data?.voucher || result.data?.pin || result.data?.meter_token || 
+                      result.data?.units || result.data?.value || null;
+          
+          console.log(`[CompletePurchase] Extracted flwRef: ${flwRef}, immediate token: ${token ? token.substring(0, 20) + '...' : 'none'}`);
 
           // Flutterwave returns prepaid tokens asynchronously — poll if not immediately available
           let asyncToken = null;
@@ -378,7 +388,7 @@ export async function POST(request: NextRequest) {
             asyncToken = await pollForToken(flwRef, flwHeaders, useProxy);
             if (asyncToken) {
               token = asyncToken;
-              console.log(`[CompletePurchase] Token obtained via polling: ${token.substring(0, 8)}...`);
+              console.log(`[CompletePurchase] Token obtained via polling: ${token.substring(0, 20)}...`);
             } else {
               console.log(`[CompletePurchase] Token not yet available after polling — meter may still be credited async.`);
             }
