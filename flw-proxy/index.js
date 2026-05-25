@@ -237,12 +237,18 @@ app.post('/validate-bill', async (req, res) => {
 
 // Enhanced health check with timestamp and diagnostics
 app.get('/health', (req, res) => {
+  // Show key prefix to help diagnose TEST vs LIVE key issues (safe - doesn't expose full key)
+  const keyPrefix = FLW_SECRET_KEY ? FLW_SECRET_KEY.substring(0, 15) + '...' : 'NOT_SET';
+  const keyType = FLW_SECRET_KEY && FLW_SECRET_KEY.includes('TEST') ? 'TEST' : (FLW_SECRET_KEY ? 'LIVE' : 'NOT_SET');
+  
   res.json({ 
     status: 'ok', 
     service: 'flw-proxy',
     timestamp: new Date().toISOString(),
     config: {
       hasSecretKey: !!FLW_SECRET_KEY,
+      keyPrefix: keyPrefix, // e.g., "FLWSECK_TEST-..." or "FLWSECK-60da9..."
+      keyType: keyType,     // "TEST" or "LIVE" or "NOT_SET"
       hasProxySecret: !!PROXY_SECRET,
       flutterwaveBase: FLW_BASE
     }
