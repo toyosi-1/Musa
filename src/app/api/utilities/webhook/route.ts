@@ -18,11 +18,16 @@ export async function POST(request: NextRequest) {
     
     console.log('[Webhook] Received Flutterwave webhook:', JSON.stringify(payload).substring(0, 1000));
     
-    // Verify webhook signature if provided
+    // Verify webhook signature — fail closed: no secret configured → reject
     const signature = request.headers.get('verif-hash');
     const webhookSecret = process.env.FLUTTERWAVE_WEBHOOK_SECRET;
     
-    if (webhookSecret && signature !== webhookSecret) {
+    if (!webhookSecret) {
+      console.error('[Webhook] FLUTTERWAVE_WEBHOOK_SECRET is not configured — rejecting webhook');
+      return NextResponse.json({ status: 'error', message: 'Webhook not configured' }, { status: 500 });
+    }
+    
+    if (signature !== webhookSecret) {
       console.warn('[Webhook] Invalid webhook signature');
       return NextResponse.json({ status: 'error', message: 'Invalid signature' }, { status: 401 });
     }

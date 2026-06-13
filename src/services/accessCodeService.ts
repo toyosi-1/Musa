@@ -5,7 +5,7 @@ import { AccessCode } from '@/types/user';
 import { logActivity } from './activityService';
 import { fetchWithAuth } from '@/lib/fetchWithAuth';
 import { queueNotification, processNotificationQueue } from './notificationQueue';
-// import { verifyHouseholdMembership } from './householdService'; // TODO: Re-enable if needed
+
 
 // Rate limiting constants
 const MAX_CODES_PER_HOUR = 10;
@@ -133,20 +133,6 @@ export const createAccessCode = async (
   try {
     console.log('Creating access code for user:', userId, 'household:', householdId, 'estate:', estateId);
 
-    // Enhanced Security: Verify household membership before proceeding
-    // TODO: Re-enable household membership verification if needed
-    // console.log('🔒 Verifying household membership for security...');
-    // const isValidMember = await verifyHouseholdMembership(userId, householdId);
-    // if (!isValidMember) {
-    //   console.error('❌ Security violation: User is not a valid household member');
-    //   await logSecurityEvent('HOUSEHOLD_MEMBERSHIP_VIOLATION', userId, {
-    //     attemptedHouseholdId: householdId,
-    //     reason: 'User is not a valid household member'
-    //   });
-    //   throw new Error('Unauthorized: You must be a member of the household to create access codes');
-    // }
-    // console.log('✅ Household membership verified successfully');
-
     // Enhanced Estate Security: Verify estate boundaries
     // OPTIMIZATION: Parallel fetch user and household data to save ~300-500ms
     const userRef = ref(db, `users/${userId}`);
@@ -170,6 +156,18 @@ export const createAccessCode = async (
       throw new Error('Household not found');
     }
     const household = householdSnapshot.val();
+
+    // Security: Verify household membership — user must be the head or a member
+    const isHead = household.headId === userId;
+    const isMember = household.members && household.members[userId] === true;
+    if (!isHead && !isMember) {
+      console.error('Security violation: User is not a household member', { userId, householdId });
+      await logSecurityEvent('HOUSEHOLD_MEMBERSHIP_VIOLATION', userId, {
+        attemptedHouseholdId: householdId,
+        reason: 'User is not a valid household member'
+      });
+      throw new Error('Unauthorized: You must be a member of the household to create access codes');
+    }
 
     // Use the user's estateId if not provided
     if (!estateId) {

@@ -111,10 +111,10 @@ const nextConfig = {
   
   // TypeScript and ESLint configurations
   typescript: {
-    ignoreBuildErrors: true,
+    ignoreBuildErrors: false,
   },
   eslint: {
-    ignoreDuringBuilds: true,
+    ignoreDuringBuilds: false,
   },
   
   // Experimental features (appDir and serverActions are stable in Next.js 15)
@@ -241,7 +241,7 @@ const nextConfig = {
           },
           {
             key: 'Permissions-Policy',
-            value: 'camera=(), microphone=(), geolocation=()',
+            value: 'camera=(self), microphone=(), geolocation=(self)',
           },
         ],
       },

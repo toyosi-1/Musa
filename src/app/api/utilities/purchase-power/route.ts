@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth, AuthError } from '@/lib/requireAuth';
 
 const FLUTTERWAVE_SECRET_KEY = process.env.FLUTTERWAVE_SECRET_KEY;
 const FLUTTERWAVE_BASE_URL = 'https://api.flutterwave.com/v3';
@@ -13,12 +14,23 @@ const FLUTTERWAVE_BASE_URL = 'https://api.flutterwave.com/v3';
  */
 export async function POST(request: NextRequest) {
   try {
-    const { userId, itemCode, billerCode, meterNumber, amount, phoneNumber, email } =
+    // Authenticate — userId must come from the verified token, never the body
+    let authUser;
+    try {
+      authUser = await requireAuth(request);
+    } catch (err) {
+      if (err instanceof AuthError) return err.toResponse();
+      throw err;
+    }
+
+    const { itemCode, billerCode, meterNumber, amount, phoneNumber, email } =
       await request.json();
 
-    if (!userId || !itemCode || !meterNumber || !amount) {
+    const userId = authUser.uid;
+
+    if (!itemCode || !meterNumber || !amount) {
       return NextResponse.json(
-        { success: false, message: 'Missing required fields (userId, itemCode, meterNumber, amount)' },
+        { success: false, message: 'Missing required fields (itemCode, meterNumber, amount)' },
         { status: 400 }
       );
     }

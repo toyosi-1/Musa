@@ -68,7 +68,7 @@
     "accessCodesByCode": {
       ".read": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'guard'",
       "$code": {
-        ".write": "auth != null"
+        ".write": "auth != null && (!data.exists() || root.child('users').child(auth.uid).child('role').val() === 'admin')"
       }
     },
     "accessCodesByUser": {
@@ -80,7 +80,7 @@
     "accessCodesByHousehold": {
       "$householdId": {
         ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('households').child($householdId).child('headId').val() === auth.uid || root.child('households').child($householdId).child('members').child(auth.uid).val() === true)",
-        ".write": "auth != null"
+        ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('households').child($householdId).child('members').child(auth.uid).val() === true || root.child('households').child($householdId).child('headId').val() === auth.uid)"
       }
     },
     "accessCodesByEstate": {
@@ -113,7 +113,9 @@
       ".indexOn": ".value",
       "$email": {
         ".read": "auth != null",
-        ".write": "auth != null"
+        "$inviteId": {
+          ".write": "auth != null && (!data.exists() || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('householdInvites').child($inviteId).child('invitedBy').val() === auth.uid)"
+        }
       }
     },
     "usersByEstate": {
@@ -137,7 +139,7 @@
       "$userId": {
         ".read": "auth != null && auth.uid === $userId",
         "$notificationId": {
-          ".write": "auth != null",
+          ".write": "auth != null && (auth.uid === $userId || root.child('users').child(auth.uid).child('role').val() === 'guard' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'estate_admin')",
           "read": {
             ".write": "auth != null && auth.uid === $userId"
           }
@@ -146,7 +148,7 @@
     },
     "notificationIndex": {
       "$notificationId": {
-        ".write": "auth != null",
+        ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'guard' || root.child('users').child(auth.uid).child('role').val() === 'admin')",
         ".read": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'"
       }
     },
