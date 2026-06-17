@@ -184,6 +184,7 @@ export async function sendFcmNotification(msg: FcmMessage): Promise<boolean> {
             tag:   msg.tag   || 'musa',
             requireInteraction: msg.requireInteraction ?? false,
             vibrate: msg.vibrate ?? [200, 100, 200],
+            sound: 'default', // Use device default notification sound (most reliable)
           },
           fcm_options: {
             link: msg.url || '/',

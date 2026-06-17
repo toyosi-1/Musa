@@ -70,6 +70,7 @@ export interface HouseholdInvite {
   status: 'pending' | 'accepted' | 'rejected';
   createdAt: number;
   expiresAt: number;
+  autoApprove?: boolean; // If true, invitee gets auto-approved on signup (head's approval cascades)
 }
 
 export interface Estate {

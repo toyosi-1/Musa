@@ -8,7 +8,7 @@ import {
   signOut as firebaseSignOut,
   onAuthStateChanged,
 } from 'firebase/auth';
-import { ref, update, onValue } from 'firebase/database';
+import { ref, update, onValue, get } from 'firebase/database';
 import { getFirebaseAuth, getFirebaseDatabase } from '@/lib/firebase';
 import { withRetry } from '@/lib/withRetry';
 import {
@@ -128,9 +128,70 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         ...(estateId && { estateId }),
       };
 
+      // Check for auto-approve household invite (head's approval cascades to invitees)
+      const emailKey = email.toLowerCase().replace(/\./g, ',');
+      const invitesByEmailRef = ref(db, `invitesByEmail/${emailKey}`);
+      const invitesSnapshot = await get(invitesByEmailRef);
+
+      let autoApproved = false;
+      let autoApproveInviteId: string | null = null;
+      let householdId: string | null = null;
+
+      if (invitesSnapshot.exists()) {
+        const inviteIds = Object.keys(invitesSnapshot.val() as Record<string, boolean>);
+
+        // Find a pending auto-approve invite from an approved inviter
+        for (const inviteId of inviteIds) {
+          const inviteRef = ref(db, `householdInvites/${inviteId}`);
+          const inviteSnap = await get(inviteRef);
+
+          if (inviteSnap.exists()) {
+            const invite = inviteSnap.val();
+            if (invite.status === 'pending' && invite.autoApprove === true) {
+              // Verify the inviter (head) is approved
+              const inviterRef = ref(db, `users/${invite.invitedBy}`);
+              const inviterSnap = await get(inviterRef);
+
+              if (inviterSnap.exists() && inviterSnap.val().status === 'approved') {
+                autoApproved = true;
+                autoApproveInviteId = inviteId;
+                householdId = invite.householdId;
+                break; // Use the first valid auto-approve invite found
+              }
+            }
+          }
+        }
+      }
+
       const atomicUpdates: Record<string, any> = {};
-      atomicUpdates[`users/${result.user.uid}`] = newUser;
-      atomicUpdates[`pendingUsers/${result.user.uid}`] = true;
+
+      if (autoApproved && autoApproveInviteId && householdId) {
+        // Auto-approve: head's approval cascades to household members
+        const now = Date.now();
+        const approvedUser: User = {
+          ...newUser,
+          status: 'approved',
+          approvedAt: now,
+          approvedBy: 'household_invite', // Special marker for auto-approved via invite
+          householdId,
+          isHouseholdHead: false,
+        };
+
+        atomicUpdates[`users/${result.user.uid}`] = approvedUser;
+        atomicUpdates[`households/${householdId}/members/${result.user.uid}`] = true;
+        atomicUpdates[`householdInvites/${autoApproveInviteId}/status`] = 'accepted';
+        // Add to usersByEstate index if estateId is known
+        if (estateId) {
+          atomicUpdates[`usersByEstate/${estateId}/${result.user.uid}`] = true;
+        }
+
+        console.log('🎉 User auto-approved via household invite:', result.user.uid, 'household:', householdId);
+      } else {
+        // Standard pending flow
+        atomicUpdates[`users/${result.user.uid}`] = newUser;
+        atomicUpdates[`pendingUsers/${result.user.uid}`] = true;
+      }
+
       await update(ref(db), atomicUpdates);
 
       // Non-blocking welcome email
@@ -143,7 +204,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         )
         .catch((err) => console.error('❌ Welcome email error:', err));
 
-      console.log('New user signed up and added to pending list:', newUser.uid, estateId ? `for estate: ${estateId}` : '');
+      console.log('New user signed up:', result.user.uid, autoApproved ? '(auto-approved)' : '(pending)', estateId ? `estate: ${estateId}` : '');
+
+      // Return the appropriate user object based on approval status
+      if (autoApproved && householdId) {
+        return { ...newUser, status: 'approved', householdId, isHouseholdHead: false };
+      }
       return newUser;
     } catch (error) {
       console.error('Error signing up:', error);

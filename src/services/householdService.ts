@@ -323,7 +323,8 @@ export const createHouseholdInvite = async (
       email: email.toLowerCase(), // Store email in lowercase for consistent querying
       status: 'pending',
       createdAt: now,
-      expiresAt
+      expiresAt,
+      autoApprove: true // Head's approval cascades to invitees - they skip the waiting room
     };
     
     // Save invite + email index in one atomic write (emailKey already computed above)

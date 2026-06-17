@@ -157,6 +157,18 @@ export const createAccessCode = async (
     }
     const household = householdSnapshot.val();
 
+    // Check if head of household is suspended — if so, no one in household can create codes
+    if (household.headId) {
+      const headRef = ref(db, `users/${household.headId}`);
+      const headSnapshot = await get(headRef);
+      if (headSnapshot.exists()) {
+        const head = headSnapshot.val();
+        if (head.accessSuspended) {
+          throw new Error('SUSPENDED: Your household access has been suspended by the estate admin. Please contact your estate admin or pay outstanding dues to restore access.');
+        }
+      }
+    }
+
     // Security: Verify household membership — user must be the head or a member
     const isHead = household.headId === userId;
     const isMember = household.members && household.members[userId] === true;
