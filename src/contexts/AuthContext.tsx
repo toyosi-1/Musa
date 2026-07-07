@@ -163,8 +163,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      const atomicUpdates: Record<string, any> = {};
-
       if (autoApproved && autoApproveInviteId && householdId) {
         // Auto-approve: head's approval cascades to household members
         const now = Date.now();
@@ -177,22 +175,55 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           isHouseholdHead: false,
         };
 
-        atomicUpdates[`users/${result.user.uid}`] = approvedUser;
-        atomicUpdates[`households/${householdId}/members/${result.user.uid}`] = true;
-        atomicUpdates[`householdInvites/${autoApproveInviteId}/status`] = 'accepted';
-        // Add to usersByEstate index if estateId is known
-        if (estateId) {
-          atomicUpdates[`usersByEstate/${estateId}/${result.user.uid}`] = true;
+        // Fetch the household's estateId to ensure the user is indexed correctly
+        let householdEstateId = estateId;
+        try {
+          const householdSnap = await get(ref(db, `households/${householdId}`));
+          if (householdSnap.exists()) {
+            householdEstateId = householdSnap.val()?.estateId || estateId;
+          }
+        } catch (e) {
+          console.warn('Could not fetch household estateId, falling back to provided estateId:', e);
+        }
+
+        if (householdEstateId) {
+          approvedUser.estateId = householdEstateId;
+        }
+
+        // Step 1: Create user profile and household membership atomically.
+        // Do NOT include the invite status update here — the invite rule validates
+        // the user's email against the EXISTING database, and this user does not
+        // exist yet in the same transaction.
+        const profileUpdates: Record<string, any> = {
+          [`users/${result.user.uid}`]: approvedUser,
+          [`households/${householdId}/members/${result.user.uid}`]: true,
+        };
+        if (householdEstateId) {
+          profileUpdates[`usersByEstate/${householdEstateId}/${result.user.uid}`] = true;
+        }
+        await update(ref(db), profileUpdates);
+
+        // Step 2: Now that the user exists, mark the invite as accepted.
+        try {
+          await update(ref(db), {
+            [`householdInvites/${autoApproveInviteId}/status`]: 'accepted',
+            [`householdInvites/${autoApproveInviteId}/acceptedAt`]: now,
+            [`householdInvites/${autoApproveInviteId}/acceptedBy`]: result.user.uid,
+          });
+        } catch (inviteUpdateError) {
+          console.error('Failed to mark invite as accepted (non-fatal):', inviteUpdateError);
+          // Don't fail signup — the user is approved and added to the household.
         }
 
         console.log('🎉 User auto-approved via household invite:', result.user.uid, 'household:', householdId);
       } else {
         // Standard pending flow
-        atomicUpdates[`users/${result.user.uid}`] = newUser;
-        atomicUpdates[`pendingUsers/${result.user.uid}`] = true;
+        const atomicUpdates: Record<string, any> = {
+          [`users/${result.user.uid}`]: newUser,
+          [`pendingUsers/${result.user.uid}`]: true,
+        };
+        await update(ref(db), atomicUpdates);
       }
-
-      await update(ref(db), atomicUpdates);
 
       // Non-blocking welcome email
       import('@/services/smtpEmailService')
