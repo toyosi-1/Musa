@@ -97,7 +97,7 @@
       "$inviteId": {
         ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || data.child('invitedBy').val() === auth.uid || data.child('email').val() === root.child('users').child(auth.uid).child('email').val()) || data.child('status').val() === 'pending'",
         ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || (!data.exists() && auth != null) || (data.exists() && data.child('invitedBy').val() === auth.uid) || (data.exists() && data.child('email').val() === root.child('users').child(auth.uid).child('email').val()))",
-        ".validate": "newData.hasChildren(['householdId', 'invitedBy', 'email', 'status', 'createdAt', 'expiresAt']) && (newData.child('autoApprove').exists() === false || newData.child('autoApprove').val() === true || newData.child('autoApprove').val() === false) && (newData.child('acceptedAt').exists() === false || newData.child('acceptedAt').isNumber()) && (newData.child('acceptedBy').exists() === false || typeof newData.child('acceptedBy').val() === 'string')"
+        ".validate": "newData.hasChildren(['householdId', 'invitedBy', 'email', 'status', 'createdAt', 'expiresAt']) && (newData.child('autoApprove').exists() === false || newData.child('autoApprove').val() === true || newData.child('autoApprove').val() === false) && (newData.child('acceptedAt').exists() === false || newData.child('acceptedAt').isNumber()) && (newData.child('acceptedBy').exists() === false || newData.child('acceptedBy').isString())"
       }
     },
     "guardActivity": {
