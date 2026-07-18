@@ -172,6 +172,37 @@ export default function UtilitiesPage() {
     if (savedPhone) setPhoneNumber(savedPhone);
   }, []);
 
+  // Auto-poll for the token after a successful purchase — prepaid tokens
+  // often arrive asynchronously from Flutterwave (30s–3min). Poll every 10s
+  // for up to 5 minutes so the user doesn't have to tap "Check" manually.
+  useEffect(() => {
+    if (step !== 'success' || purchaseToken || !transactionKey) return;
+    let cancelled = false;
+    let attempts = 0;
+    const MAX_ATTEMPTS = 30; // 30 × 10s = 5 minutes
+    const intervalId = setInterval(async () => {
+      attempts += 1;
+      if (attempts > MAX_ATTEMPTS) {
+        clearInterval(intervalId);
+        return;
+      }
+      try {
+        const res = await fetchWithAuth(`/api/utilities/transaction-status?transactionKey=${transactionKey}`);
+        const data = await res.json();
+        if (!cancelled && data.success && data.transaction?.token) {
+          setPurchaseToken(data.transaction.token);
+          clearInterval(intervalId);
+        }
+      } catch {
+        // Network hiccup — keep polling
+      }
+    }, 10_000);
+    return () => {
+      cancelled = true;
+      clearInterval(intervalId);
+    };
+  }, [step, purchaseToken, transactionKey]);
+
   const saveMeterToFirebase = async () => {
     if (!currentUser?.uid || !selectedBiller || !selectedItem || !meterNumber || !meterInfo) return;
     try {

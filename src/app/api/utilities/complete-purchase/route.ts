@@ -381,26 +381,10 @@ export async function POST(request: NextRequest) {
           
           console.log(`[CompletePurchase] Extracted flwRef: ${flwRef}, immediate token: ${token ? token.substring(0, 20) + '...' : 'none'}`);
 
-          // Flutterwave returns prepaid tokens asynchronously — poll if not immediately available
-          let asyncToken = null;
-          if (!token && flwRef) {
-            console.log(`[CompletePurchase] Token not in initial response, polling status for ${flwRef}...`);
-            asyncToken = await pollForToken(flwRef, flwHeaders, useProxy);
-            if (asyncToken) {
-              token = asyncToken;
-              console.log(`[CompletePurchase] Token obtained via polling: ${token.substring(0, 20)}...`);
-            } else {
-              console.log(`[CompletePurchase] Token not yet available after polling — meter may still be credited async.`);
-            }
-          }
-
-          // If we succeeded with a different code than the client sent, clear cache
-          if (candidate.itemCode !== String(clientItemCode)) {
-            console.log(`[CompletePurchase] Succeeded with different code: ${clientItemCode} → ${candidate.itemCode}. Clearing billers cache.`);
-            invalidateBillersCache();
-          }
-          
-          // Save transaction record for tracking and potential async token delivery
+          // CRITICAL: Save transaction record FIRST — before any polling.
+          // Serverless functions (Netlify) time out at ~10-26s. If we poll for
+          // 60s before saving, the function is killed, the record is never
+          // saved, and the client can never retrieve the token afterwards.
           const transactionKey = await saveTransactionRecord(authUser.uid, {
             transactionId,
             flwRef: flwRef || reference,
@@ -412,6 +396,27 @@ export async function POST(request: NextRequest) {
             token,
             createdAt: Date.now(),
           });
+
+          // Short in-request poll only (~5s) — catches fast tokens without
+          // risking a serverless timeout. The client polls /transaction-status
+          // for tokens that arrive later.
+          if (!token && flwRef) {
+            console.log(`[CompletePurchase] Token not in initial response, short-polling status for ${flwRef}...`);
+            const asyncToken = await pollForToken(flwRef, flwHeaders, useProxy, 2, 2500);
+            if (asyncToken) {
+              token = asyncToken;
+              await updateTransactionWithToken(authUser.uid, transactionKey, token);
+              console.log(`[CompletePurchase] Token obtained via short poll: ${token.substring(0, 20)}...`);
+            } else {
+              console.log(`[CompletePurchase] Token not yet available — client will poll /transaction-status.`);
+            }
+          }
+
+          // If we succeeded with a different code than the client sent, clear cache
+          if (candidate.itemCode !== String(clientItemCode)) {
+            console.log(`[CompletePurchase] Succeeded with different code: ${clientItemCode} → ${candidate.itemCode}. Clearing billers cache.`);
+            invalidateBillersCache();
+          }
 
           return NextResponse.json({
             success: true,
