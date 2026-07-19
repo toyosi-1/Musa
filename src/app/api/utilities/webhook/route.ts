@@ -56,68 +56,49 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ status: 'ok', message: 'No action taken - missing reference' });
       }
       
-      // Find and update the transaction in Firebase
       const db = getAdminDatabase();
-      
-      // Search for transaction by flwRef or transactionId
-      const transactionsRef = db.ref('transactions');
-      const snapshot = await transactionsRef
-        .orderByChild('flwRef')
-        .equalTo(flwRef)
-        .limitToFirst(1)
-        .get();
-      
-      if (snapshot.exists()) {
-        const transactions = snapshot.val();
-        const transactionKey = Object.keys(transactions)[0];
-        const transaction = transactions[transactionKey];
-        
-        // Update the transaction with token
+
+      // Transactions live at transactions/{userId}/{key} — a two-level nested
+      // tree that CANNOT be queried by child value from the top. We use the
+      // transactionIndex (ref → {userId, transactionKey}) written at purchase
+      // time to locate the owning record directly.
+      const sanitize = (r: string) => r.replace(/[.#$/\[\]]/g, '_');
+      const refsToTry = Array.from(
+        new Set(
+          [data.flw_ref, data.tx_ref, data.reference].filter(Boolean).map((r: string) => sanitize(String(r)))
+        )
+      );
+
+      let located: { userId: string; transactionKey: string } | null = null;
+      for (const refKey of refsToTry) {
+        const idxSnap = await db.ref(`transactionIndex/${refKey}`).get();
+        if (idxSnap.exists()) {
+          located = idxSnap.val();
+          break;
+        }
+      }
+
+      if (located?.userId && located?.transactionKey) {
+        const txPath = `transactions/${located.userId}/${located.transactionKey}`;
+        const txSnap = await db.ref(txPath).get();
+        const transaction = txSnap.exists() ? txSnap.val() : null;
+
         const updates: any = {
           status: 'completed',
           webhookReceivedAt: Date.now(),
-          webhookData: payload,
+          flwRef,
         };
-        
-        if (token && !transaction.token) {
+
+        if (token && !transaction?.token) {
           updates.token = token;
           updates.tokenReceivedAt = Date.now();
-          console.log(`[Webhook] Token received for transaction ${transactionKey}: ${token.substring(0, 20)}...`);
+          console.log(`[Webhook] Token received for transaction ${located.transactionKey}: ${token.substring(0, 20)}...`);
         }
-        
-        await db.ref(`transactions/${transaction.userId || Object.keys(transactions)[0].split('/')[0]}/${transactionKey}`).update(updates);
-        
-        console.log(`[Webhook] Updated transaction ${transactionKey}`);
+
+        await db.ref(txPath).update(updates);
+        console.log(`[Webhook] Updated transaction ${located.transactionKey} for user ${located.userId}`);
       } else {
-        // Try searching by transactionId
-        const txSnapshot = await transactionsRef
-          .orderByChild('transactionId')
-          .equalTo(String(transactionId))
-          .limitToFirst(1)
-          .get();
-        
-        if (txSnapshot.exists()) {
-          const transactions = txSnapshot.val();
-          const userId = Object.keys(transactions)[0].split('/')[0];
-          const transactionKey = Object.keys(transactions)[0].split('/')[1];
-          
-          const updates: any = {
-            status: 'completed',
-            webhookReceivedAt: Date.now(),
-            flwRef,
-            webhookData: payload,
-          };
-          
-          if (token) {
-            updates.token = token;
-            updates.tokenReceivedAt = Date.now();
-          }
-          
-          await db.ref(`transactions/${userId}/${transactionKey}`).update(updates);
-          console.log(`[Webhook] Updated transaction by transactionId: ${transactionId}`);
-        } else {
-          console.log(`[Webhook] Transaction not found for flwRef: ${flwRef}`);
-        }
+        console.log(`[Webhook] Transaction not found in index for refs: ${refsToTry.join(', ')} (transactionId: ${transactionId})`);
       }
       
       return NextResponse.json({ status: 'ok', message: 'Webhook processed' });

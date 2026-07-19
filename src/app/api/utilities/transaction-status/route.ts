@@ -73,10 +73,11 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const transactionKey = searchParams.get('transactionKey');
     const flwRef = searchParams.get('flwRef');
+    const txId = searchParams.get('transactionId');
     
-    if (!transactionKey && !flwRef) {
+    if (!transactionKey && !flwRef && !txId) {
       return NextResponse.json(
-        { success: false, message: 'Missing transactionKey or flwRef parameter' },
+        { success: false, message: 'Missing transactionKey, flwRef or transactionId parameter' },
         { status: 400 }
       );
     }
@@ -109,6 +110,23 @@ export async function GET(request: NextRequest) {
       }
     }
     
+    // If still not found, try the Flutterwave transactionId — the client always
+    // knows this from the payment callback, even when complete-purchase timed
+    // out before returning a transactionKey.
+    if (!transaction && txId) {
+      const snapshot = await db.ref(`transactions/${authUser.uid}`)
+        .orderByChild('transactionId')
+        .equalTo(String(txId))
+        .limitToFirst(1)
+        .get();
+      
+      if (snapshot.exists()) {
+        const transactions = snapshot.val();
+        transactionId = Object.keys(transactions)[0];
+        transaction = transactions[transactionId];
+      }
+    }
+    
     if (!transaction) {
       return NextResponse.json(
         { success: false, message: 'Transaction not found' },
@@ -120,6 +138,7 @@ export async function GET(request: NextRequest) {
     const hasToken = !!transaction.token;
     const isPending = transaction.status === 'pending';
     const isCompleted = transaction.status === 'completed';
+    const isFailed = transaction.status === 'failed';
     
     // If pending without a token, poll Flutterwave — try flwRef first, then
     // the merchant reference (Flutterwave's status endpoint expects the
@@ -162,6 +181,8 @@ export async function GET(request: NextRequest) {
       },
       message: transaction.token 
         ? 'Your electricity token is ready!'
+        : isFailed
+          ? `Purchase failed: ${transaction.failureReason || 'Unknown error'}. Your payment was verified — contact support with reference ${transaction.reference}.`
         : isPending 
           ? 'Your purchase is still processing. Please check back in a few minutes.'
           : 'Purchase status unknown. Please contact support.',

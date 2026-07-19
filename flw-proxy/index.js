@@ -22,6 +22,12 @@ const PORT           = process.env.PORT || 8080;
 if (!FLW_SECRET_KEY) console.error('[flw-proxy] FLUTTERWAVE_SECRET_KEY not set');
 if (!PROXY_SECRET)   console.error('[flw-proxy] PROXY_SECRET not set');
 
+// fetch with a hard timeout — a hung Flutterwave request must not stall the
+// caller (Netlify functions die at ~10-26s; we want to fail fast and retry).
+function fetchWithTimeout(url, options = {}, timeoutMs = 25000) {
+  return fetch(url, { ...options, signal: AbortSignal.timeout(timeoutMs) });
+}
+
 // Request logging middleware
 app.use((req, res, next) => {
   console.log(`[flw-proxy] ${new Date().toISOString()} ${req.method} ${req.path}`);
@@ -70,14 +76,14 @@ app.post('/bill', async (req, res) => {
 
       console.log(`[flw-proxy] POST /bill attempt ${attempt}/3 → ${flwUrl}:`, JSON.stringify(payload));
 
-      const flwRes = await fetch(flwUrl, {
+      const flwRes = await fetchWithTimeout(flwUrl, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${FLW_SECRET_KEY}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(payload),
-      });
+      }, 25000);
 
       const text = await flwRes.text();
       console.log(`[flw-proxy] FLW response (attempt ${attempt}):`, flwRes.status, text.substring(0, 800));
@@ -101,6 +107,19 @@ app.post('/bill', async (req, res) => {
           console.log(`[flw-proxy] Non-retryable error on attempt ${attempt}:`, data.message);
           return res.status(flwRes.status).json(data);
         }
+      }
+
+      // Duplicate reference — retrying with the same reference can never
+      // succeed. Auth errors won't fix themselves either. Return immediately.
+      const errMsg = (data.message || '').toLowerCase();
+      if (
+        errMsg.includes('reference already exist') ||
+        errMsg.includes('duplicate') ||
+        flwRes.status === 401 ||
+        flwRes.status === 403
+      ) {
+        console.log(`[flw-proxy] Non-retryable error (${flwRes.status}) on attempt ${attempt}:`, data.message);
+        return res.status(flwRes.status).json(data);
       }
       
       // Save error for potential retry
@@ -138,10 +157,10 @@ app.get('/bill-status/:flwRef', async (req, res) => {
     const { flwRef } = req.params;
     console.log('[flw-proxy] GET /bill-status/', flwRef);
 
-    const flwRes = await fetch(`${FLW_BASE}/bills/${encodeURIComponent(flwRef)}`, {
+    const flwRes = await fetchWithTimeout(`${FLW_BASE}/bills/${encodeURIComponent(flwRef)}`, {
       method: 'GET',
       headers: { Authorization: `Bearer ${FLW_SECRET_KEY}` },
-    });
+    }, 15000);
 
     const text = await flwRes.text();
     console.log('[flw-proxy] FLW status response:', flwRes.status, text.substring(0, 800));
@@ -178,13 +197,13 @@ app.get('/bill-categories', async (req, res) => {
     const queryParams = new URLSearchParams(req.query).toString();
     const url = `${FLW_BASE}/bill-categories${queryParams ? '?' + queryParams : ''}`;
     
-    const flwRes = await fetch(url, {
+    const flwRes = await fetchWithTimeout(url, {
       method: 'GET',
       headers: { 
         Authorization: `Bearer ${FLW_SECRET_KEY}`,
         'Content-Type': 'application/json'
       },
-    });
+    }, 15000);
 
     const text = await flwRes.text();
     console.log('[flw-proxy] FLW categories response:', flwRes.status, text.substring(0, 500));
@@ -209,14 +228,14 @@ app.post('/validate-bill', async (req, res) => {
     const { proxySecret, item_code, code, customer } = req.body;
     console.log('[flw-proxy] POST /validate-bill:', { item_code, code, customer });
 
-    const flwRes = await fetch(`${FLW_BASE}/bill-items/${item_code}/validate`, {
+    const flwRes = await fetchWithTimeout(`${FLW_BASE}/bill-items/${item_code}/validate`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${FLW_SECRET_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ item_code, code, customer }),
-    });
+    }, 15000);
 
     const text = await flwRes.text();
     console.log('[flw-proxy] FLW validate response:', flwRes.status, text.substring(0, 800));

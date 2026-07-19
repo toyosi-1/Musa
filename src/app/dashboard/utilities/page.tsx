@@ -294,6 +294,34 @@ export default function UtilitiesPage() {
     }
   };
 
+  // If complete-purchase dies mid-request (serverless timeout), the purchase
+  // usually still went through. The server saves the transaction record BEFORE
+  // attempting the purchase, so locate it by the Flutterwave transactionId and
+  // resume from there instead of showing a scary error.
+  const recoverPendingPurchase = async (txId: string): Promise<boolean> => {
+    const RECOVERY_ATTEMPTS = 18; // 18 × 5s = 90 seconds
+    for (let i = 0; i < RECOVERY_ATTEMPTS; i++) {
+      try {
+        const res = await fetchWithAuth(`/api/utilities/transaction-status?transactionId=${encodeURIComponent(txId)}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && data.transaction) {
+            if (data.transaction.status === 'failed') return false;
+            setTransactionRef(data.transaction.reference || '');
+            setTransactionKey(data.transaction.id || null);
+            setPurchaseToken(data.transaction.token || null);
+            setStep('success');
+            return true;
+          }
+        }
+      } catch {
+        // Network hiccup — keep trying
+      }
+      await new Promise((r) => setTimeout(r, 5000));
+    }
+    return false;
+  };
+
   const validateMeter = async () => {
     if (!meterNumber || meterNumber.length < 10) {
       setErrorMessage('Please enter a valid meter number (at least 10 digits)');
@@ -458,8 +486,13 @@ export default function UtilitiesPage() {
             }
           } catch (err) {
             console.error('Complete purchase error:', err);
-            setErrorMessage('Network error after payment. Your payment was received — contact support if meter is not credited.');
-            setStep('error');
+            // The request may have timed out AFTER the purchase succeeded
+            // server-side. Try to recover before declaring failure.
+            const recovered = await recoverPendingPurchase(String(response.transaction_id));
+            if (!recovered) {
+              setErrorMessage('Network error after payment. Your payment was received — contact support if meter is not credited.');
+              setStep('error');
+            }
           }
         } else {
           setErrorMessage('Payment was not completed.');

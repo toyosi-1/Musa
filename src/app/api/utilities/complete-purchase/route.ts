@@ -215,6 +215,51 @@ async function updateTransactionWithToken(
 }
 
 /**
+ * Apply arbitrary updates to a transaction record. Never throws.
+ */
+async function updateTransactionRecord(
+  userId: string,
+  transactionKey: string | null,
+  updates: Record<string, unknown>
+) {
+  if (!transactionKey) return;
+  try {
+    const db = getAdminDatabase();
+    await db.ref(`transactions/${userId}/${transactionKey}`).update(updates);
+  } catch (err) {
+    console.error('[updateTransactionRecord] Failed to update:', err);
+  }
+}
+
+/** Sanitize a reference so it is a valid Firebase key. */
+function sanitizeRefKey(ref: string): string {
+  return ref.replace(/[.#$/\[\]]/g, '_');
+}
+
+/**
+ * Index a payment reference → {userId, transactionKey} so the Flutterwave
+ * webhook can find the owning transaction without scanning the nested
+ * transactions tree (which is keyed by userId and cannot be queried by ref).
+ */
+async function indexTransactionRef(
+  refValue: string | null | undefined,
+  userId: string,
+  transactionKey: string | null
+) {
+  if (!refValue || !transactionKey) return;
+  try {
+    const db = getAdminDatabase();
+    await db.ref(`transactionIndex/${sanitizeRefKey(refValue)}`).set({
+      userId,
+      transactionKey,
+      createdAt: Date.now(),
+    });
+  } catch (err) {
+    console.error('[indexTransactionRef] Failed to index:', err);
+  }
+}
+
+/**
  * POST /api/utilities/complete-purchase
  *
  * After the user pays via Flutterwave Inline on the frontend:
@@ -326,6 +371,23 @@ export async function POST(request: NextRequest) {
 
     const reference = `MUSA-PWR-${Date.now()}-${transactionId}`;
 
+    // Save a pending record BEFORE attempting the purchase. If this serverless
+    // function is killed mid-purchase (Netlify ~10-26s limit), the transaction
+    // is still recoverable via /transaction-status (by transactionId) and the
+    // Flutterwave webhook.
+    const transactionKey = await saveTransactionRecord(authUser.uid, {
+      transactionId: String(transactionId),
+      flwRef: '',
+      reference,
+      meterNumber: String(meterNumber),
+      amount: Number(amount),
+      billerName: billerName || '',
+      status: 'pending',
+      token: null,
+      createdAt: Date.now(),
+    });
+    await indexTransactionRef(reference, authUser.uid, transactionKey);
+
     // ── Step 1.5: Resolve ALL possible biller codes from Flutterwave's live API ──
     const resolvedBillerCode = clientBillerCode ? String(clientBillerCode) : '';
     const candidates = await resolveFreshCandidates(
@@ -381,21 +443,19 @@ export async function POST(request: NextRequest) {
           
           console.log(`[CompletePurchase] Extracted flwRef: ${flwRef}, immediate token: ${token ? token.substring(0, 20) + '...' : 'none'}`);
 
-          // CRITICAL: Save transaction record FIRST — before any polling.
-          // Serverless functions (Netlify) time out at ~10-26s. If we poll for
-          // 60s before saving, the function is killed, the record is never
-          // saved, and the client can never retrieve the token afterwards.
-          const transactionKey = await saveTransactionRecord(authUser.uid, {
-            transactionId,
+          // Update the pending record (saved before the purchase attempt) with
+          // the real flwRef, biller and token, then index the flwRef so the
+          // webhook can locate this transaction.
+          await updateTransactionRecord(authUser.uid, transactionKey, {
             flwRef: flwRef || reference,
-            reference,
-            meterNumber: String(meterNumber),
-            amount: Number(amount),
             billerName: candidate.billerCode,
             status: token ? 'completed' : 'pending',
             token,
-            createdAt: Date.now(),
+            ...(token ? { tokenReceivedAt: Date.now() } : {}),
           });
+          if (flwRef && flwRef !== reference) {
+            await indexTransactionRef(flwRef, authUser.uid, transactionKey);
+          }
 
           // Short in-request poll only (~5s) — catches fast tokens without
           // risking a serverless timeout. The client polls /transaction-status
@@ -450,8 +510,14 @@ export async function POST(request: NextRequest) {
         console.log(`[CompletePurchase] Invalid biller for ${candidate.itemCode}, trying next candidate...`);
       }
 
-      // All candidates failed
+      // All candidates failed — mark the pending record so the client stops
+      // polling and support can see exactly what happened.
       console.log('[CompletePurchase] Last error response:', lastRaw.substring(0, 800));
+      await updateTransactionRecord(authUser.uid, transactionKey, {
+        status: 'failed',
+        failureReason: lastError || 'All biller candidates failed',
+        failedAt: Date.now(),
+      });
       invalidateBillersCache();
 
       const flwMsg = (lastError || '').toLowerCase();
