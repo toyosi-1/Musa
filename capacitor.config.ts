@@ -6,7 +6,7 @@ const config: CapacitorConfig = {
   webDir: 'public',
   server: {
     // Point to your deployed web app URL
-    url: 'https://musa-security-app.windsurf.build',
+    url: 'https://musa-security.com',
     cleartext: false,
     androidScheme: 'https',
     iosScheme: 'https',
