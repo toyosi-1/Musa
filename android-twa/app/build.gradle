@@ -8,14 +8,14 @@ if (keystorePropertiesFile.exists()) {
 
 android {
     namespace 'com.musasecurity.app'
-    compileSdk 35
+    compileSdk 36
 
     defaultConfig {
         applicationId "com.musasecurity.app"
         minSdk 23
-        targetSdk 35
-        versionCode 100
-        versionName "1.0.0"
+        targetSdk 36
+        versionCode 101
+        versionName "1.0.1"
 
         // TWA meta-data
         manifestPlaceholders = [
